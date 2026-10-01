@@ -1,0 +1,15 @@
+parameters:
+  tasks.verify:
+    value: true
+    type: boolean
+    changed_by: organic
+    group: Tasks
+    describe: Whether another member must verify a task before its hours count. Off, the member's own word is enough.
+  tasks.pay_per_hour:
+    value: 0
+    type: integer
+    min: 0
+    max: 1000000
+    changed_by: organic
+    group: Tasks
+    describe: Smallest units of the entity's unit (the value module) paid per verified hour. 0 pays nothing; hours are still counted.

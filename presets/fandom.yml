@@ -1,0 +1,19 @@
+_: An online fan community. Anyone may join; members pick handles; votes run
+   three days and need only a tenth of members to take part.
+
+modules: [deliberation, titles, vocabulary]
+
+set:
+  entity.name: The Fandom
+  vocabulary.participant: member
+  vocabulary.participants: members
+  vocabulary.assembly: Community Vote
+  vocabulary.proposal: proposal
+  membership.admission: open
+  deliberation.period: 3
+  amendment.rules.ordinary.quorum: 0.10
+  titles.max_length: 32
+
+note: >
+  Turnout in large online communities is low, so ordinary decisions need a
+  tenth of members to vote. Changing the community rules (law/) is organic.

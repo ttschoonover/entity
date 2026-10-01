@@ -1,0 +1,18 @@
+parameters:
+  authority.grant_rule:
+    value: organic
+    type: string
+    one_of: [ordinary, organic, constitutional, entrenched]
+    changed_by: organic
+    group: Authority
+    describe: >
+      The least rule under which authority is granted or revoked. A grant also
+      needs the rule of every effect it permits, if that is stricter.
+  authority.cosign_days:
+    value: 7
+    type: integer
+    min: 1
+    max: 90
+    changed_by: organic
+    group: Authority
+    describe: How long a use of a grant that needs several signatures waits for them before it lapses.

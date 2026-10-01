@@ -1,0 +1,17 @@
+parameters:
+  polls.default_days:
+    value: 7
+    type: integer
+    min: 1
+    max: 365
+    changed_by: ordinary
+    group: Polls
+    describe: How long a poll stays open when its opener does not say.
+  polls.max_days:
+    value: 90
+    type: integer
+    min: 1
+    max: 365
+    changed_by: ordinary
+    group: Polls
+    describe: The longest a poll may stay open.

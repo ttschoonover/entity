@@ -1,0 +1,182 @@
+{
+  "about": "Canonical serialisation, SHA-256 and Merkle vectors. Every implementation, in every language, must reproduce these byte for byte. Object keys sort by UTF-16 code unit.",
+  "canonical": [
+    {
+      "input": null,
+      "canonical": "null",
+      "sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+    },
+    {
+      "input": true,
+      "canonical": "true",
+      "sha256": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b"
+    },
+    {
+      "input": false,
+      "canonical": "false",
+      "sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa"
+    },
+    {
+      "input": 0,
+      "canonical": "0",
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "input": 0,
+      "canonical": "0",
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "input": 1,
+      "canonical": "1",
+      "sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+    },
+    {
+      "input": -1.5,
+      "canonical": "-1.5",
+      "sha256": "37c2b212b94e5372b33df924ea2a91182d90c237d0bf942c1768e794ebef2376"
+    },
+    {
+      "input": 1e+21,
+      "canonical": "1e+21",
+      "sha256": "241c4643fa70b1dcde1205b71be4e3bebb17e9f880c8e1a33d0ead6c27271d3c"
+    },
+    {
+      "input": 1e-7,
+      "canonical": "1e-7",
+      "sha256": "5b33e02f2c5103a05d32f6ba9cb058294452bfbf393967f68bb30c1bdcbbab22"
+    },
+    {
+      "input": 0.1,
+      "canonical": "0.1",
+      "sha256": "14be4b45f18e0d8c67b4f719b5144eee88497e413709d11d85b096d8e2346310"
+    },
+    {
+      "input": 123456789012345680000,
+      "canonical": "123456789012345680000",
+      "sha256": "725abf175290195635e55a971cf88e02a46d6d56e964ec2d8bc47614b9559062"
+    },
+    {
+      "input": "",
+      "canonical": "\"\"",
+      "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+    },
+    {
+      "input": "a\"b\\c",
+      "canonical": "\"a\\\"b\\\\c\"",
+      "sha256": "29e409e74462be098277d1428e52e22cd782e73a9f50b4f4f26e6527ab583eca"
+    },
+    {
+      "input": "line\nbreak\ttab",
+      "canonical": "\"line\\nbreak\\ttab\"",
+      "sha256": "8f5f8c396a6ceb35e0813ffd0d921c9cd495f2f2e73d2cc8c93e0a9a7574b361"
+    },
+    {
+      "input": "é ü 中文 😀",
+      "canonical": "\"é ü 中文 😀\"",
+      "sha256": "130344f6464b729c9c10a4ff0688c0e8abdcbb3ac6faba047b4198cf9e4e39e5"
+    },
+    {
+      "input": "\u0000\u001f",
+      "canonical": "\"\\u0000\\u001f\"",
+      "sha256": "3d27e9c838c2725b91760feaf1456b36aa570a6f3001dae7c8ad772f48429228"
+    },
+    {
+      "input": [],
+      "canonical": "[]",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "input": {},
+      "canonical": "{}",
+      "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "input": [
+        1,
+        [
+          2,
+          [
+            3
+          ]
+        ]
+      ],
+      "canonical": "[1,[2,[3]]]",
+      "sha256": "515b8578d7e3f9401f4013b481191a4df6373a4b37fc3e565abd5085344c927f"
+    },
+    {
+      "input": {
+        "b": 1,
+        "a": 2,
+        "A": 3,
+        "": 4,
+        "é": 5,
+        "z": null
+      },
+      "canonical": "{\"\":4,\"A\":3,\"a\":2,\"b\":1,\"z\":null,\"é\":5}",
+      "sha256": "dceafe7b13ada35b114f4239f0d13768af321cd048ffef2ec4d0642ae0f4d719"
+    },
+    {
+      "input": {
+        "nested": {
+          "y": [
+            {
+              "b": 2,
+              "a": 1
+            }
+          ],
+          "x": true
+        }
+      },
+      "canonical": "{\"nested\":{\"x\":true,\"y\":[{\"a\":1,\"b\":2}]}}",
+      "sha256": "4c7ddff65f39c7330234f1b89bc7da227d237ddd07d5883712c6e5ad5d911bad"
+    }
+  ],
+  "sha256": [
+    {
+      "input": "",
+      "hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "input": "abc",
+      "hex": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    }
+  ],
+  "merkle": [
+    {
+      "leaves": [],
+      "root": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "leaves": [
+        "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+      ],
+      "root": "e65d3d4b9a018f8eeb99e8a1d43c79a0c86be77a1dc0d432c528066073cf2a63"
+    },
+    {
+      "leaves": [
+        "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+        "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"
+      ],
+      "root": "725bc991cb239f9157033b7e3c0a684b9a6a97a9783e7bec046a2311762dedff"
+    },
+    {
+      "leaves": [
+        "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+        "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d",
+        "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6"
+      ],
+      "root": "7a8bec3d55a2141689d7e859a237b4543f0c907487be602ebdbab57255a6b577"
+    },
+    {
+      "leaves": [
+        "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+        "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d",
+        "2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6",
+        "18ac3e7343f016890c510e93f935261169d9e3f565436429830faf0934f4f8e4",
+        "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea"
+      ],
+      "root": "8decbeee215cb1e68c53634fbbd5bf79ef14bf4f7727cd6bffa9d52eaa0f75c1"
+    }
+  ]
+}

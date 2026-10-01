@@ -1,0 +1,8 @@
+parameters:
+  badges.rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Badges
+    describe: The rule under which badges are created, awarded, revoked or retired.

@@ -1,0 +1,23 @@
+parameters:
+  offices.create_rule:
+    value: organic
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Offices
+    describe: The rule under which offices are created or abolished.
+  offices.fill_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Offices
+    describe: The rule under which someone is appointed to, or removed from, an office.
+  offices.term_limit:
+    value: 0
+    type: integer
+    min: 0
+    max: 20
+    changed_by: organic
+    group: Offices
+    describe: How many terms one person may serve in the same office. 0 means no limit.

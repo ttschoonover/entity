@@ -1,0 +1,8 @@
+parameters:
+  elections.call_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Elections
+    describe: The rule under which an election is called. The election then fills the office by vote.

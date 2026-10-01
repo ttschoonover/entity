@@ -1,0 +1,22 @@
+parameters:
+  shares.class_rule:
+    value: constitutional
+    type: string
+    one_of: [organic, constitutional, entrenched]
+    changed_by: constitutional
+    group: Shares
+    describe: The rule under which a new class of shares is created. A class decides who owns and who votes, so it is constitutional by default.
+  shares.issue_rule:
+    value: organic
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: constitutional
+    group: Shares
+    describe: The rule under which shares are issued or redeemed. Issuing dilutes every holder of the class.
+  shares.dividend_rule:
+    value: organic
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Shares
+    describe: The rule under which a dividend is paid, in the entity's unit, on a class of shares.

@@ -1,0 +1,27 @@
+parameters:
+  threads.boards:
+    value: [general]
+    type: list
+    changed_by: ordinary
+    group: Threads
+    describe: The boards set by decision. Members may start more if threads.open_boards is on.
+  threads.open_boards:
+    value: true
+    type: boolean
+    changed_by: ordinary
+    group: Threads
+    describe: Whether any active member may start a new board, as on a forum. Off means boards come only from threads.boards, by decision.
+  threads.max_length:
+    value: 10000
+    type: integer
+    min: 100
+    max: 100000
+    changed_by: ordinary
+    group: Threads
+    describe: The longest post or reply, in characters. Every post stays in the record forever, so this also bounds how fast it grows.
+  threads.moderator_office:
+    value: ""
+    type: string
+    changed_by: organic
+    group: Threads
+    describe: The id of an office whose holders may hide posts, giving a published reason. Empty means posts are hidden only by decision.

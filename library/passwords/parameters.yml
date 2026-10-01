@@ -1,0 +1,11 @@
+parameters:
+  passwords.min_length:
+    value: 12
+    type: integer
+    min: 10
+    max: 64
+    changed_by: organic
+    group: Signing in
+    describe: >
+      The shortest password the page accepts. Every public key is on the public
+      register, so a password can be guessed offline: longer is much safer.

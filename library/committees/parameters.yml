@@ -1,0 +1,15 @@
+parameters:
+  committees.create_rule:
+    value: organic
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Committees
+    describe: The rule under which committees are created or dissolved.
+  committees.appoint_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Committees
+    describe: The rule under which members are appointed to, or removed from, a committee.

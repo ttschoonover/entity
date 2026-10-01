@@ -1,0 +1,25 @@
+parameters:
+  vocabulary.participant:
+    value: participant
+    type: string
+    changed_by: ordinary
+    group: Vocabulary
+    describe: What one participant is called.
+  vocabulary.participants:
+    value: participants
+    type: string
+    changed_by: ordinary
+    group: Vocabulary
+    describe: What participants are called together.
+  vocabulary.assembly:
+    value: Assembly
+    type: string
+    changed_by: ordinary
+    group: Vocabulary
+    describe: What the body that decides is called.
+  vocabulary.proposal:
+    value: proposal
+    type: string
+    changed_by: ordinary
+    group: Vocabulary
+    describe: What a proposal is called.

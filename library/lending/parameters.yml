@@ -1,0 +1,46 @@
+parameters:
+  lending.default_days:
+    value: 7
+    type: integer
+    min: 1
+    max: 365
+    changed_by: ordinary
+    group: Lending
+    describe: How long a loan lasts when the borrower does not say.
+  lending.max_days:
+    value: 30
+    type: integer
+    min: 1
+    max: 365
+    changed_by: ordinary
+    group: Lending
+    describe: The longest a single loan or renewal may be.
+  lending.max_renewals:
+    value: 1
+    type: integer
+    min: 0
+    max: 20
+    changed_by: ordinary
+    group: Lending
+    describe: How many times a borrower may extend a loan themselves.
+  lending.max_per_member:
+    value: 3
+    type: integer
+    min: 0
+    max: 100
+    changed_by: ordinary
+    group: Lending
+    describe: How many things one member may have out at once. 0 means no limit.
+  lending.except:
+    value: []
+    type: list
+    changed_by: ordinary
+    group: Lending
+    describe: Ids of deeds held by the entity that are not lent out.
+  lending.recall_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Lending
+    describe: The rule under which a loan is ended early. A librarian office can be granted this power instead.

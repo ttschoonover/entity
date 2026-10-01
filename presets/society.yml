@@ -1,0 +1,18 @@
+_: A learned society or club. Admission by decision, a high bar for changing
+   the charter, and ordinary business kept light.
+
+modules: [deliberation, titles, vocabulary]
+
+set:
+  entity.name: The Society
+  vocabulary.participant: fellow
+  vocabulary.participants: fellows
+  vocabulary.assembly: Council
+  membership.admission: decision
+  membership.admission_rule: organic
+  deliberation.period: 14
+  amendment.rules.ordinary.quorum: 0.25
+
+note: >
+  Admitting a fellow is an organic decision: a third must vote and two thirds of
+  those deciding must agree. Proposals stay open for two weeks.
