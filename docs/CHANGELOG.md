@@ -1,5 +1,352 @@
 # Changes
 
+## 0.9.16 · Rooms and direct messages
+
+- **Direct messages.** Members write to each other directly. Each message is
+  sealed in the sender's browser with a fresh key, wrapped for every chat key of
+  both people; the node relays and stores ciphertext it cannot open, and checks
+  the sender's signature over the ciphertext and the wraps. Only the author
+  deletes a direct message, for both of them. `chat.direct_messages` switches
+  them off.
+- **Rooms.** Beside the channels the law names, members (`chat.room_creators`:
+  members, an office, a committee, or nobody) open rooms of their own, public
+  or members-only (encrypted like any members' channel), up to `chat.max_rooms`.
+  The opener or a moderator closes a room, and its messages are deleted with it.
+  Channels the law names close only by law.
+- Deleting messages: authors and moderators in channels and rooms, authors only
+  in direct messages, as before.
+
+## 0.9.15 · One website for a federation and its states
+
+- The site kit shows several entities on one site. A site's config.js names
+  `entities: 'entities.json'`, a list of `{ key, label, url }` whose first is the
+  site's own node. Each record is fetched from its own node, with its own module
+  code, and verified in the browser; `?e=key` says which one a page is about, and
+  a row of pills in the masthead switches between them. One password signs a
+  member in to every entity they belong to, and each act goes to its own node.
+- `sites/federation`: the federation and both states on one page: the federal
+  parliament drawn seat by seat and coloured by state, each state's government,
+  citizens and seats, the open votes of all three, the currency and the parties.
+  Apply to a state, admit and vote in it, report a state's citizens to the
+  federation as its registrar, and take up federal citizenship, all from the page.
+- `make-federation.sh` installs this site in the federation's folder (no page
+  module); the states' own addresses lead to it.
+
+## 0.9.14 · Parties, federations, referendums
+
+- **parties**, a module: members found parties, join one at a time
+  (`parties.exclusive`), leave, and follow a leader who rewrites the platform.
+  A leader hands over, or is replaced once more than half of the party calls for
+  the same person. A party is registered at `parties.min_members`; the
+  electorate `party:ID` counts members after `parties.cooling_days`; the members
+  as a whole may dissolve a party under `parties.dissolve_rule`. `allocate()`
+  shares seats by D'Hondt or Sainte-Laguë.
+- **federation**, a module: a federation of separate entities. States are
+  admitted and released by federal decision (secession is lawful only by
+  release). Each state's registrar key certifies, from the state's own record,
+  its citizens and whom it appoints to the senate (equal seats) and the assembly
+  (seats by population, the method of equal proportions, at least one each).
+  Nobody is a citizen of two states; federal citizenship is taken up with the
+  citizen's own state key (`citizen.enroll`) and lapses with state citizenship.
+  Electorates `senate`, `assembly` and `parliament`.
+- `entity federation certify | enroll | status`: reads a state's record,
+  verified by replay, and signs for its registrar or citizen.
+- **Referendums** (deliberation): `decision.referendum` lists rules whose
+  proposals every member decides, whoever `decision.electorate` names. A
+  parliament for ordinary law and the people for the constitution.
+- `make-federation.sh`: a federation of two states, one currency, a senate and
+  an assembly; each state a parliament, direct democracy, or both.
+
+## 0.9.13 · Encrypted chat
+
+- Members-only chat channels are **end-to-end encrypted**. Messages are sealed
+  in the writer's browser and opened in each reader's; the node keeps only
+  ciphertext and still checks every signature. A channel opts out with
+  `encrypt: false` in `chat.channels`; public channels are never encrypted.
+- Each member's chat key (X25519) is derived from their signing key, so it needs
+  no new secret and is the same in every browser they use. It is registered with
+  the node signed by a record key, and every page checks that signature, so a
+  node cannot slip in a key of its own (`POST /chat/keys`).
+- Each channel has a key per epoch, made by a member's browser and wrapped for
+  every member's chat key (`/chat/c/ID/epochs`). Members who join get the current
+  key from the next member online. When someone stops being a member, the next
+  member to open the channel starts a new epoch that leaves them out.
+- `interface/js/chatcrypto.js`: X25519 (RFC 7748, checked against its test
+  vector), HKDF and AES-GCM through Web Crypto, the same in browser and Node.
+- What it does not hide: who wrote, when, in which channel, and how long each
+  message is. A password or a key kept in the browser is needed; passkeys cannot
+  read encrypted channels yet.
+
+## 0.9.12 · Chat
+
+- **chat**, a module: channels of messages, like a group chat, kept by the node
+  and never written to the record. The members decide by law which channels
+  exist, who reads each (anyone, or members) and who writes in it (members, an
+  office or a committee), who moderates, and how long messages are kept
+  (`chat.channels`, `chat.moderators`, `chat.retention_days`, `chat.max_length`).
+- Every message is signed in the page with its author's own key in its own
+  namespace (`entity.chat`), so the node cannot forge one and it can never be
+  replayed as an act. Reading a members' channel takes a short-lived signed
+  token instead of a session. Authors and moderators delete messages; the text
+  leaves the node's disk.
+- The node (`cli/chat.js`): channels, history, posting, deleting, and a live
+  stream so new messages appear at once. A copy of the entity is refolded only
+  when the record grows.
+- `chat.html` in the site kit: channels on the left (a menu on phones), the
+  conversation with days, replies, links, `code` and @mentions, and a box to
+  write in (Enter sends, Shift+Enter for a new line). Both the VDR and the
+  solidarity network are founded with it.
+
+## 0.9.11 · The solidarity network gets its own website
+
+- **A shared site kit** (`sites/kit`): the masthead, signing in and joining,
+  signing acts, the Institutions page, the privacy page, preferences and the
+  stylesheet, shared by every site built on windows. Each site adds its own
+  pages, flag and `config.js` (how it refers to itself, its pages, a line about
+  what it is); what members and proposals are called comes from the entity's
+  vocabulary. The VDR now runs on it (`sites/vdr` keeps its home page and laws).
+- **Joining signs what admission requires.** Where `agreements.required` names
+  documents (a pledge, terms), the join form shows them and signs them with the
+  new member's key straight after the application. Applicants appear on the
+  members tab, with what they still owe and a button to propose admitting them.
+- **`one.js`**: a page that is one module, full width (`<main data-module=…>`).
+- **`floor.js`**: open votes as cards, shared by both home pages.
+- **The solidarity network is headless** (`make-solidarity.sh`): its website is
+  `sites/kit` plus `sites/solidarity`: a home page (on the shelf now, how
+  borrowing works, the library, open votes, the solidarity fund, what was
+  agreed, how the network runs), the library of things and the wiki as pages of
+  their own, and an emblem. The founder is asked for the name members see.
+
+## 0.9.10 · Peers pull on their own
+
+- **A node pulls from Radicle while it runs.** `entity serve` on a copy with a
+  radicle destination pulls every peer's acts and records every 2 minutes
+  (`pullEveryMinutes` in node.json; 0 turns it off), inside the same queue as
+  the website's writes, then settles and publishes. An act signed on any copy
+  reaches the others with nobody running a command. A diverged history is kept
+  aside, never merged silently.
+
+## 0.9.9 · Every setting is a law
+
+- **Settings are laws.** Every setting is governed by a parametric law, at the
+  level its rule needs. The VDR is founded with four: the Statutory, Organic,
+  Constitutional and Entrenched Settings Acts, covering every changeable setting.
+  Changing a setting means amending its act or enacting another parametric law.
+- **Only by law.** With `laws.settings_by_law` on (default; constitutional), a
+  bill to the citizens cannot change settings directly; installing and removing
+  modules still can. New kernel hook: `registerProposalCheck`. Core 0.9.8.
+- **No setting left without a law.** A law that governs settings cannot be
+  repealed or amended to drop them until another law sets them. This also
+  settles what repealing a parametric law means: nothing is silently left behind.
+- **Majorities hold.** Each version of a law records the rule it was enacted
+  under; repealing or amending it needs at least that rule, and an amendment
+  cannot lower it (no demoting the Constitution to a statute). A repeal or
+  ratification may be decided under a stricter rule than it needs.
+- **Statute book**: an "Every setting" page, grouped by majority, with each
+  setting's value and governing law; law pages say when a setting has since been
+  set by another law; the drafting form keeps settings a law governs and words
+  majorities from the rules as they stand.
+- At founding the entrenched rule takes one vote, and the Entrenched Settings
+  Act sets it to two votes 30 days apart, as Article X says.
+
+## 0.9.8 · Names everywhere, removal where things are listed
+
+- **Preferred names.** Every module page names people as "Name (id)": office
+  holders, committee members, candidates, meeting attendance, badge holders,
+  lenders and borrowers, the people a law concerns, and the choices in every
+  "appoint" or "award" list. Proposal titles use names too. make-vdr.sh asks the
+  founder for the name citizens will see (or takes `YOUR_NAME=…`).
+- **Abolish and dissolve in place.** Each office has "Propose abolishing it" and
+  each committee "Propose dissolving it", on the Offices and Committees tabs and
+  their own pages. The "Add or remove" tab is now **Modules**: what is installed,
+  each with "Propose removing it", and what can be added.
+- **Tabs.** The current page's underline sits on the rule, in the masthead and
+  on the Institutions tabs, and the tabs stay on one line (scrolling sideways
+  when they do not fit) instead of wrapping.
+- Grants of authority name the office or committee by its title.
+
+## 0.9.7 · Firefox, names, privacy, and a plainer VDR site
+
+- **Firefox signing.** Where Web Crypto will not export an Ed25519 public key
+  from a seed (Firefox), it is computed in JavaScript (`kernel/ed25519pub.js`)
+  and the key imported as a JWK. Keys and signatures are the same in every
+  browser.
+- **republic**, a settings module: the motto, the name in running text, the
+  privacy contact and the minimum age for citizenship.
+- **The VDR site**: one monochrome stylesheet; display and accessibility
+  preferences (theme, text size, contrast, motion, links, font); a check of what
+  the browser can do; a privacy and cookies page with tools to download your
+  data, change your name, leave, and clear the browser; a one-time storage
+  notice that respects Global Privacy Control; age and public-record
+  confirmation when joining; preferred names shown with ids; proposals to
+  abolish an office, dissolve a committee or remove a module; plainer text
+  throughout. The default name is "Virtual Democratic Republic".
+
+## 0.9.6 · A relational legal system, Parliament and referendums
+
+- **laws**, a module: every law has a type (constitutional, organic, statutory,
+  ordinary, parametric, as the constitutional setting `laws.types` defines
+  them), tags, and the bodies that enforce it and on whom. Parametric laws carry
+  parameter changes and make them when enacted. Laws are made by Parliament
+  (bills, votes, a petition window, promulgation) or by referendum (Assembly
+  decisions to enact, repeal or ratify); bills above `laws.parliament_max_rule`
+  always go to the citizens.
+- The VDR is founded with it: a Parliament of nine elected members, the
+  Constitution and a Parliament Act as laws, and a Constitution that describes
+  the types of law, Parliament and referendums. Its Laws page browses by type,
+  tag and body, shows every version and the settings each law set, and drafts
+  laws and amendments for either way of making them; Parliament and the statute
+  book appear among its Institutions.
+
+## 0.9.5 · Email two-factor
+
+- **twofactor**, a module: the members decide who must sign in with a code
+  emailed to them (`twofactor.require`: optional, officers, everyone); the node
+  enforces it at sign-in, on `/acts` and on `/bundle`. Addresses are kept by the
+  node alone (`.entity/twofactor.json`), never on the record.
+- The node sends mail itself (`cli/mail.js`: SMTP over TLS or STARTTLS, no
+  dependencies), set up with `entity twofactor mail`, tested with
+  `entity twofactor test`; `entity twofactor reset` for a lost inbox.
+- The page, the private sign-in page, the signing window and the VDR site all
+  ask for the code when the node wants it, and send the act again.
+
+## 0.9.4 · A library of things with deposits
+
+- **things**, a module: members lend each other what they own against a cash
+  deposit, and the network lends what it holds in common through a keeper.
+  Requests queue; the lender signs the hand-over and the deposit received, and
+  the return with anything kept and why; borrowers can say they returned it and
+  dispute what was kept; the network settles disputes and declares losses. A
+  **solidarity fund** can stand behind the deposit of any member who asks, up to
+  a limit: what a covered loan keeps or loses becomes a claim the fund pays.
+- **make-solidarity.sh** founds a cooperative solidarity network on it: the
+  Solidarity Pledge, Principles and a handbook; a Coordinator, Treasurer and
+  Librarian, elected; a Solidarity Committee that settles disputes and gives
+  mutual aid two signatures at a time; a budget with deposit-cover, mutual-aid
+  and commons lines; boards for offers and requests; shared tasks.
+
+## 0.9.3 · A republic's own website
+
+- **Site folder for headless republics** (`"site": "website"` in node.json): a
+  republic without the page module serves that folder's `index.html` at `/`
+  and its files (HTML, CSS, JS, SVG, fonts, images) beside the record, the
+  window and `/acts`. Paths cannot leave the folder.
+- **The Virtual Democratic Republic** (`sites/vdr`, `make-vdr.sh`): a liberal
+  democratic micronation built on windows. Open citizenship, an Assembly of
+  all citizens, a President, Speaker and Secretary of State elected by approval
+  voting, a Supreme Court, and a written Constitution enacted at founding. Its
+  website draws the Assembly as a hemicycle, one seat per citizen, coloured by
+  their vote on the bill on the floor. Three pages: the floor; **the Laws**
+  (the Constitution and every statute, versions, redlines, history, and
+  amending, enacting or repealing by bill, with the Constitution never below
+  the constitutional rule); and **Institutions**, where every installed module
+  draws itself through its own ui.js, so a module the Assembly installs appears
+  with no change to the site. Citizens join, sign in and sign on the site.
+
+## 0.9.2 · Private republics
+
+- **Private mode** (`"private": true` in node.json): the node serves nothing
+  but a sign-in page, the public program code, and an application form until a
+  member signs in. Members prove who they are by signing a one-time challenge
+  in their browser, with their password, key file, passkey, or the key the
+  browser keeps; nothing secret is sent. A session lasts twelve hours. The
+  record, the page, votes, windows and every other address answer only to a
+  signed-in member; applicants cannot sign in until admitted. No cross-origin
+  access in private mode.
+- Candidates apply from the sign-in page, and read and sign whatever
+  membership requires (with a drawn signature where required) before the
+  members admit them.
+- `make-society.sh` founds the society in private mode.
+
+## 0.9.1 · Loans and an endowment
+
+- **loans**, a new module: an interest-free revolving loan fund. Capital is
+  added by decision (`loan.fund`); loans are made within what is available,
+  `loans.max_amount` and `loans.max_open` (`loan.make`); repayments return to
+  the fund (`loan.repay`); only a decision forgives what is left
+  (`loan.forgive`). Usually granted to a committee of stewards, two signatures
+  each. Overdue loans are shown, not punished.
+- **endowment**, a new module: a permanent fund. Gifts are principal, never
+  spent; the treasurer records its value; each year up to
+  `endowment.spend_rate` (4% by default) of its latest value may be drawn, never
+  below the principal, for the loan fund or the budget.
+- `make-society.sh`: a sealed secret society with degrees, mutual aid, the loan
+  fund, the endowment and a budget.
+
+## 0.9.0 · Windows, sealed content, the page as a module
+
+- **The page is a module** (`page`). With it, a node serves the republic's page
+  as before; without it, the republic runs headless: its record, signed acts and
+  windows work, and its front door says so. Every preset includes it, and the
+  control panel's guide ticks it. **Upgrading an older republic: install `page`
+  first**, or it becomes headless; `upgrade check` and `upgrade propose` say so.
+- **Windows** (`window.js`, docs/WINDOWS.md): show a republic on any website,
+  verified in each visitor's browser. Elements for the seal, any variable
+  (officers, office-holders, grants and their holders, money in circulation,
+  balances, settings, open votes, decisions, statutes), lists and live votes;
+  `connect()` for JavaScript, with live streams (`/window/events`) and
+  comparison against other copies. Writing (votes, joining, any act) happens in
+  a signing window served by the republic's own node, which shows exactly what
+  is signed; the host website never sees a key or password.
+- **sealed**, a new module: content only members can read. Members publish an
+  encryption key derived from their own signing key; key periods seal a group
+  key to every member; posts are encrypted in the browser or terminal, and the
+  record holds no readable content, so anyone can hold and verify a copy.
+  Nothing new can be sealed while anyone holding the current key has left: the
+  next sealed act must start a new period without them. `sealed.history` says
+  whether newcomers may read earlier periods. X25519 (RFC 7748) written out in
+  plain JavaScript, checked against the RFC's test vectors; AES-256-GCM and
+  HKDF from the platform's Web Crypto. `entity seal` does it all from the
+  terminal.
+- The page gives modules `api.key()`, the signed-in member's key for
+  decrypting (not passkeys, which cannot).
+
+## 0.8.1 · No terminal needed
+
+- **`entity app`**, the local control panel: a page on this computer
+  (http://127.0.0.1:7700) that creates republics with a six-step guide (basics,
+  a starting preset, modules, every setting with its explanation, look and
+  serving, a review), then runs and looks after them: serving, node settings,
+  a settings setter (proposals, voted at once when you are the only member),
+  modules, passwords, Radicle, copies, upgrades, checks, and any other command.
+  It listens on 127.0.0.1 only, answers only to its own name, and needs the
+  secret token it prints at start; every operation runs the republic's own
+  command line, so the panel and the terminal always agree.
+- **`entity password set | remove`**: the terminal can now do what the page's
+  *Ways to sign in* does.
+- On a republic's page: **Lay reading 2** on a proposal awaiting a further
+  reading, and **Propose anything (written out)** for effects and settings no
+  tab has a form for. Every operation can now be done on the page or panel, or
+  in the terminal.
+
+## 0.8.0 · Contracts and disputes
+
+- **contracts**, a new module: deals between two members, paid in the entity's
+  value units through escrow. Offered, accepted (the payment is held from the
+  payer), marked done, confirmed (paid to the provider), or collected by the
+  provider once `contracts.release_days` pass with no dispute. Cancelled only
+  by both. A Contracts tab shows each deal, its terms and fingerprint, and what
+  each side can do next.
+- **disputes**, a new module: claims between members, about a contract (its
+  escrow freezes) or anything else. The other side answers; the arbiter
+  (`disputes.arbiter`: an office, a committee by majority, or a member) rules
+  with reasons; either side may appeal within `disputes.appeal_days` to
+  `disputes.appeal` (another body, the members by proposal, or none); the
+  ruling then moves the escrow, or pays from the loser's balance, with what
+  they lack recorded as owed. Parties never rule; whoever ruled first never
+  hears the appeal, and barred members do not count toward a majority. An
+  unpaid ruling bars new contracts until it is paid. Optional deposits
+  discourage frivolous claims. Evidence is recorded by its SHA-256
+  fingerprint, computed in the browser; the files go to the parties directly.
+- **value:** holds, an amount set aside from a balance by another module
+  (`state.m.value.held`), which only that module pays out or returns.
+
+## 0.7.9
+
+- Licence: © 2026 Timothy Schoonover, all rights reserved (previously MIT).
+  Earlier copies received under MIT keep that licence; this and later versions
+  do not.
+
 ## 0.7.8
 
 - **Reversing a decision.** Every enacted proposal offers *Propose reversing

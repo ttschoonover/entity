@@ -134,6 +134,16 @@ function closeRecords(state, p, tally, { at, closedEarly, params, registry }) {
   return [{ kind: 'proposal.closed', payload: { proposal: p.id, carried, closedEarly, enacted, awaiting, notEnacted, tally: summary } }, ...out];
 }
 
+// Who decides a proposal under this rule: the entity's electorate, unless the
+// rule is one decision.referendum names, which every active member decides by
+// referendum (a parliament for ordinary laws, the people for the constitution).
+// A frozen entity stays frozen.
+export function electorateFor(params, rule) {
+  const spec = params.value('decision.electorate');
+  if (spec === 'none' || !params.has('decision.referendum')) return spec;
+  return (params.value('decision.referendum') || []).includes(rule) ? 'members' : spec;
+}
+
 function install(registry) {
   registry.registerKind({
     name: 'proposal.lay',
@@ -141,7 +151,7 @@ function install(registry) {
     check(state, act, { params, registry }) {
       const me = state.participants[act.by];
       if (me.status !== 'active') return `${act.by} is not an active participant`;
-      const who = resolveElectorate(registry, state, params, act.at);
+      const who = resolveElectorate(registry, state, params, act.at, electorateFor(params, act.rule));
       if (who.frozen) return 'this entity is frozen: decision.electorate is "none", so nothing can be decided';
       if (who.why) return `nobody can decide: ${who.why}`;
       if (who.total === 0) return `nobody can vote: the electorate "${who.spec}" is empty`;
@@ -194,6 +204,12 @@ function install(registry) {
         const why = checkDefinition(params, k, d);
         if (why) return why;
       }
+      const enabledNow = params.has('entity.modules') ? params.value('entity.modules') : [];
+      for (const c of registry.proposalChecks || []) {
+        if (!enabledNow.includes(c.module)) continue;
+        const why = c.check(state, act, params);
+        if (why) return why;
+      }
       const effectWhy = simulateEffects(state, act, params, registry, act.at);
       if (effectWhy) return `refused at proposal: ${effectWhy}`;
       const req = required(params, act, registry);
@@ -221,7 +237,7 @@ function install(registry) {
       const id = proposalId(act);
       const prev = act.reading_of ? state.proposals[act.reading_of] : null;
       const r = params.rules[act.rule];
-      const who = resolveElectorate(registry, state, params, act.at);
+      const who = resolveElectorate(registry, state, params, act.at, electorateFor(params, act.rule));
       const roll = state.order.filter(pid => pid in who.roll);
       const weighted = roll.some(pid => who.roll[pid] !== 1);
       state.proposals[id] = {
@@ -320,5 +336,5 @@ function install(registry) {
   });
 }
 
-export default { name: 'deliberation', install, count, tallyOf, required, proposalId, withModules, futureParams, parameterKeys: ['deliberation.period'] };
+export default { name: 'deliberation', install, count, tallyOf, required, proposalId, withModules, futureParams, parameterKeys: ['deliberation.period', 'decision.referendum'] };
 export { count, tallyOf };

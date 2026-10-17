@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Solidarity Network</title>
+<meta name="description" content="Neighbours who lend each other what they own, against a deposit or none, with a solidarity fund behind anyone who cannot afford one.">
+<link rel="icon" href="flag.svg" type="image/svg+xml">
+<script>try{var p=JSON.parse(localStorage.getItem('site:prefs')||'{}');for(var k in p)document.documentElement.dataset[k]=p[k]}catch(e){}</script>
+<link rel="stylesheet" href="site.css">
+<script type="module" src="home.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead"></header>
+
+<main id="main">
+  <section class="hero" id="top">
+    <div>
+      <h1 data-name="full">The Solidarity Network</h1>
+      <p class="lede">Neighbours who lend each other what they own. Borrow a drill, a tent or a sewing machine against a small cash deposit, returned when the thing comes back. If a deposit is out of reach, the solidarity fund stands behind it, and no one asks why.</p>
+      <div class="actions">
+        <button class="primary" id="join" type="button">Apply to join</button>
+        <a class="secondary" href="library.html">Browse the library</a>
+      </div>
+      <p class="fine" id="join-note"></p>
+    </div>
+    <figure class="shelf-now" aria-labelledby="shelf-h">
+      <h2 id="shelf-h" class="shelf-title">On the shelf now</h2>
+      <ul id="shelf-now" class="shelf-list"><li class="empty">Loading the record…</li></ul>
+      <figcaption id="shelf-caption" class="fine"></figcaption>
+    </figure>
+  </section>
+
+  <section class="band" id="how" aria-labelledby="how-h">
+    <div class="band-head">
+      <h2 id="how-h">How borrowing works</h2>
+      <p>Every step is signed on the public record, so the books of every deposit keep themselves.</p>
+    </div>
+    <ol class="steps">
+      <li><strong>Ask.</strong> Find something in the library and ask to borrow it. Tick the box if you want the solidarity fund to cover the deposit.</li>
+      <li><strong>Meet.</strong> The lender hands it over and signs that they received your deposit, in cash, or none if the fund covers it.</li>
+      <li><strong>Return.</strong> Bring it back on time. The lender signs that it came back and returns the deposit, or says on the record what was kept and why.</li>
+      <li><strong>Settle.</strong> If you think too much was kept, dispute it within the time allowed. The Solidarity Committee decides.</li>
+    </ol>
+    <p class="more"><a href="wiki.html#/how-the-library-works">The full handbook</a></p>
+  </section>
+
+  <section class="band" id="library" aria-labelledby="library-h">
+    <div class="band-head">
+      <h2 id="library-h">The library</h2>
+      <p id="library-meta">What members lend, and what the network holds in common.</p>
+    </div>
+    <ul id="shelf" class="shelf"><li class="empty">Loading…</li></ul>
+    <p class="actions"><a class="primary" href="library.html">The whole library</a><a class="secondary" href="library.html#open=Lend">Lend something</a></p>
+  </section>
+
+  <section class="band" id="floor" aria-labelledby="floor-h">
+    <div class="band-head">
+      <h2 id="floor-h">Open votes</h2>
+      <p>What the members are deciding now, one vote each. You can change your vote until it closes.</p>
+    </div>
+    <div id="bills" class="bills"><p class="empty">Loading…</p></div>
+    <p class="more"><a href="hall.html#/proposals">Every vote</a></p>
+  </section>
+
+  <section class="band" id="fund" aria-labelledby="fund-h">
+    <div class="band-head">
+      <h2 id="fund-h">The solidarity fund</h2>
+      <p>Money the Assembly set aside this year, and what is left of it. Mutual aid is recorded by amount only, never by circumstance.</p>
+    </div>
+    <div id="fund-lines"><p class="empty">Loading…</p></div>
+  </section>
+
+  <section class="band" id="texts" aria-labelledby="texts-h">
+    <div class="band-head">
+      <h2 id="texts-h">What we agreed</h2>
+      <p>The Pledge every member signs, the Principles, and the handbook. Members edit them together; every version is kept.</p>
+    </div>
+    <ul id="text-list" class="inst-list"></ul>
+    <p class="more"><a href="wiki.html">The whole wiki</a></p>
+  </section>
+
+  <section class="band" id="institutions" aria-labelledby="inst-h">
+    <div class="band-head">
+      <h2 id="inst-h">How the network runs</h2>
+      <p>Everything the members run together. When they add something by vote, it appears here.</p>
+    </div>
+    <ul id="inst-list" class="inst-list"></ul>
+  </section>
+</main>
+
+<footer class="footer"></footer>
+</body>
+</html>

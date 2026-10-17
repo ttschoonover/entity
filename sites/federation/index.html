@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Federation</title>
+<meta name="description" content="A federation of states: a senate with equal seats, an assembly by population, one currency, and every state its own government.">
+<link rel="icon" href="flag.svg" type="image/svg+xml">
+<script>try{var p=JSON.parse(localStorage.getItem('site:prefs')||'{}');for(var k in p)document.documentElement.dataset[k]=p[k]}catch(e){}</script>
+<link rel="stylesheet" href="site.css">
+<style>
+  :root { --s0: #2D5D8A; --s1: #B8862E; --s2: #2D7A55; --s3: #8A2E4B; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --s0: #6F9FD0; --s1: #D9B44A; --s2: #5FB98A; --s3: #D97A97; } }
+  :root[data-theme="dark"] { --s0: #6F9FD0; --s1: #D9B44A; --s2: #5FB98A; --s3: #D97A97; }
+  .chamber svg { display: block; width: 100%; height: auto; }
+  .chamber .seat-key { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; list-style: none; padding: 0; margin: .6rem 0 0; font-size: .9rem; color: var(--muted); }
+  .chamber .seat-key i { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; margin-right: .4rem; vertical-align: -.05rem; }
+  .states { display: grid; grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr)); gap: 1.25rem; }
+  .state { border: 1px solid var(--rule); border-top: 4px solid var(--c, var(--ink)); border-radius: var(--radius); padding: 1.1rem 1.25rem 1.25rem; display: flex; flex-direction: column; gap: .55rem; }
+  .state h3 { margin: 0; font-size: 1.35rem; }
+  .state .form { font: italic 1rem/1.4 var(--serif); color: var(--muted); margin: 0; }
+  .state dl { display: grid; grid-template-columns: auto 1fr; gap: .25rem 1rem; margin: .3rem 0; font-size: .95rem; }
+  .state dt { color: var(--muted); }
+  .state dd { margin: 0; }
+  .state .actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: auto; padding-top: .6rem; }
+  .state .note { font-size: .9rem; color: var(--muted); margin: 0; }
+  .votes-by { display: grid; gap: 2rem; }
+  .votes-by h3 { margin: 0 0 .6rem; font-size: 1.05rem; display: flex; align-items: center; gap: .5rem; }
+  .votes-by h3 i { width: .7rem; height: .7rem; border-radius: 50%; display: inline-block; }
+  .money { display: flex; flex-wrap: wrap; gap: 1rem 2.5rem; align-items: baseline; }
+  .money b { font-size: 2rem; font-weight: 600; display: block; line-height: 1.1; }
+  .money span { color: var(--muted); font-size: .9rem; }
+</style>
+<script type="module" src="home.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead"></header>
+
+<main id="main">
+  <section class="hero" id="top">
+    <div>
+      <h1 data-name="full">The Federation</h1>
+      <p class="lede" id="lede">A federation of states. Each state has its own citizens and governs itself; together they send senators and deputies to a federal parliament and share one currency.</p>
+      <div class="actions" id="hero-actions"></div>
+      <p class="fine" id="who-note"></p>
+    </div>
+    <figure class="chamber" aria-labelledby="chamber-h">
+      <h2 id="chamber-h" class="shelf-title">The federal parliament</h2>
+      <div id="chamber"></div>
+      <ul class="seat-key" id="chamber-key"></ul>
+      <figcaption class="fine" id="chamber-caption"></figcaption>
+    </figure>
+  </section>
+
+  <section class="band" id="states" aria-labelledby="states-h">
+    <div class="band-head">
+      <h2 id="states-h">The states</h2>
+      <p>Each state is its own entity, with its own record and its own government. Its citizens are citizens of the federation through it, and of no other state.</p>
+    </div>
+    <div id="state-cards" class="states"><p class="empty">Loading the records…</p></div>
+  </section>
+
+  <section class="band" id="votes" aria-labelledby="votes-h">
+    <div class="band-head">
+      <h2 id="votes-h">Open votes</h2>
+      <p>What the federal parliament and each state are deciding now. Sign in once; your vote goes to the right place.</p>
+    </div>
+    <div id="votes-by" class="votes-by"><p class="empty">Loading…</p></div>
+  </section>
+
+  <section class="band" id="currency" aria-labelledby="currency-h">
+    <div class="band-head">
+      <h2 id="currency-h">The currency</h2>
+      <p>One currency for the whole federation, issued by federal decision and sent between citizens of any state.</p>
+    </div>
+    <div id="money"><p class="empty">Loading…</p></div>
+  </section>
+
+  <section class="band" id="parties" aria-labelledby="parties-h">
+    <div class="band-head">
+      <h2 id="parties-h">Federal parties</h2>
+      <p>Citizens of every state found and join parties, one at a time.</p>
+    </div>
+    <ul id="party-list" class="inst-list"></ul>
+  </section>
+</main>
+
+<footer class="footer"></footer>
+</body>
+</html>

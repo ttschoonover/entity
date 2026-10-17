@@ -66,3 +66,21 @@ test('a member joins and acts with nothing but a passkey', async () => {
   const forged = { ...(await act('title.set', 'p-face', { title: 'x' })), title: 'tampered' };
   assert.match((await w.settle(forged)).refused[0].reason, /signature|signed something else/);
 });
+
+test('a browser that cannot export Ed25519 keys (Firefox) still makes the same key and signs', async () => {
+  const { publicKeyFromSeed } = await import('../kernel/ed25519pub.js');
+  for (let i = 0; i < 8; i++) {
+    const seed = crypto.getRandomValues(new Uint8Array(32));
+    assert.deepEqual(await publicKeyFromSeed(seed), (await keys.keyFromSeed(seed)).publicKey);
+  }
+  const good = await passwordKey('e-1', 'ana', 'correct horse battery staple');
+  const s = globalThis.crypto.subtle, imp = s.importKey, exp = s.exportKey;
+  s.importKey = function (f, ...a) { return f === 'pkcs8' ? Promise.reject(new DOMException('no', 'OperationError')) : imp.call(this, f, ...a); };
+  s.exportKey = function (f, ...a) { return f === 'jwk' ? Promise.reject(new DOMException('no', 'OperationError')) : exp.call(this, f, ...a); };
+  try {
+    const k = await passwordKey('e-1', 'ana', 'correct horse battery staple');
+    assert.deepEqual(k.publicKey, good.publicKey);
+    const sig = await keys.sign('hello', k, 'entity.act');
+    assert.equal((await keys.verify('hello', sig, [keys.publicKeyLine(good.publicKey)], 'entity.act')).ok, true);
+  } finally { s.importKey = imp; s.exportKey = exp; }
+});

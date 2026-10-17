@@ -9,3 +9,14 @@ parameters:
     describe: >
       Days a proposal stays open. It closes sooner if its outcome can no
       longer change.
+  decision.referendum:
+    value: []
+    type: list
+    changed_by: entrenched
+    group: Decisions
+    describe: >
+      Rules whose proposals every active member decides by referendum, whoever
+      decision.electorate names. Empty: one electorate decides everything. With
+      decision.electorate set to a parliament and this set to [constitutional,
+      entrenched], the parliament makes ordinary law and the people amend the
+      constitution.

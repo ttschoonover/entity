@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy and cookies · </title>
+<meta name="description" content="What this site stores, what it publishes, and what you can do about it.">
+<link rel="icon" href="flag.svg" type="image/svg+xml">
+<script>try{var p=JSON.parse(localStorage.getItem('site:prefs')||'{}');for(var k in p)document.documentElement.dataset[k]=p[k]}catch(e){}</script>
+<link rel="stylesheet" href="site.css">
+<script type="module" src="privacy.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead"></header>
+<main id="main" class="page">
+  <div class="page-head">
+    <h1>Privacy and cookies</h1>
+    <p class="lede">What this site stores, what it publishes, and what you can do about it.</p>
+  </div>
+  <div class="laws">
+    <nav class="law-index" aria-label="On this page">
+      <ul>
+        <li><a href="#tools">Your data</a></li>
+        <li><a href="#public">The public record</a></li>
+        <li><a href="#collect">What we keep</a></li>
+        <li><a href="#cookies">Cookies and storage</a></li>
+        <li><a href="#never">What we never do</a></li>
+        <li><a href="#rights">Your rights</a></li>
+        <li><a href="#children">Children</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </nav>
+    <div class="prose">
+      <section id="tools" aria-labelledby="tools-h">
+        <h2 id="tools-h">Your data</h2>
+        <div id="tools-box"><p class="empty">Loading…</p></div>
+      </section>
+
+      <section id="public" aria-labelledby="public-h">
+        <h2 id="public-h">The public record</h2>
+        <p><span data-name="Running">The network</span> keeps a public record of everything its <span data-w="many">members</span> do: joining, voting, proposing, lending, standing for office. Each entry is signed by the person who made it and linked to the one before, so no one can change or remove an entry without it showing.</p>
+        <p>This is how <span data-w="body">the network</span> works, and it means that your id, the name you choose, your public key and everything you sign are <strong>public and permanent</strong>. Anyone can download the record, and copies may be kept by other people. You are told this, and asked to confirm it, before you join. You can use a pseudonym.</p>
+      </section>
+
+      <section id="collect" aria-labelledby="collect-h">
+        <h2 id="collect-h">What we keep</h2>
+        <div class="scroll"><table>
+          <thead><tr><th>What</th><th>Where</th><th>Why</th><th>How long</th></tr></thead>
+          <tbody>
+            <tr><td>Your id, name, public key, and what you sign</td><td>The public record</td><td>To run <span data-w="body">the network</span>, as you agreed when joining</td><td>Permanently</td></tr>
+            <tr><td>Your email address, only if you turn on two-factor sign-in</td><td>This site’s server, never published</td><td>To send you sign-in codes</td><td>Until you turn two-factor off</td></tr>
+            <tr><td>Chat messages you write, if chat is switched on</td><td>This site’s server, never on the public record</td><td>To show them to the people who can read that channel</td><td>For the period the members set (chat.retention_days), or until you or a moderator delete them</td></tr>
+            <tr><td>A sign-in cookie (<code>gr_session</code>)</td><td>Your browser and the server</td><td>To keep you signed in where the server asks for it</td><td>12 hours, or until you sign out</td></tr>
+            <tr><td>Your signing key, if you sign in</td><td>Your browser (IndexedDB)</td><td>So you can sign without typing your password every time; locked with your password unless you choose otherwise</td><td>Until you sign out</td></tr>
+            <tr><td>Your display settings, and that you saw the storage notice</td><td>Your browser (localStorage)</td><td>To remember your choices</td><td>Until you clear them</td></tr>
+            <tr><td>Connection data such as your IP address</td><td>Our hosting provider, Cloudflare, which carries traffic to the server</td><td>To deliver the pages</td><td>As set out in Cloudflare’s own policy</td></tr>
+          </tbody>
+        </table></div>
+        <p>Your password is never sent anywhere. It is turned into your signing key inside your browser.</p>
+      </section>
+
+      <section id="cookies" aria-labelledby="cookies-h">
+        <h2 id="cookies-h">Cookies and storage</h2>
+        <p>The only cookie is <code>gr_session</code>, which keeps you signed in. It is strictly necessary for the service you asked for, so it needs no consent. Everything else listed above stays in your browser and is never sent to us. There are no analytics, advertising or third-party cookies.</p>
+        <p>You can clear everything this site stores in your browser with the button under “Your data”, or from your browser’s settings.</p>
+      </section>
+
+      <section id="never" aria-labelledby="never-h">
+        <h2 id="never-h">What we never do</h2>
+        <p>We do not sell or share personal data, show advertising, track you across sites, or build profiles. If your browser sends a Global Privacy Control signal, we treat it as a request not to sell or share your data, which we do not do anyway. <span id="gpc"></span></p>
+      </section>
+
+      <section id="rights" aria-labelledby="rights-h">
+        <h2 id="rights-h">Your rights</h2>
+        <p>Depending on where you live, laws such as the GDPR (Europe and the UK) and the CCPA (California) give you rights over your personal data. Here is how each works on this site.</p>
+        <ul>
+          <li><strong>See your data.</strong> “Download my data” gives you everything the record holds about you, as a file. For your email address, if you gave one, write to us.</li>
+          <li><strong>Correct it.</strong> You can change the name others see at any time. Your id cannot change.</li>
+          <li><strong>Delete it.</strong> We delete your email address when you turn two-factor off or ask us. You can leave <span data-w="body">the network</span> at any time, and clear your browser. We cannot remove what you signed from the public record: it is linked to everything after it, and copies are held by others. If you need something hidden from this website for a serious reason, write to us and we will do what we can.</li>
+          <li><strong>Take it with you.</strong> The download is plain JSON, and the whole record is open for anyone to copy.</li>
+          <li><strong>Object or withdraw consent.</strong> You can stop at any time by leaving. What you already signed stays on the record.</li>
+          <li><strong>Complain.</strong> You can complain to your data protection authority.</li>
+        </ul>
+        <p>We do not treat anyone differently for using these rights.</p>
+      </section>
+
+      <section id="children" aria-labelledby="children-h">
+        <h2 id="children-h">Children</h2>
+        <p>This site is not meant for children. You must be <span id="min-age">16</span> or older to join, and you are asked to confirm your age when you join. We do not knowingly collect personal data from anyone under 13. If you believe a child has joined, write to us and we will remove what we can and stop them signing.</p>
+      </section>
+
+      <section id="contact" aria-labelledby="contact-h">
+        <h2 id="contact-h">Contact</h2>
+        <p id="contact-line">Loading…</p>
+        <p class="fine">This page describes how the site works. It was last updated on 13 October 2026.</p>
+      </section>
+    </div>
+  </div>
+</main>
+<footer class="footer"></footer>
+</body>
+</html>

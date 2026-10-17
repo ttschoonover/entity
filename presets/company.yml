@@ -1,7 +1,7 @@
 _: A private company run by its partners. One partner one vote; admitting a
    partner needs two thirds; every checkpoint needs two partners to sign.
 
-modules: [deliberation, titles, vocabulary]
+modules: [page, deliberation, titles, vocabulary]
 
 set:
   entity.name: The Company

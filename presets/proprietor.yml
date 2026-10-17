@@ -2,7 +2,7 @@ _: One person decides: a sole trader, a founder-run project, a benevolent
    dictatorship. Others may join, propose and follow everything, but only the
    founder votes, and a proposal carries the moment the founder votes for it.
 
-modules: [deliberation, titles, vocabulary]
+modules: [page, deliberation, titles, vocabulary]
 
 set:
   entity.name: The Project

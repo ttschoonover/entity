@@ -31,7 +31,7 @@ export function composed(presetName = 'assembly', overrides = {}) {
   return compose({ base: read('kernel/parameters.base.yml'), moduleTexts, preset, presetName });
 }
 
-export async function world({ preset = 'assembly', set = {}, modules = ['deliberation', 'titles', 'vocabulary'], people = 3, start = '2026-03-01T00:00:00.000Z', entity = 'e-test-000001' } = {}) {
+export async function world({ preset = 'assembly', set = {}, modules = ['deliberation', 'titles', 'vocabulary', 'page'], people = 3, start = '2026-03-01T00:00:00.000Z', entity = 'e-test-000001' } = {}) {
   const registry = createRegistry(await loadModules(modules));
   const { text, doc } = composed(preset, set);
   let t = Date.parse(start);

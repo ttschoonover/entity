@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat · </title>
+<meta name="description" content="Channels for talking things over. Kept by this site, never on the public record.">
+<link rel="icon" href="flag.svg" type="image/svg+xml">
+<script>try{var p=JSON.parse(localStorage.getItem('site:prefs')||'{}');for(var k in p)document.documentElement.dataset[k]=p[k]}catch(e){}</script>
+<link rel="stylesheet" href="site.css">
+<script type="module" src="chat.js"></script>
+</head>
+<body class="chat-body">
+<a class="skip" href="#chat-text">Skip to the message box</a>
+<header class="masthead"></header>
+<main id="main" class="chat-app">
+  <nav class="chat-side" aria-label="Channels">
+    <h1 class="chat-h">Chat</h1>
+    <label class="visually-hidden" for="chat-pick">Channel</label>
+    <select id="chat-pick" class="chat-pick"></select>
+    <ul id="chat-channels" class="chat-channels"><li class="empty">Loading…</li></ul>
+    <p id="chat-new-room" class="chat-side-act" hidden></p>
+    <h2 class="chat-h2" id="chat-dms-h" hidden>Direct messages</h2>
+    <ul id="chat-dms" class="chat-channels" hidden></ul>
+    <p id="chat-new-dm" class="chat-side-act" hidden></p>
+    <p class="fine chat-who" id="chat-who"></p>
+  </nav>
+  <section class="chat-main" aria-labelledby="chat-title">
+    <header class="chat-head">
+      <h2 id="chat-title">Chat</h2>
+      <p id="chat-about" class="fine"></p>
+      <p id="chat-head-acts" class="chat-head-acts" hidden></p>
+    </header>
+    <ol id="chat-log" class="chat-log" aria-live="polite" aria-relevant="additions"><li class="empty">Loading the record…</li></ol>
+    <div id="chat-compose" class="chat-compose">
+      <p id="chat-reply" class="chat-reply" hidden></p>
+      <form id="chat-form">
+        <label class="visually-hidden" for="chat-text">Message</label>
+        <textarea id="chat-text" rows="1" maxlength="10000" placeholder="Message"></textarea>
+        <button id="chat-send" class="primary" type="submit">Send</button>
+      </form>
+      <p class="fine" id="chat-limit"></p>
+    </div>
+  </section>
+</main>
+</body>
+</html>

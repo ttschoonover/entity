@@ -1,8 +1,11 @@
 // The offices section of the page.
 import { current } from './index.js';
 
+// A person as the page names them: "Name (id)" where the page offers it.
+const nm = (api, id) => (api.nameOf ? api.nameOf(id) : id);
+
 export default function render(api) {
-  const { h, state, me, when, $ } = api;
+  const { h, state, me, when, $, who } = api;
   const at = state.head.at;
   const all = Object.values(state.m.offices || {}).filter(o => !o.abolished);
   const active = Object.values(state.participants).filter(p => p.status === 'active').map(p => p.id);
@@ -12,16 +15,16 @@ export default function render(api) {
     return h('li', {},
       h('h3', {}, api.link ? api.link(`offices/${o.id}`, o.title) : o.title),
       h('p', { class: 'meta' }, `${o.id} · ${now.length} of ${o.seats} seat${o.seats === 1 ? '' : 's'} filled${o.term_days ? ` · ${o.term_days}-day terms` : ''}`),
-      now.length ? h('ul', {}, now.map(x => h('li', {}, x.id, x.until ? ` · until ${when(x.until)}` : ''))) : h('p', { class: 'hint' }, 'Vacant.'),
-      me && now.some(x => x.id === me.id)
-        ? h('div', { class: 'buttons' }, h('button', { class: 'quiet', onclick: () => api.sign('office.resign', { office: o.id }, `Your resignation as ${o.title}`) }, 'Resign'))
-        : null);
+      now.length ? h('ul', {}, now.map(x => h('li', {}, who ? who(x.id) : x.id, x.until ? ` · until ${when(x.until)}` : ''))) : h('p', { class: 'hint' }, 'Vacant.'),
+      me?.status === 'active' ? h('div', { class: 'buttons' },
+        now.some(x => x.id === me.id) ? h('button', { class: 'quiet', onclick: () => api.sign('office.resign', { office: o.id }, `Your resignation as ${o.title}`) }, 'Resign') : null,
+        h('button', { class: 'quiet', onclick: () => abolish(api, o) }, 'Propose abolishing it')) : null);
   };
   sec.append(api.list({
     key: 'offices',
     edit: (o) => (api.me?.status === 'active' ? api.editForm('Edit this office', [['title', 'Title', o.title], ['seats', 'Seats', o.seats, 'number'], ['term_days', 'Term in days (empty for none)', o.term_days, 'number']], (ch) => api.propose(`Amend the office ${o.title}`, [{ kind: 'office.amend', office: o.id, ...ch }])) : null), items: all, noun: 'offices', empty: 'No offices yet.', render: row,
     mine: me ? (o) => current(o, at).some(x => x.id === me.id) : null,
-    text: (o) => `${o.id} ${o.title} ${current(o, at).map(x => x.id).join(' ')}`,
+    text: (o) => `${o.id} ${o.title} ${current(o, at).map(x => nm(api, x.id)).join(' ')}`,
     sorts: [['Title, A–Z', api.sorts.byText((o) => o.title)], ['Vacant first', (a, b) => (current(a, at).length / a.seats) - (current(b, at).length / b.seats)], ['Newest first', api.sorts.newest((o) => o.created)]],
     filters: [{ label: 'Seats', options: [['Filled or not', () => true], ['With a vacancy', (o) => current(o, at).length < o.seats], ['Full', (o) => current(o, at).length >= o.seats]] }],
   }));
@@ -41,12 +44,19 @@ export default function render(api) {
     sec.append(h('details', {}, h('summary', {}, 'Propose an appointment or a removal'),
       h('div', { class: 'inline-form' },
         h('label', { for: 'of-which' }, 'Office'), h('select', { id: 'of-which' }, all.map(o => h('option', { value: o.id }, o.title))),
-        h('label', { for: 'of-who' }, 'Person'), h('select', { id: 'of-who' }, active.map(id => h('option', { value: id }, id))),
+        h('label', { for: 'of-who' }, 'Person'), h('select', { id: 'of-who' }, active.map(id => h('option', { value: id }, nm(api, id)))),
         h('div', { class: 'buttons' },
-          h('button', { onclick: () => api.propose(`Appoint ${$('#of-who').value} as ${$('#of-which').selectedOptions[0].text}`, [{ kind: 'office.fill', office: $('#of-which').value, holder: $('#of-who').value }]) }, 'Propose appointing'),
-          h('button', { class: 'quiet', onclick: () => api.propose(`Remove ${$('#of-who').value} as ${$('#of-which').selectedOptions[0].text}`, [{ kind: 'office.vacate', office: $('#of-which').value, holder: $('#of-who').value }]) }, 'Propose removing')))));
+          h('button', { onclick: () => api.propose(`Appoint ${$('#of-who').selectedOptions[0].text} as ${$('#of-which').selectedOptions[0].text}`, [{ kind: 'office.fill', office: $('#of-which').value, holder: $('#of-who').value }]) }, 'Propose appointing'),
+          h('button', { class: 'quiet', onclick: () => api.propose(`Remove ${$('#of-who').selectedOptions[0].text} as ${$('#of-which').selectedOptions[0].text}`, [{ kind: 'office.vacate', office: $('#of-which').value, holder: $('#of-who').value }]) }, 'Propose removing')))));
   }
   return sec;
+}
+
+// Abolishing an office ends every term in it; its history stays on the record.
+function abolish(api, o) {
+  const reason = prompt(`Propose abolishing the office of ${o.title}?\n\nEvery holder's term ends if the citizens agree. Its history stays on the record.\n\nWhy? (optional, published with the proposal)`);
+  if (reason === null) return;
+  api.propose(`Abolish the office of ${o.title}`, [{ kind: 'office.abolish', office: o.id }], reason.trim() || undefined);
 }
 
 // One office: every holder it has had, and any authority granted to it.
@@ -60,6 +70,7 @@ function one(api, id) {
     h('p', { class: 'meta' }, `${o.id} · ${o.seats} seat${o.seats === 1 ? '' : 's'}${o.term_days ? ` · ${o.term_days}-day terms` : ''} · created ${day(o.created)}${o.abolished ? ` · abolished ${day(o.abolished)}` : ''}`),
     h('h3', {}, 'Holders'), o.holders.length ? h('ul', {}, o.holders.map(x => h('li', {}, who(x.id), ` · ${day(x.since)}–${x.until && x.until <= at ? day(x.until) : x.until ? `now (until ${day(x.until)})` : 'now'}`))) : h('p', { class: 'hint' }, 'Nobody has held it.'),
     grants.length ? [h('h3', {}, 'Authority granted to it'), h('ul', {}, grants.map(g => h('li', {}, link(`authority/${g.id}`, g.id), `: may ${g.may.join(', ')}${g.revoked ? ' (revoked)' : ''}`)))] : null,
+    api.me?.status === 'active' && !o.abolished ? h('div', { class: 'buttons' }, h('button', { class: 'quiet', onclick: () => abolish(api, o) }, 'Propose abolishing it')) : null,
     h('p', {}, link('offices', 'Every office')));
 }
 

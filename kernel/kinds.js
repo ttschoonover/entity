@@ -20,6 +20,16 @@ export class Registry {
     this.incompatible = new Map(); // module → the core version it needs
     this.forkChoice = null;        // set by a finality module: see kernel/transport.js
     this.admissionChecks = [];     // conditions an applicant must meet to be admitted
+    this.proposalChecks = [];      // conditions a proposal must meet to be laid
+  }
+
+  // registerProposalCheck({ module, check(state, act, params) → null | reason })
+  // A condition every proposal must meet while the module is enabled (the laws
+  // module, say: settings change only by a law). Checked when it is laid. PURE.
+  registerProposalCheck(def) {
+    if (!def.module || typeof def.check !== 'function') throw new Error('registerProposalCheck: module and check required');
+    this.proposalChecks.push(def);
+    return this;
   }
 
   // registerAdmissionCheck({ module, check(state, id, params) → null | reason })

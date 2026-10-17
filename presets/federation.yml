@@ -1,7 +1,7 @@
 _: A federation of cooperatives. Each member organisation sends a delegate;
    one delegate one vote. Admitting a new member organisation is organic.
 
-modules: [deliberation, titles, vocabulary]
+modules: [page, deliberation, titles, vocabulary]
 
 set:
   entity.name: The Federation

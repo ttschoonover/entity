@@ -1,5 +1,45 @@
 # Manual
 
+## The control panel: no terminal needed
+
+Everything in this manual can also be done from a page on your own computer:
+
+    node cli/index.js app
+
+It prints a link (http://127.0.0.1:7700/?t=…) and opens it. **Create a
+republic** walks you through it: its name and folder, your member id and
+password, a starting preset, the modules you want, any settings you want to
+change, its look and the port to serve it on. It then founds the republic and
+serves its page. **Manage** runs it afterwards: start and stop serving, change
+settings (as proposals), install modules, set a password, publish it on
+Radicle, sync, upgrade, verify, and run any other command.
+
+The panel answers only on this computer, and only through the link it prints;
+nothing reaches it through a tunnel or from other websites. Each operation runs
+the same `entity` command you would type, so the terminal and the panel always
+agree.
+
+## Private republics
+
+A republic without the page module can serve its own website: put the files
+in a folder inside the republic and name it in node.json, `"site": "website"`.
+Its `index.html` is served at `/`; the page reads the republic through
+`window.js` (see docs/WINDOWS.md, and `sites/vdr` for a full example).
+
+With `"private": true` in node.json (or "Private" in the control panel's
+settings for this computer), the republic's address shows only a sign-in page.
+Members sign in with their own account; candidates can apply there, and read
+and sign what membership requires, but see nothing else until admitted. The
+gate covers the network; for contents that must stay secret even inside a copy,
+use sealed posts.
+
+## Showing a republic on another website
+
+A co-op with its own website can show its republic there: its seal, officers,
+open votes, money in circulation, and buttons to vote or join, each verified in
+the visitor's browser. See docs/WINDOWS.md. A republic without the `page`
+module lives entirely in such windows.
+
 ## 1 · Requirements
 
 - Node.js 20 or later.

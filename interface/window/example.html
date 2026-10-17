@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A co-op's own website, with its republic in windows</title>
+<style>
+body { font: 16px/1.6 Georgia, serif; max-width: 44em; margin: 3rem auto; padding: 0 1.5rem; color: #222; }
+.gr-seal { display: inline-block; font: 13px system-ui, sans-serif; color: #2f6f43; text-decoration: none; border: 1px solid #2f6f43; padding: 3px 8px; }
+.gr-alarm, .gr-error { color: #a33; border-color: #a33; }
+.gr-list { padding-left: 1.2em; } .gr-proposal { margin-bottom: .6em; } .gr-tally { display: block; font-size: 13px; color: #666; }
+</style>
+<!-- Point both at the republic's node. -->
+<script type="module" src="./window.js"></script>
+</head>
+<body>
+<h1>Riverside Bakery</h1>
+<p><gr-seal src="../"></gr-seal></p>
+<h2>Who does what</h2>
+<gr-list src="../" name="offices"></gr-list>
+<h2>Open votes</h2>
+<gr-votes src="../"></gr-votes>
+<h2>Join us</h2>
+<gr-join src="../">Become a member</gr-join>
+</body>
+</html>

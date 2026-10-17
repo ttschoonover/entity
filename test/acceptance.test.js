@@ -256,7 +256,7 @@ test('15 · the interface and the engine count identically', async () => {
   await w.settle(await w.sign('participant.apply', 'p-late', { key: keys.publicKeyLine((await w.person('p-late')).publicKey) }, w.keys['p-late'].privateKey));
   await vote(w, p1.id, ['p-late']);
   // The same engine the page runs, with modules found where this copy keeps them.
-  const registry = createRegistry(await loadModules(['deliberation', 'titles', 'vocabulary']));
+  const registry = createRegistry(await loadModules(['deliberation', 'titles', 'vocabulary', 'page']));
   const v = await E.verifyText(registry, serialiseAll(w.records));
   assert.equal(v.ok, true);
   for (const id of [p1.id, p2.id]) assert.deepEqual(E.tally(v.state, id), count(w.state, id));

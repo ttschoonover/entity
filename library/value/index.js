@@ -83,5 +83,26 @@ function install(r) {
 }
 
 export const balance = bal;
-export default { name: 'value', core: '0.4', install, show, balance: bal,
+
+// Holds: an amount set aside from a member's balance by another module (an
+// escrow for a contract, say), so it cannot be spent twice. The units still
+// exist (supply is unchanged); only the module that made a hold pays it out or
+// returns it. These change state, so they are used only in reducers.
+export function hold(state, id, from, amount, owner) {
+  const l = ledger(state);
+  l.balances[from] = bal(state, from) - amount;
+  (l.held ||= {})[id] = { from, amount, owner };
+}
+export function payHold(state, id, to, amount) {
+  const l = ledger(state), h = l.held?.[id];
+  if (!h) return 0;
+  const n = Math.min(amount ?? h.amount, h.amount);
+  l.balances[to] = bal(state, to) + n;
+  h.amount -= n;
+  if (!h.amount) delete l.held[id];
+  return n;
+}
+export const heldAmount = (state, id) => state.m.value?.held?.[id]?.amount || 0;
+export const heldBy = (state, member) => Object.values(state.m.value?.held || {}).filter(h => h.from === member).reduce((a, h) => a + h.amount, 0);
+export default { name: 'value', core: '0.4', install, show, balance: bal, hold, payHold, heldAmount,
   parameterKeys: ['value.name', 'value.decimals', 'value.transferable', 'value.issue_rule', 'value.max_supply'] };

@@ -1,7 +1,7 @@
 _: A worker cooperative. One member one vote; surplus by patronage,
    which is a different number entirely.
 
-modules: [deliberation, titles, vocabulary]
+modules: [page, deliberation, titles, vocabulary]
 
 # Modules this shape needs that are not built yet. Their parameters
 # (roles.term, unit.name, delegation.enabled) cannot be set until they exist,

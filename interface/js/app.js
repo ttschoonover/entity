@@ -255,7 +255,10 @@ const refresh = () => route();
 function api() {
   return { h, $, state: ctx.state, params: ctx.params, registry: ctx.registry, me: me(), ident: ctx.ident,
     words: ctx.words, day, when, sign, propose, E, link, go, who, refresh, section,
-    list: listView, sorts: { byText, newest, oldest }, grantsFor, nameOf, editForm };
+    list: listView, sorts: { byText, newest, oldest }, grantsFor, nameOf, editForm,
+    // The signed-in member's private key, for modules that decrypt (sealed):
+    // asks for its password if it is locked; null for passkeys, which cannot.
+    key: async (label) => (!ctx.ident || ctx.ident.passkey ? null : unlock(label)) };
 }
 const section = (title, ...kids) => h('section', {}, title ? h('h2', {}, title) : null, ...kids);
 
@@ -664,8 +667,7 @@ async function deliver(way, act) {
   if (problem) return say(problem, false);
   try {
     const base = url.endsWith('/') ? url : url + '/';
-    const r = await fetch(new URL('acts', base), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(act) });
-    const body = await r.json().catch(() => ({}));
+    const { r, body } = await postAct(base, act, say);
     if (!r.ok || (body.refused && body.refused.length)) return say(`The node refused it: ${(body.refused && body.refused[0]?.why) || body.why || r.status}`, false);
     if (way === 'own') localStorage.setItem(`entity:${ctx.state.entity.id}:node`, url);
     say(body.settled ? 'Sent and settled. Reload to see it in the record.' : 'Sent. It enters the record when a node settles it.', true);
@@ -673,14 +675,30 @@ async function deliver(way, act) {
       const next = ctx.then; ctx.then = null;
       say('Sent. Finishing…', true);
       await next(async (a) => {
-        const r2 = await fetch(new URL('acts', base), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(a) });
-        const b2 = await r2.json().catch(() => ({}));
+        const { r: r2, body: b2 } = await postAct(base, a, say);
         if (!r2.ok || (b2.refused && b2.refused.length)) throw new Error((b2.refused && b2.refused[0]?.why) || b2.why || r2.status);
       }).then(() => say('Sent and settled. Reload to see it in the record.', true)).catch(e => say(`The first part was sent; the next was refused: ${e.message}`, false));
     }
   } catch (e) {
     say(`${url} could not be reached (${e.message}). If it is on this computer, check that \`entity serve\` is running. Saving as a file always works.`, false);
   }
+}
+
+// Send an act to a node. If the node asks for email two-factor (the twofactor
+// module), confirm this browser with the emailed code, then send it again.
+async function postAct(base, act, say) {
+  const send = async () => { const r = await fetch(new URL('acts', base), { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(act) }); return { r, body: await r.json().catch(() => ({})) }; };
+  let x = await send();
+  if (x.body.twofactor && new URL(base).origin === location.origin && ctx.ident) {
+    say('This republic uses email two-factor: confirming this browser…', true);
+    const T = await import('./twofactor.js');
+    try {
+      const fn = await signer('Confirm this browser for two-factor'); if (!fn) return x;
+      await T.confirmBrowser({ id: ctx.ident.id, sign: fn, ask: T.promptAsk, base });
+      x = await send();
+    } catch (e) { if (e.message !== 'cancelled') say(`Two-factor: ${e.message}`, false); }
+  }
+  return x;
 }
 
 // The node this page talks to: the one serving it, or the one last used.
@@ -804,7 +822,7 @@ function renderVotes(path) {
         { label: 'Rule', options: [['Any rule', () => true], ...ctx.params.ruleOrder().map(r => [`Under the ${r} rule`, (x) => x.rule === r])] },
       ],
     }))];
-  if (p && p.status === 'active' && !electorate().frozen) out.push(section(null, layForm()));
+  if (p && p.status === 'active' && !electorate().frozen) out.push(section(null, layForm(), advancedProposalForm()));
   return out;
 }
 
@@ -865,6 +883,45 @@ function reversalPanel(x) {
       } }, 'Propose the reversal')) : h('p', { class: 'hint' }, 'Nothing in it can be undone automatically.')));
 }
 
+// A further reading: the same proposal again, under the same rule, naming the
+// reading it follows, once the rule's waiting time has passed.
+function nextReadingPanel(x) {
+  const m = me();
+  if (!x.closed?.carried || x.enacted || x.next || m?.status !== 'active') return null;
+  const earliest = x.closed.awaiting?.match(/no sooner than (\S+)/)?.[1];
+  const ready = !earliest || new Date() >= new Date(earliest);
+  const copy = {};
+  for (const k of ['changes', 'admit', 'paths', 'digest', 'effects', 'adds', 'install']) if (x[k] != null && !(Array.isArray(x[k]) && !x[k].length) && !(typeof x[k] === 'object' && !Array.isArray(x[k]) && !Object.keys(x[k]).length)) copy[k] = x[k];
+  return h('div', { class: 'grant' }, h('h3', {}, `Reading ${x.reading + 1}`),
+    h('p', { class: 'hint' }, ready ? `This carried at reading ${x.reading}. The ${x.rule} rule needs a further reading: the same proposal, laid again and voted again.` : `The next reading may be laid from ${day(earliest)}.`),
+    h('div', { class: 'buttons' }, h('button', { disabled: !ready || null, onclick: () => sign('proposal.lay', { title: x.title, ...(x.text ? { text: x.text } : {}), rule: x.rule, ...copy, reading_of: x.id }, `Reading ${x.reading + 1} of "${x.title}"`) }, `Lay reading ${x.reading + 1}`)));
+}
+
+// Proposing anything: effects and settings written out as JSON, for what no tab
+// has a form for. The rule is worked out as for any proposal.
+function advancedProposalForm() {
+  const title = h('input', { id: 'adv-title', placeholder: 'Re-anchor the validators' });
+  const effects = h('textarea', { id: 'adv-effects', placeholder: '[{ "kind": "finality.reanchor", "checkpoint": 3 }]' });
+  const changes = h('textarea', { id: 'adv-changes', placeholder: '{ "deliberation.period": 10 }' });
+  return h('details', {}, h('summary', {}, 'Propose anything (written out)'), h('div', { class: 'inline-form' },
+    h('p', { class: 'hint' }, 'For what no tab has a form for: effects as a JSON list, settings as a JSON object, or both. The rule is chosen for you, the strictest any part needs.'),
+    h('label', { for: 'adv-title' }, 'Title'), title,
+    h('label', { for: 'adv-effects' }, 'Effects (optional)'), effects,
+    h('label', { for: 'adv-changes' }, 'Settings to change (optional)'), changes,
+    h('div', { class: 'buttons' }, h('button', { onclick: () => {
+      let fx, ch;
+      try { fx = effects.value.trim() ? JSON.parse(effects.value) : undefined; ch = changes.value.trim() ? JSON.parse(changes.value) : undefined; } catch (e) { return alert(`That is not valid JSON: ${e.message}`); }
+      if (fx !== undefined && !Array.isArray(fx)) return alert('Effects are a list: [ { "kind": … } ]');
+      if (ch !== undefined && (typeof ch !== 'object' || Array.isArray(ch))) return alert('Settings are an object: { "key": value }');
+      if (!fx && !ch) return alert('Write some effects, or some settings, or both.');
+      if (!title.value.trim()) return alert('Give it a title.');
+      const act = { title: title.value.trim(), ...(fx ? { effects: fx } : {}), ...(ch ? { changes: ch } : {}) };
+      let rule;
+      try { rule = E.required(ctx.params, act, ctx.registry).name; } catch (e) { return alert(e.message); }
+      sign('proposal.lay', { ...act, rule }, `Your ${ctx.words.proposal} "${act.title}" (${rule} rule)`);
+    } }, 'Sign'))));
+}
+
 function renderProposal(id) {
   const x = ctx.state.proposals[id];
   if (!x) return section('Not found', h('p', {}, `No ${ctx.words.proposal} ${id} is in this record.`), h('p', {}, link('votes', 'Every proposal')));
@@ -883,7 +940,7 @@ function renderProposal(id) {
     h('p', { class: 'meta' }, `${x.id} · laid by `, who(x.by), ` on ${when(x.at)} under the ${x.rule} rule${x.terms.readings > 1 ? `, reading ${x.reading} of ${x.terms.readings}` : ''}`),
     x.text ? h('p', { class: 'post-body' }, x.text) : null,
     effects.length ? [h('h3', {}, 'What it does'), h('ul', {}, effects)] : h('p', { class: 'hint' }, 'A motion: it changes nothing, and records what is decided.'),
-    h('p', { class: stateClass(x) }, statusOf(x)), ...tallyBar(x, t), ballotButtons(x, t), reversalPanel(x),
+    h('p', { class: stateClass(x) }, statusOf(x)), ...tallyBar(x, t), ballotButtons(x, t), nextReadingPanel(x), reversalPanel(x),
     h('h3', {}, 'Who could vote'),
     h('p', { class: 'fine' }, `${E.describeElectorate(ctx.registry, x.electorate || 'members')}, as they stood when it was laid: ${x.roll.length} ${x.roll.length === 1 ? 'voter' : 'voters'}${weighted ? `, ${t.electorate} votes in all` : ''}.`),
     h('div', { class: 'scroll' }, h('table', {},

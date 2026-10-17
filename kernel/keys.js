@@ -44,8 +44,16 @@ export async function generate() {
   return { privateKey: { seed, publicKey }, publicKey };
 }
 
+// The private key, imported for signing. Some browsers (Firefox) refuse a
+// PKCS#8 key without its public part; for them, the public key is computed
+// here and the key imported as a JWK, which carries both halves.
 async function importPrivate(key) {
-  return subtle().importKey('pkcs8', cat(PKCS8_PREFIX, key.seed), { name: 'Ed25519' }, false, ['sign']);
+  try { return await subtle().importKey('pkcs8', cat(PKCS8_PREFIX, key.seed), { name: 'Ed25519' }, false, ['sign']); }
+  catch (e) {
+    const pub = key.publicKey || await (await import('./ed25519pub.js')).publicKeyFromSeed(key.seed);
+    try { return await subtle().importKey('jwk', { kty: 'OKP', crv: 'Ed25519', d: b64url(key.seed), x: b64url(pub) }, { name: 'Ed25519' }, false, ['sign']); }
+    catch { throw e; }
+  }
 }
 async function importPublic(raw32) {
   return subtle().importKey('raw', raw32, { name: 'Ed25519' }, false, ['verify']);
@@ -187,9 +195,14 @@ export function nodeId(keyLineOrRaw) {
 // --- keys from a seed ---------------------------------------------------------
 // The public half of an Ed25519 key, from its 32-byte seed.
 export async function keyFromSeed(seed) {
-  const k = await subtle().importKey('pkcs8', cat(PKCS8_PREFIX, seed), { name: 'Ed25519' }, true, ['sign']);
-  const jwk = await subtle().exportKey('jwk', k);
-  return { seed: Uint8Array.from(seed), publicKey: fromBase64(jwk.x.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - jwk.x.length % 4) % 4)) };
+  try {
+    const k = await subtle().importKey('pkcs8', cat(PKCS8_PREFIX, seed), { name: 'Ed25519' }, true, ['sign']);
+    const jwk = await subtle().exportKey('jwk', k);
+    return { seed: Uint8Array.from(seed), publicKey: fromBase64(jwk.x.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - jwk.x.length % 4) % 4)) };
+  } catch {
+    // A browser that will not export the public key (Firefox): compute it.
+    return { seed: Uint8Array.from(seed), publicKey: await (await import('./ed25519pub.js')).publicKeyFromSeed(seed) };
+  }
 }
 
 // --- passkeys (WebAuthn, ES256) ------------------------------------------------

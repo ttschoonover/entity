@@ -1,4 +1,7 @@
 // The badges tab.
+
+// A person as the page names them: "Name (id)" where the page offers it.
+const nm = (api, id) => (api.nameOf ? api.nameOf(id) : id);
 export default function render(api) {
   const { h, state, me, $, day, who } = api;
   const all = Object.values(state.m.badges || {}).filter(b => !b.retired);
@@ -8,7 +11,7 @@ export default function render(api) {
   sec.append(api.list({
     key: 'badges',
     edit: (b) => (api.me?.status === 'active' ? api.editForm('Edit this badge', [['title', 'Title', b.title], ['description', 'Description', b.description, 'textarea']], (ch) => api.propose(`Amend the badge ${b.title}`, [{ kind: 'badge.amend', badge: b.id, ...ch }])) : null), items: all, noun: 'badges', mine: me ? (b) => !!b.holders[me.id] : null,
-    text: (b) => `${b.id} ${b.title} ${b.description} ${Object.keys(b.holders).join(' ')}`,
+    text: (b) => `${b.id} ${b.title} ${b.description} ${Object.keys(b.holders).map(x => nm(api, x)).join(' ')}`,
     sorts: [['Title, A–Z', api.sorts.byText((b) => b.title)], ['Most held', (x, y) => Object.keys(y.holders).length - Object.keys(x.holders).length], ['Newest first', api.sorts.newest((b) => b.created)]],
     render: (b => {
     const holders = Object.entries(b.holders);
@@ -16,8 +19,8 @@ export default function render(api) {
       holders.length ? h('ul', {}, holders.map(([id, x]) => h('li', {}, who(id), ` · since ${day(x.since)}${x.note ? ` · ${x.note}` : ''}`,
         me && id === me.id ? [' ', h('button', { class: 'quiet', onclick: () => api.sign('badge.return', { badge: b.id }, `Giving back ${b.title}`) }, 'Give it back')] : null)))
         : h('p', { class: 'hint' }, 'Nobody holds it.'),
-      me?.status === 'active' ? h('div', { class: 'row' }, h('select', { id: `bg-${b.id}`, 'aria-label': 'Award to' }, people.filter(p => !b.holders[p]).map(p => h('option', { value: p }, p))),
-        h('button', { class: 'quiet', onclick: () => api.propose(`Award ${b.title} to ${$(`#bg-${b.id}`).value}`, [{ kind: 'badge.award', badge: b.id, to: $(`#bg-${b.id}`).value }]) }, 'Propose awarding')) : null);
+      me?.status === 'active' ? h('div', { class: 'row' }, h('select', { id: `bg-${b.id}`, 'aria-label': 'Award to' }, people.filter(p => !b.holders[p]).map(p => h('option', { value: p }, nm(api, p)))),
+        h('button', { class: 'quiet', onclick: () => api.propose(`Award ${b.title} to ${$(`#bg-${b.id}`).selectedOptions[0].text}`, [{ kind: 'badge.award', badge: b.id, to: $(`#bg-${b.id}`).value }]) }, 'Propose awarding')) : null);
   }),
   }));
   if (me?.status === 'active') sec.append(h('details', {}, h('summary', {}, 'Propose a new badge'), h('div', { class: 'inline-form' },

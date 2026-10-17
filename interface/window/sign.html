@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign</title>
+<style>
+:root { --ink:#E8E5DC; --paper:#131310; --dim:#8a877f; --rule:rgba(232,229,220,.14); --accent:#d07a6e; }
+* { box-sizing:border-box; } body { margin:0; padding:22px 24px; background:var(--paper); color:var(--ink); font:15px/1.55 'Helvetica Neue',Helvetica,Arial,sans-serif; }
+h1 { font:400 1.5em 'Century Schoolbook','TeX Gyre Schola',Georgia,serif; margin:0 0 4px; } .dim { color:var(--dim); font-size:.88em; }
+pre { background:rgba(232,229,220,.05); border:.5px solid var(--rule); padding:10px; font:12px/1.5 Menlo,Consolas,monospace; white-space:pre-wrap; word-break:break-all; max-height:180px; overflow:auto; }
+label { display:block; color:var(--dim); font-size:.82em; margin:12px 0 4px; } input, textarea { width:100%; font:inherit; color:var(--ink); background:var(--paper); border:.5px solid var(--rule); padding:8px; }
+textarea { min-height:6em; font:12px Menlo,monospace; } button { font:inherit; color:var(--paper); background:var(--ink); border:0; padding:9px 16px; cursor:pointer; margin-top:14px; }
+button.quiet { background:none; color:var(--dim); border:.5px solid var(--rule); } .bad { color:var(--accent); } .row { display:flex; gap:8px; flex-wrap:wrap; }
+</style>
+<script type="module" src="sign.js"></script>
+</head>
+<body><main id="main"><p class="dim">Checking the record…</p></main></body>
+</html>

@@ -1,7 +1,7 @@
 // The version of the core: the kernel and deliberation. A module may say the
 // oldest core it runs on (`core: '0.4'` in its default export); a copy whose
 // core is older holds its acts rather than settle them with code it cannot run.
-export const CORE_VERSION = '0.7.7';
+export const CORE_VERSION = '0.9.8';
 
 // '0.4' < '0.4.1' < '0.10'. Missing parts count as 0.
 export function versionAtLeast(have, need) {

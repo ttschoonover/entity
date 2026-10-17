@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Virtual Democratic Republic</title>
+<meta name="description" content="A small democracy run online. Citizens vote on laws, elect a parliament and officers, and every vote is kept on a public record.">
+<link rel="icon" href="flag.svg" type="image/svg+xml">
+<script>try{var p=JSON.parse(localStorage.getItem('site:prefs')||'{}');for(var k in p)document.documentElement.dataset[k]=p[k]}catch(e){}</script>
+<link rel="stylesheet" href="site.css">
+<script type="module" src="vdr.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead"></header>
+
+<main id="main">
+  <section class="hero" id="top">
+    <div>
+      <h1 data-name="full">Virtual Democratic Republic</h1>
+      <p class="motto-line" data-motto hidden></p>
+      <p class="lede">A small democracy run online. Citizens vote on laws, elect a parliament and officers, and every vote is kept on a public record that anyone can check.</p>
+      <div class="actions">
+        <button class="primary" id="join" type="button">Become a citizen</button>
+        <a class="secondary" href="laws.html#law/constitution">Read the Constitution</a>
+      </div>
+      <p class="fine" id="join-note"></p>
+    </div>
+    <figure class="chamber" aria-describedby="chamber-caption">
+      <div id="hemicycle" class="hemicycle" role="img" aria-label="The chamber: each seat is a citizen"></div>
+      <figcaption id="chamber-caption">
+        <p id="chamber-title">Loading the record…</p>
+        <ul class="legend" id="legend" hidden>
+          <li data-when="idle"><span class="key citizen"></span>Citizen</li>
+          <li data-when="bill"><span class="key aye"></span>For</li>
+          <li data-when="bill"><span class="key no"></span>Against</li>
+          <li data-when="bill"><span class="key abstain"></span>Abstaining</li>
+          <li data-when="bill"><span class="key pending"></span>Not yet voted</li>
+          <li data-when="open"><span class="key open"></span>Empty seat</li>
+          <li><span class="key yours"></span>Your seat, if you join</li>
+        </ul>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section class="band" id="floor" aria-labelledby="floor-h">
+    <div class="band-head">
+      <h2 id="floor-h">Open votes</h2>
+      <p>What the citizens are voting on now. You can change your vote until a bill closes.</p>
+    </div>
+    <div id="bills" class="bills"><p class="empty">Loading…</p></div>
+    <details class="propose" id="propose" hidden>
+      <summary>Propose a resolution</summary>
+      <form id="propose-form">
+        <label for="p-title">Title</label>
+        <input id="p-title" required maxlength="200" placeholder="Hold a town hall each month">
+        <label for="p-text">Text</label>
+        <textarea id="p-text" rows="4" placeholder="The citizens resolve that…"></textarea>
+        <button class="primary" type="submit">Propose it</button>
+        <p class="fine">Voting opens as soon as you sign it. Laws and changes to the Constitution are drafted on the <a href="laws.html">Laws</a> page.</p>
+      </form>
+    </details>
+  </section>
+
+  <section class="band" id="offices" aria-labelledby="offices-h">
+    <div class="band-head">
+      <h2 id="offices-h">Officers</h2>
+      <p>Elected by the citizens for one-year terms. They can act only within powers the law gives them.</p>
+    </div>
+    <div id="office-list" class="offices"></div>
+    <div id="elections" class="elections"></div>
+    <p class="more"><a href="hall.html#/elections">All elections</a> · <a href="hall.html#/offices">Offices</a> · <a href="hall.html#/committees">Committees</a></p>
+  </section>
+
+  <section class="band" id="constitution" aria-labelledby="const-h">
+    <div class="band-head">
+      <h2 id="const-h">The Constitution</h2>
+      <p id="const-meta"></p>
+    </div>
+    <div class="const-teaser">
+      <div id="const-text" class="statute"><p class="empty">Loading…</p></div>
+      <ol id="const-toc" class="const-toc"></ol>
+      <p class="actions"><a class="primary" href="laws.html#law/constitution">Read the Constitution</a><a class="secondary" href="laws.html">All laws</a></p>
+    </div>
+  </section>
+
+  <section class="band" id="institutions" aria-labelledby="inst-h">
+    <div class="band-head">
+      <h2 id="inst-h">Institutions</h2>
+      <p>Everything the Republic runs. When the citizens add a new institution, it appears here.</p>
+    </div>
+    <ul id="inst-list" class="inst-list"></ul>
+  </section>
+
+  <section class="band" id="decided" aria-labelledby="decided-h">
+    <div class="band-head">
+      <h2 id="decided-h">Recent decisions</h2>
+      <p>The last bills to close.</p>
+    </div>
+    <ol id="decisions" class="decisions"></ol>
+  </section>
+
+  <section class="band flag-band" id="flag" aria-labelledby="flag-h">
+    <img class="flag-large" src="flag.svg" alt="The flag: rows of white seats arranged as a chamber on a blue field, above a gold band, with one empty gold seat at the top." width="900" height="600">
+    <div>
+      <h2 id="flag-h">The flag</h2>
+      <p>The flag shows a chamber. Each white seat is a citizen, and all the seats are the same size. The gold band they rest on stands for the Constitution.</p>
+      <p>The seat at the top is empty and outlined in gold. It is for the next person to join.</p>
+      <p class="fine">Proportions 3:2. Blue #23408E, white #F3F4F0, gold #C7A33B.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="footer"></footer>
+</body>
+</html>

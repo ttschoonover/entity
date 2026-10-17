@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Sign in</title>
+<style>
+:root { --ink:#E8E5DC; --paper:#131310; --dim:#8a877f; --rule:rgba(232,229,220,.14); --accent:#d07a6e; }
+@media (prefers-color-scheme: light) { :root { --ink:#1d1c1a; --paper:#f7f5f0; --dim:#6b6860; --rule:rgba(29,28,26,.14); } }
+* { box-sizing:border-box; } body { margin:0; background:var(--paper); color:var(--ink); font:15px/1.55 'Helvetica Neue',Helvetica,Arial,sans-serif; }
+main { max-width:26rem; margin:12vh auto 4rem; padding:0 20px; }
+h1 { font:400 1.7em 'Century Schoolbook','TeX Gyre Schola',Georgia,serif; margin:0 0 6px; }
+.dim { color:var(--dim); font-size:.88em; } .bad { color:var(--accent); font-size:.9em; min-height:1.3em; }
+label { display:block; color:var(--dim); font-size:.82em; margin:14px 0 4px; }
+input, textarea { width:100%; font:inherit; color:var(--ink); background:var(--paper); border:.5px solid var(--rule); padding:9px 10px; border-radius:0; }
+textarea { min-height:6em; font:12px Menlo,Consolas,monospace; }
+button { font:inherit; color:var(--paper); background:var(--ink); border:0; padding:9px 16px; cursor:pointer; margin-top:16px; }
+button.quiet { background:none; color:var(--ink); border:.5px solid var(--rule); }
+.doc { border:.5px solid var(--rule); padding:12px 14px; margin-top:14px; } .doc h2 { font:400 1.15em 'Century Schoolbook',Georgia,serif; margin:0 0 6px; }
+.doc .body { white-space:pre-wrap; font-size:.88em; max-height:16em; overflow:auto; }
+canvas.pad { width:100%; height:120px; border:.5px dashed var(--dim); touch-action:none; background:transparent; margin-top:6px; display:block; }
+details { margin-top:22px; border-top:.5px solid var(--rule); padding-top:12px; } summary { cursor:pointer; color:var(--dim); font-size:.9em; }
+.check { display:flex; gap:8px; align-items:center; color:var(--dim); font-size:.85em; margin-top:12px; } .check input { width:auto; }
+</style>
+<script type="module" src="interface/js/signin.js"></script>
+</head>
+<body><main>
+<h1>Members only</h1>
+<p class="dim">Sign in with your account to continue. Your password never leaves this device: it signs a one-time challenge here.</p>
+<div id="kept"></div>
+<form id="pw-form">
+  <label for="id">Member id</label><input id="id" autocomplete="username" required>
+  <label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" required>
+  <label class="check"><input id="remember" type="checkbox" checked> Keep me able to vote and sign on this device (locked with this password)</label>
+  <button type="submit">Sign in</button>
+  <p id="pw-out" class="bad" role="status"></p>
+</form>
+<details><summary>Sign in with a key file</summary>
+  <label for="kid">Member id</label><input id="kid">
+  <label for="kfile">Key file</label><textarea id="kfile" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"></textarea>
+  <button class="quiet" id="key-go" type="button">Sign in with this key</button>
+  <p id="key-out" class="bad" role="status"></p>
+</details>
+<details><summary>Apply to join</summary>
+  <p class="dim">The members decide each application. You will be able to sign in once they admit you.</p>
+  <label for="aid">Choose a member id (lowercase letters, digits and -)</label><input id="aid">
+  <label for="aname">Your name (optional)</label><input id="aname">
+  <label for="apw">A password (12 or more characters)</label><input id="apw" type="password" autocomplete="new-password">
+  <label for="apw2">The same again</label><input id="apw2" type="password" autocomplete="new-password">
+  <div id="docs"></div>
+  <button class="quiet" id="apply-go" type="button">Sign and send my application</button>
+  <p id="apply-out" class="bad" role="status"></p>
+</details>
+<div id="pending"></div>
+</main></body>
+</html>

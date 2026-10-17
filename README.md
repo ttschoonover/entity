@@ -113,3 +113,16 @@ record's pages opened by address, then a perfect rewrite of the server's record
 — which the page catches.
 
 `docs/COOKBOOK.md` builds six real projects step by step; `docs/HARDWARE.md` adds LEDs and a live counter on a Raspberry Pi; `docs/MANUAL.md` covers setup and use. Read `docs/GUARANTEES.md` before relying on any of this.
+
+## Without a terminal
+
+    node cli/index.js app
+
+opens a control panel in your browser that creates, runs and looks after
+republics: a guide for founding one (preset, modules, settings), and buttons
+for everything the command line does.
+
+## Licence
+
+© 2026 Timothy Schoonover. All rights reserved. The source is published to be
+read; using, copying or hosting it needs written permission. See LICENSE.

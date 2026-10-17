@@ -23,6 +23,12 @@ exact code, by digest, and every copy then keeps its own copy of that code.
 | **badges** | marks of recognition shown on members | create, award, revoke, retire | give back your own |
 | **elections** | fill an office by vote | call an election | stand, withdraw, vote, count |
 | **lending** | lend what the entity holds | recall a loan | borrow, renew, return |
+| **parties** | political parties: membership, leaders, platforms, party electorates, seat allocation | | |
+| **federation** | a federation of separate state entities: citizenship, senate, assembly, secession by decision | | |
+| **chat** | channels of messages kept by the node, never on the record | | |
+| **laws** | a relational legal system: typed, tagged laws naming who enforces them and on whom; Parliament and referendum | enact, amend, repeal, ratify (referendum) | lay a bill, vote, close, petition, promulgate (Parliament) |
+| **twofactor** | email codes at sign-in, enforced by the node; addresses never on the record | require it of officers or everyone | turn it on or off (node) |
+| **things** | a library of things members lend each other against cash deposits; a solidarity fund that covers deposits | add, keep or retire a shared thing; declare a loss; settle a dispute; record a claim paid | list, request, lend, renew, return (keeping part of a deposit), dispute |
 | **wiki** | pages any member writes, by category; statutes by decision | enact a version, repeal | edit |
 | **finality** | checkpoints that decide, signed by validators; penalties for cheating | re-anchor signing | sign a checkpoint, submit evidence |
 | **shares** | share classes, a cap table, dividends, voting by shares | create a class, issue, redeem, pay a dividend | transfer (if the class allows) |
@@ -302,6 +308,79 @@ due date; the borrower may renew it `lending.max_renewals` times; overdue loans
 are shown, not punished. A decision, or an office granted `loan.recall` (a
 librarian), can end a loan early, with a published reason.
 
+## Laws (laws)
+
+Every law has a type from `laws.types` (a constitutional setting: each type
+names its rule, the levels it may pair with, and whether it carries parameter
+changes), one to twelve tags, and the bodies that enforce it and on whom
+(`public`, `citizens`, `office:ID`, `committee:ID`, `member:ID`). A law needs
+the strictest rule of its type, its level and every parameter it changes, and
+changing a parameter is a parametric law: enacting it makes the change.
+
+Two ways to make law. **Referendum**: an Assembly decision with `law.enact`,
+`law.repeal` or `law.ratify`. **Parliament** (`laws.parliament`, office or
+committee): a member lays `law.bill`, members `law.vote`, anyone `law.close`s it
+under the law's rule counted among the members. A passed bill waits
+`laws.petition_days`, during which `laws.petition_share` of citizens can send
+it to referendum (`law.petition`); otherwise anyone `law.promulgate`s it. Bills
+stricter than `laws.parliament_max_rule` always go to referendum.
+
+**Every setting is governed by one parametric law**: the last law in force that
+set it (`state.m.laws.settings`). While `laws.settings_by_law` is on (the
+default, a constitutional setting), an Assembly proposal may not carry bare
+`changes` other than `entity.modules`; the kernel's `registerProposalCheck`
+enforces it. A law that governs a setting cannot be repealed, nor amended to
+drop it, until another law sets it; an amendment cannot lower the majority a law
+needs; and each version records the rule it was enacted under, which a repeal
+or amendment needs at least. make-vdr.sh enacts four settings acts at founding
+(statutory, organic, constitutional, entrenched), so no setting starts without a
+law. A module installed later brings settings at their defaults, shown as "no
+law yet" until a parametric law sets them.
+
+## Chat (chat)
+
+Settings only; the node does the rest (`cli/chat.js`). `chat.channels` lists
+the channels, each `{ id, title, about, read: public | members, post: members |
+office:ID | committee:ID }`; `chat.moderators` names who may delete any message;
+`chat.retention_days` how long the node keeps them; `chat.max_length` the
+longest. Messages are signed with members' keys (namespace `entity.chat`) and
+kept in `.entity/chat/`, never on the record. Members-only channels are end-to-end encrypted unless `encrypt: false` (see `interface/js/chatcrypto.js`): the node keeps ciphertext and wrapped channel keys, never the text. Members open rooms of their own (`chat.room_creators`, `chat.max_rooms`), closed by their opener or a moderator, and write to each other directly (`chat.direct_messages`): each direct message is sealed for the two people and deleted only by its author. The site kit's `chat.html` is the
+page.
+
+## Two-factor (twofactor)
+
+Settings only: `twofactor.require` (optional, officers, everyone) and
+`twofactor.code_minutes`. The node does the rest (`cli/twofactor.js`): a member
+who uses two-factor, or whom the rule covers, signs in with their password or
+key and a six-digit code emailed to them, and the node accepts acts in their
+name over the web only from a browser that gave the code (for twelve hours).
+Email addresses stay in the node's `.entity/twofactor.json`, never on the
+record and never replicated. Codes are hashed, expire, allow five tries; at
+most five are sent an hour. With the module installed, a bundle is accepted
+only from a confirmed browser. The operator sets up mail with
+`entity twofactor mail --host … --user … --from …` (the password is kept in
+`.entity/smtp-password`), tests it with `entity twofactor test ADDRESS`, and
+can `entity twofactor reset MEMBER` for someone who lost their email. It guards
+this node's doors: a copy that does not run it would still accept a valid
+signature.
+
+## Library of things (things)
+
+Members list what they own, with the deposit they ask (`thing.list`); others
+ask to borrow it (`thing.request`), and line up if it is out. The lender hands
+it over and signs that they received the deposit in cash (`thing.lend`); when it
+comes back they sign so, refunding the deposit less anything `kept`, with a
+published note (`thing.return`). A borrower may say they returned it
+(`thing.returned`), and may dispute what was kept within `things.dispute_days`
+(`thing.dispute`); the network settles it (`thing.settle`). A member may ask the
+solidarity fund to stand behind the deposit instead (`cover: true`, up to
+`things.cover_limit`, `things.cover_max_open` at a time): no cash changes hands,
+and whatever such a loan keeps, or loses (`thing.lost`), becomes a claim the
+fund pays (`thing.pay`). The network's own things (`thing.add`) are lent by a
+keeper on the same terms. The record keeps the books of every deposit; the
+money itself is cash, handed over in person. `make-solidarity.sh` founds a
+network built on it.
+
 ## Wiki
 
 Any active member may write a page; every version is signed and kept. An edit
@@ -483,6 +562,87 @@ The record is public. A club's members, contributions and balances are visible
 to anyone who can see the entity: host a club's entity where only its members
 can reach it.
 
+## loans
+
+An interest-free revolving loan fund. The members add capital by decision
+(`loan.fund`); loans (`loan.make`) are refused beyond what is available, beyond
+`loans.max_amount` (500.00 by default) or while the borrower has
+`loans.max_open` loans outstanding; repayments (`loan.repay`) return to the fund
+for the next borrower; only the rule `loans.forgive_rule` forgives what is left
+(`loan.forgive`). The money itself is held by the treasurer; the record keeps
+the books. The usual arrangement is a stewards' committee granted `loan.make`
+and `loan.repay`, needing two signatures.
+
+## endowment
+
+A permanent fund. Gifts (`endowment.gift`) become principal, never spent; the
+treasurer records the market value (`endowment.value`); each year, from
+`endowment.year_start`, the members may draw (`endowment.draw`) up to
+`endowment.spend_rate` hundredths of a percent of the latest value (400, 4%),
+never below the principal, for the loan fund (added to it directly) or the
+budget. The spend rate changes only under the constitutional rule.
+
+## page
+
+The republic's own web page. A republic without it runs headless: its node
+still serves the record, accepts signed acts, and serves windows for other
+websites, and its front door says the republic has no page of its own.
+
+## sealed
+
+Content only members can read, though anyone may hold the record. Each member
+publishes an encryption key (`seal.key`) derived from their signing key, so
+there is nothing new to keep; passkey-only members add a password to take part.
+A key period (`seal.epoch`) seals a new group key to every member with a key;
+posts (`seal.post`) are encrypted under the current period's key, with an
+optional title left readable. A member who holds a period's key can give it to
+one who lacks it (`seal.grant`); `sealed.history` (`all` or `current`) says
+whether newcomers may be given earlier periods.
+
+When a member who holds the current key leaves or is removed, nothing more can
+be sealed or given until a holder starts a new period, which leaves them out:
+they keep what they could already read, and nothing after. Settlement never
+decrypts; it checks only shapes, so every copy settles alike. From the
+terminal: `entity seal status | key | epoch | grant M | post | read`.
+
+## contracts and disputes
+
+**contracts** records deals between two members and holds their payment in
+escrow. A member offers a contract (as the provider or the payer), with a price
+in the entity's value units and terms whose fingerprint is recorded. When the
+other accepts, the price is held from the payer's balance. The provider marks
+it done; the payer confirms, and the provider is paid. If the payer neither
+confirms nor disputes it within `contracts.release_days` (3), the provider may
+collect. Both together may cancel, and the payer is refunded. Needs **value**.
+
+| Act | By |
+| --- | --- |
+| `contract.offer`, `contract.withdraw` | either member, before acceptance |
+| `contract.accept`, `contract.decline` | the member it was offered to |
+| `contract.done`, `contract.collect` | the provider |
+| `contract.confirm` | the payer |
+| `contract.cancel` | both, each signing |
+
+**disputes** hears claims between members. A dispute about a contract freezes
+its escrow until it is ruled on. The other side answers within
+`disputes.answer_days` (3), or the arbiter may rule without them. The arbiter is
+`disputes.arbiter`: `office:ID` (its holder), `committee:ID` (a majority of its
+members) or `member:ID`. A ruling awards the claimant between nothing and what
+they claimed, with reasons. Either side may appeal within
+`disputes.appeal_days` (7) to `disputes.appeal`: another body, `assembly` (the
+members decide by proposal, `dispute.decide`), or `none`. A ruling no one
+appealed is carried out once the window closes (`dispute.execute`). Contract
+escrow moves by the ruling; otherwise the award is paid from the loser's
+balance, and what they lack is owed (`dispute.pay`) and bars them from new
+contracts until paid. `disputes.deposit` asks claimants to put down an amount,
+returned if they win. Parties never rule; whoever ruled first never hears the
+appeal; members barred from a case do not count toward its majority.
+
+Evidence is a list of files by name and SHA-256 fingerprint. The page computes
+the fingerprint in the browser; the files themselves go to the other side and
+the arbiter directly, so private material stays off the record while the
+fingerprint proves it was never swapped.
+
 ## Installing from the page
 
 Settings → *Install or upgrade modules* lists every module the entity's module
@@ -551,3 +711,26 @@ it: removing any module must leave every other one working (acceptance test 20).
 Publish it in a git repository (GitHub or Radicle), then anyone installs it with
 `entity module add github:YOU/REPO/SUBDIR@COMMIT`. The twenty-two modules above are in
 the module pack (`entity-modules`); `library/README.md` says how to publish it.
+
+## Parties (parties)
+
+Members found parties (`party.found`), join (`party.join`, or ask when joining is
+by approval and the leader accepts with `party.accept`), and leave
+(`party.leave`). The leader rewrites the platform (`party.platform`) and hands
+over (`party.leader`); members replace a leader by calling for the same person,
+which takes effect past half of the party. Settings: `parties.min_members`,
+`parties.exclusive`, `parties.cooling_days`, `parties.dissolve_rule`.
+Electorate: `party:ID`.
+
+## Federation (federation)
+
+Runs in the federal entity. States are separate entities, admitted with
+`federation.admit_state { state, name, entity, keys }` and released with
+`federation.release_state`. A state's registrar signs `state.certify` (its
+citizens and their keys, its senators and deputies, the point in its record);
+`entity federation certify` builds it from the state's folder. Citizens take up
+federal citizenship with `citizen.enroll`, proved with their state key
+(`entity federation enroll`). Settings: `federation.senators_per_state`,
+`federation.assembly_seats`, `federation.admit_rule`, `federation.release_rule`,
+`federation.registrar_rule`. Electorates: `senate`, `assembly`, `parliament`.
+

@@ -1,6 +1,9 @@
 // The meetings tab: upcoming first, check-in on the day, minutes.
 import { checkinWindow } from './index.js';
 
+// A person as the page names them: "Name (id)" where the page offers it.
+const nm = (api, id) => (api.nameOf ? api.nameOf(id) : id);
+
 export default function render(api) {
   const { h, state, params, me, $, when } = api;
   const now = new Date().toISOString();
@@ -19,10 +22,10 @@ export default function render(api) {
       const present = Object.keys(m.attendance);
       const minutes = m.approved ? m.minutes[m.approved.version - 1] : m.minutes[m.minutes.length - 1];
       return h('li', {}, h('h3', {}, m.title, m.cancelled ? h('span', { class: 'category' }, 'cancelled') : null),
-        h('p', { class: 'meta' }, `${when(m.starts)}${m.place ? ` · ${m.place}` : ''} · called by ${m.by} · ${present.length} present`),
+        h('p', { class: 'meta' }, `${when(m.starts)}${m.place ? ` · ${m.place}` : ''} · called by ${nm(api, m.by)} · ${present.length} present`),
         m.cancelled ? h('p', { class: 'flag' }, `Cancelled: ${m.cancelled.reason}`) : null,
         m.agenda.length ? h('ol', {}, m.agenda.map(x => h('li', {}, x))) : null,
-        present.length ? h('p', { class: 'fine' }, `Present: ${present.join(', ')}`) : null,
+        present.length ? h('p', { class: 'fine' }, `Present: ${present.map(x => nm(api, x)).join(', ')}`) : null,
         me?.status === 'active' && open && !m.attendance[me.id] ? h('div', { class: 'buttons' }, h('button', { onclick: () => api.sign('meeting.attend', { meeting: m.id }, `Checking in to ${m.title}`) }, 'Check in')) : null,
         minutes ? h('details', {}, h('summary', {}, m.approved ? `Minutes (approved, version ${m.approved.version})` : `Minutes (draft ${minutes.version}, not yet approved)`), h('p', { class: 'post-body' }, minutes.text)) : null,
         me?.status === 'active' && now >= m.starts && !m.cancelled ? h('details', {}, h('summary', {}, m.minutes.length ? 'Revise the minutes' : 'Draft the minutes'),

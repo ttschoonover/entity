@@ -15,6 +15,11 @@ import * as m from './commands/module.js';
 import * as fk from './commands/fork.js';
 import * as up from './commands/upgrade.js';
 import * as fin from './commands/finality.js';
+import * as pw from './commands/password.js';
+import * as sl from './commands/seal.js';
+import * as app from './commands/app.js';
+import * as tfa from './commands/twofactor.js';
+import * as fd from './commands/federation.js';
 
 const COMMANDS = {
   found: [f.found, 'bring it into being            [--preset name] [--id p-0001] [--name "…"]'],
@@ -26,6 +31,9 @@ const COMMANDS = {
   propose: [a.propose, 'lay a proposal, rule chosen for you --title "…" [--effects json] [--changes json]'],
   join: [a.join, 'make a key and sign an application --id <id> [--name "…"]'],
   key: [a.key, 'show or rotate your key          show | rotate'],
+  seal: [sl.seal, 'sealed content only members read   status | key | epoch | grant M | post | read'],
+  password: [pw.password, 'sign in with a password         set | remove [--as id] [--settle]'],
+  twofactor: [tfa.twofactor, 'email codes at sign-in (node)   status | mail … | test EMAIL | reset ID | set ID EMAIL'],
   status: [i.status, 'what this copy holds'],
   count: [i.count, 'count the ballots on a proposal  <proposal id> [--json]'],
   params: [i.params, 'every settable value            [key]'],
@@ -42,10 +50,12 @@ const COMMANDS = {
   finality: [fin.finality, 'checkpoints that decide          status | sign | evidence <file> | scan <copy>'],
   upgrade: [up.upgrade, 'the core, by decision           check [source] | propose [source] | apply | status'],
   fork: [fk.fork, 'a new entity naming this one as its parent --name "…" --out <dir> --as <id> [--at n] [--carry value,deeds] [--electorate spec]'],
+  federation: [fd.federation, 'between a state and its federation certify | enroll | status --from <state dir> --state ID --as id'],
   radicle: [r.radicle, 'publish and replicate on Radicle  init | status'],
   adopt: [r.adopt, 'bring in approved code or law     <git ref> [--decision <id>] [--dry]'],
   gate: [g.gate, 'may these files change?         <paths…> --decision <id> | --against <dir> | digest <paths…>'],
   serve: [s.serve, 'run a node and its page         [--port 7780] [--settle]'],
+  app: [app.app, 'the local control panel: create and run republics in a browser [--port 7700] [--home ~/entities]'],
   build: [s.build, 'the static page                 [--out site]'],
   dist: [d.dist, 'the code as an archive, never the state [--out file]'],
 };

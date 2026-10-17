@@ -1,6 +1,9 @@
 // The elections tab.
 import { phase } from './index.js';
 
+// A person as the page names them: "Name (id)" where the page offers it.
+const nm = (api, id) => (api.nameOf ? api.nameOf(id) : id);
+
 export default function render(api) {
   const { h, state, me, $, when, who, params } = api;
   const now = new Date().toISOString();
@@ -10,7 +13,7 @@ export default function render(api) {
   if (!all.length) sec.append(h('p', { class: 'hint' }, 'No elections yet.'));
   sec.append(api.list({
     key: 'elections', items: all, noun: 'elections', mine: me ? (e) => !!e.candidates[me.id] || (phase(e, now) === 'voting' && e.roll.includes(me.id) && !e.ballots[me.id]) : null,
-    text: (e) => `${e.id} ${e.office} ${Object.keys(e.candidates).join(' ')}`,
+    text: (e) => `${e.id} ${e.office} ${Object.keys(e.candidates).map(c => nm(api, c)).join(' ')}`,
     sorts: [['Newest first', api.sorts.newest((e) => e.called)], ['Oldest first', api.sorts.oldest((e) => e.called)]],
     render: (e => {
     const ph = phase(e, now), cands = Object.keys(e.candidates), mine = me && e.ballots[me.id];
@@ -28,8 +31,8 @@ export default function render(api) {
     if (me && ph === 'voting' && e.roll.includes(me.id) && cands.length) {
       kids.push(h('div', { class: 'inline-form' }, cands.map(c => h('label', { style: 'font-weight:400' },
         e.method === 'ranked'
-          ? h('input', { type: 'number', min: 1, max: cands.length, id: `ev-${e.id}-${c}`, value: mine ? (mine.indexOf(c) + 1 || '') : '', style: 'width:4rem;margin-right:.5rem', 'aria-label': `rank for ${c}` })
-          : h('input', { type: 'checkbox', id: `ev-${e.id}-${c}`, checked: mine?.includes(c), style: 'width:auto;margin-right:.5rem' }), c))));
+          ? h('input', { type: 'number', min: 1, max: cands.length, id: `ev-${e.id}-${c}`, value: mine ? (mine.indexOf(c) + 1 || '') : '', style: 'width:4rem;margin-right:.5rem', 'aria-label': `rank for ${nm(api, c)}` })
+          : h('input', { type: 'checkbox', id: `ev-${e.id}-${c}`, checked: mine?.includes(c), style: 'width:auto;margin-right:.5rem' }), nm(api, c)))));
       btns.push(h('button', { onclick: () => {
         const choices = e.method === 'ranked'
           ? cands.map(c => [c, Number($(`#ev-${e.id}-${c}`).value)]).filter(([, n]) => n > 0).sort((a, b) => a[1] - b[1]).map(([c]) => c)

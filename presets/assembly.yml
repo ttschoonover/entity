@@ -1,7 +1,7 @@
 _: A general assembly. One participant one vote, open admission, the kernel's
    default rules. The shape to start from when no other fits.
 
-modules: [deliberation, titles, vocabulary]
+modules: [page, deliberation, titles, vocabulary]
 
 set:
   entity.name: The Assembly

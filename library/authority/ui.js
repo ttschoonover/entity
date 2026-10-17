@@ -1,6 +1,8 @@
 // The authority tab: every grant, who holds it, and every use of it.
 import { inForce, body, bodyName, needed, PROTECTED } from './index.js';
 
+// The office or committee a grant is made to, by its title.
+const toName = (state, to) => (to?.office ? `the office of ${state.m.offices?.[to.office]?.title || to.office}` : to?.committee ? `the ${state.m.committees?.[to.committee]?.title || to.committee}` : bodyName(to));
 const describe = (api, e) => { const d = api.registry.effects.get(e.kind); return d ? d.describe(e) : e.kind; };
 
 function grantBlock(api, g, full) {
@@ -13,7 +15,7 @@ function grantBlock(api, g, full) {
   const shown = full ? uses : uses.slice(0, 3);
   return h('div', { class: 'grant' },
     h('h3', {}, link(`authority/${g.id}`, g.title || g.id), g.title ? h('span', { class: 'category' }, g.id) : null, live ? '' : h('span', { class: 'flag' }, g.revoked ? ` · revoked ${day(g.revoked.at)}${g.revoked.reason ? `: ${g.revoked.reason}` : ''}` : ' · fell with the grant it was made under')),
-    h('p', { class: 'meta' }, `To ${bodyName(g.to)} · made by ${g.origin} on ${day(g.created)}${g.parent ? `, under ${g.parent}` : ''}`),
+    h('p', { class: 'meta' }, `To ${toName(state, g.to)} · made by ${g.origin} on ${day(g.created)}${g.parent ? `, under ${g.parent}` : ''}`),
     h('p', {}, `May: ${g.may.join(', ')}`,
       g.where ? `; only where ${Object.entries(g.where).map(([k, v]) => `${k} is ${[].concat(v).join(' or ')}`).join(', ')}` : '',
       g.limit ? `; at most ${g.limit.count} use${g.limit.count === 1 ? '' : 's'} in any ${g.limit.days} days` : '',

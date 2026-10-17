@@ -2,7 +2,7 @@ _: A unit of account anyone can hold and send, verifiable by anyone with a copy.
    The founder issues the supply, then freezes the entity so its rules can never
    change again. Experimental: see the note before relying on it.
 
-modules: [deliberation, value]
+modules: [page, deliberation, value]
 
 set:
   entity.name: The Currency

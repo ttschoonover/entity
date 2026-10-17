@@ -1,7 +1,7 @@
 _: A micronation. Anyone may become a citizen; citizens choose their names;
    the constitution changes only by two readings a month apart.
 
-modules: [deliberation, titles, vocabulary]
+modules: [page, deliberation, titles, vocabulary]
 
 set:
   entity.name: The Republic

@@ -20,8 +20,12 @@ export function sourceOf(dir, given) {
   return null;
 }
 
-function report(m) {
+const older = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0); return false; };
+function report(m, e) {
   out(`entity ${m.from} → ${m.version}, from ${m.pinned}`);
+  // From 0.9.0 the page is a module: a republic without it runs headless.
+  if (e && older(m.from, '0.9.0') && !older(m.version, '0.9.0') && !e.params.value('entity.modules').includes('page'))
+    out('  NOTE: from 0.9.0 the page is a module. Install it first (entity module add page, or from Settings), or after this upgrade the republic has no page.');
   out(`  ${m.paths.length} core file(s) change; digest ${m.digest}`);
   out(`  the record ${m.replays ? 'replays byte for byte with the new code' : 'DOES NOT replay with the new code'}`);
   if (!m.replays) out(m.replayOutput.split('\n').map(l => `    ${l}`).join('\n'));
@@ -36,7 +40,7 @@ export async function upgrade({ pos, opt }) {
     let m;
     try { m = up.check(e.dir, source, e.params); } catch (x) { refuse(x.message); }
     if (!m.paths.length) { out(`entity ${m.version} from ${m.pinned} is the code this copy already runs; nothing to upgrade`); return; }
-    report(m);
+    report(m, e);
     if (sub === 'check') { out('Propose it with `entity upgrade propose --as ID`.'); return; }
     if (!m.replays) refuse('refusing to propose code that would not reproduce this entity\'s record');
     const a = await signed(e, 'proposal.lay', up.proposal(m), opt);
@@ -56,7 +60,7 @@ export async function upgrade({ pos, opt }) {
   if (sub === 'status') {
     const m = up.staged(e.dir);
     if (!m) return out('nothing staged');
-    report(m);
+    report(m, e);
     const d = up.approvedBy(e.state, m);
     out(d ? `  approved by decision ${d.id}: \`entity upgrade apply\` installs it` : '  not yet approved by any decision');
     return;

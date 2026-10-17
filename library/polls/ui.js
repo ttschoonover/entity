@@ -1,15 +1,17 @@
 // The polls tab.
 import { results, isOpen } from './index.js';
 
+// A person as the page names them: "Name (id)" where the page offers it.
+const nm = (api, id) => (api.nameOf ? api.nameOf(id) : id);
+
 export default function render(api) {
   const { h, state, me, $, when, who } = api;
   const now = new Date().toISOString();
   const all = Object.values(state.m.polls || {}).sort((a, b) => (a.at < b.at ? 1 : -1));
-  const sec = h('section', {}, h('h2', {}, 'Polls'), h('p', { class: 'hint' }, 'Opinions, counted from the record. A poll decides nothing.'));
-  if (!all.length) sec.append(h('p', { class: 'hint' }, 'No polls yet.'));
+  const sec = h('section', {}, h('h2', {}, 'Polls'), h('p', { class: 'hint' }, 'Questions put to the members. A poll records opinion and decides nothing.'));
   sec.append(api.list({
-    key: 'polls', items: all, noun: 'polls', mine: me ? (p) => p.by === me.id || (isOpen(p, now) && p.roll.includes(me.id) && !p.answers[me.id]) : null,
-    text: (p) => `${p.question} ${p.options.join(' ')} ${p.by}`,
+    key: 'polls', items: all, noun: 'polls', empty: 'No polls yet.', mine: me ? (p) => p.by === me.id || (isOpen(p, now) && p.roll.includes(me.id) && !p.answers[me.id]) : null,
+    text: (p) => `${p.question} ${p.options.join(' ')} ${nm(api, p.by)}`,
     sorts: [['Newest first', api.sorts.newest()], ['Oldest first', api.sorts.oldest()], ['Most answered', (a, b) => Object.keys(b.answers).length - Object.keys(a.answers).length]],
     render: (p => {
     const r = results(p), open = isOpen(p, now), mine = me && p.answers[me.id];
