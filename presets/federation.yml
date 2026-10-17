@@ -1,0 +1,21 @@
+_: A federation of cooperatives. Each member organisation sends a delegate;
+   one delegate one vote. Admitting a new member organisation is organic.
+
+modules: [deliberation, titles, vocabulary]
+
+set:
+  entity.name: The Federation
+  vocabulary.participant: delegate
+  vocabulary.participants: delegates
+  vocabulary.assembly: Federal Council
+  membership.admission: decision
+  membership.admission_rule: organic
+  deliberation.period: 21
+  amendment.rules.ordinary.quorum: 0.50
+
+awaiting: [sub-entities, delegation, weighted-classes, recognition]
+
+note: >
+  Member organisations are represented by their delegates' keys. The
+  federation does not yet read its members' own records, and votes are not
+  weighted by size; both need modules not built yet.

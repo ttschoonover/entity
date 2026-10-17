@@ -1,0 +1,22 @@
+_: A worker cooperative. One member one vote; surplus by patronage,
+   which is a different number entirely.
+
+modules: [deliberation, titles, vocabulary]
+
+# Modules this shape needs that are not built yet. Their parameters
+# (roles.term, unit.name, delegation.enabled) cannot be set until they exist,
+# and this preset does not pretend otherwise.
+awaiting: [roles, corpus, units, instruments, allocation, settlement-on-exit, terms, delegation]
+
+set:
+  entity.name: The Cooperative
+  vocabulary.participant: member
+  vocabulary.participants: members
+  vocabulary.assembly: General Meeting
+  amendment.rules.ordinary.quorum: 0.50
+  membership.admission: decision
+
+note: >
+  Admission is by decision of the General Meeting. Delegation, when it exists,
+  should stay off: a cooperative is small enough that everyone should vote for
+  themselves, and delegation is where informal power accumulates.

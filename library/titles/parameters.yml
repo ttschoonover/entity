@@ -1,0 +1,9 @@
+parameters:
+  titles.max_length:
+    value: 60
+    type: integer
+    min: 1
+    max: 200
+    changed_by: ordinary
+    group: Titles
+    describe: The longest name a participant may choose.

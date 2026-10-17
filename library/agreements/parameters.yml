@@ -1,0 +1,35 @@
+parameters:
+  agreements.required:
+    value: []
+    type: list
+    changed_by: constitutional
+    group: Agreements
+    describe: >
+      Wiki pages an applicant must have signed before being admitted (for
+      example [partnership-agreement]). Checked however they are admitted.
+  agreements.amendments:
+    value: carry
+    type: string
+    one_of: [carry, resign]
+    changed_by: constitutional
+    group: Agreements
+    describe: >
+      When a required document is amended: "carry" keeps earlier signatures
+      (the amendment binds by the vote that passed it); "resign" requires every
+      member to sign the new text.
+  agreements.enacted_only:
+    value: true
+    type: boolean
+    changed_by: constitutional
+    group: Agreements
+    describe: Whether a document can be signed only once the members have enacted it (so nobody signs a draft).
+  agreements.drawn_signature:
+    value: optional
+    type: string
+    one_of: [optional, required, off]
+    changed_by: organic
+    group: Agreements
+    describe: >
+      Whether members also draw their signature when signing. The drawing is
+      sealed inside the signed act; the signed act, not the drawing, is the
+      signature.

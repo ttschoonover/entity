@@ -1,0 +1,72 @@
+parameters:
+  fund.currency:
+    value: USD
+    type: string
+    changed_by: organic
+    group: Fund
+    describe: The currency the club's books are kept in. Amounts are recorded in cents.
+  fund.initial_unit_value:
+    value: 1000
+    type: integer
+    min: 1
+    max: 10000000
+    changed_by: constitutional
+    group: Fund
+    describe: What one unit costs, in cents, when the club first takes in money. $10.00 is usual.
+  fund.max_members:
+    value: 100
+    type: integer
+    min: 1
+    max: 100
+    changed_by: constitutional
+    group: Fund
+    describe: >
+      The most members who may hold capital in the club. A club that stays
+      at or under 100 members and makes no public offering may qualify as a
+      private investment company that need not register with the SEC; ask a
+      securities lawyer.
+  fund.max_share:
+    value: 1
+    type: fraction
+    min: 0.01
+    max: 1
+    changed_by: constitutional
+    group: Fund
+    describe: The largest share of the club any one member may hold after paying in, e.g. 0.2 for a fifth. 1 means no limit (set one once the club has several members).
+  fund.withdrawal_fee:
+    value: 0
+    type: fraction
+    min: 0
+    max: 0.05
+    changed_by: organic
+    group: Fund
+    describe: A share of each withdrawal kept by the club, to cover the cost of selling to pay it.
+  fund.valuation_max_days:
+    value: 7
+    type: integer
+    min: 1
+    max: 60
+    changed_by: organic
+    group: Fund
+    describe: How recent a holding's price must be before money is paid in or out at the unit value.
+  fund.trade_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Fund
+    describe: The rule under which the members authorize a purchase or sale. Always a decision of the members, never a grant.
+  fund.books_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Fund
+    describe: The rule for bookkeeping by decision (payments in, trades done, prices, income, expenses). Usually granted to the treasurer instead.
+  fund.withdraw_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Fund
+    describe: The rule under which a member's withdrawal is paid.

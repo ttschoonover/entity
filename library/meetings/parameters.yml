@@ -1,0 +1,31 @@
+parameters:
+  meetings.call_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Meetings
+    describe: The rule under which meetings are called or cancelled. A secretary can be granted this power instead (authority).
+  meetings.minutes_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Meetings
+    describe: The rule under which minutes are approved.
+  meetings.checkin_hours:
+    value: 4
+    type: integer
+    min: 1
+    max: 72
+    changed_by: ordinary
+    group: Meetings
+    describe: Hours after a meeting starts that members may still check in. Check-in opens an hour before it starts.
+  meetings.max_length:
+    value: 50000
+    type: integer
+    min: 1000
+    max: 500000
+    changed_by: ordinary
+    group: Meetings
+    describe: The longest draft of minutes, in characters.

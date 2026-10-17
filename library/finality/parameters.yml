@@ -1,0 +1,65 @@
+parameters:
+  finality.signers:
+    value: members
+    type: string
+    changed_by: constitutional
+    group: Finality
+    describe: >
+      Who signs checkpoints, as an electorate: "members" (everyone, one each),
+      "founder" or "member:ID" (one person), "office:ID" (a role's holders),
+      "committee:ID" (a committee), or "value" (holders of the unit, weighted by
+      what they hold). A change takes effect from the next checkpoint opened.
+  finality.threshold:
+    value: 0.66
+    type: fraction
+    min: 0.51
+    max: 1
+    changed_by: constitutional
+    group: Finality
+    describe: >
+      The share of the signers' weight a checkpoint needs to become final. Always
+      more than half, so that two final checkpoints share a signer; two thirds
+      tolerates up to a third of the signers lying.
+  finality.open_days:
+    value: 7
+    type: integer
+    min: 1
+    max: 90
+    changed_by: organic
+    group: Finality
+    describe: How long a checkpoint waits for signatures before it lapses and may be reopened at the record's head.
+  finality.vacate:
+    value: true
+    type: boolean
+    changed_by: constitutional
+    group: Finality
+    describe: Whether a validator caught signing a false history loses the office or committee seat that made them a validator.
+  finality.slash:
+    value: 0
+    type: fraction
+    min: 0
+    max: 1
+    changed_by: constitutional
+    group: Finality
+    describe: The share of their holdings of the entity's unit a validator caught cheating is fined. The fine is destroyed, less any bounty.
+  finality.bounty:
+    value: 0
+    type: fraction
+    min: 0
+    max: 1
+    changed_by: constitutional
+    group: Finality
+    describe: The share of a fine paid to the member who submitted the evidence.
+  finality.remove:
+    value: false
+    type: boolean
+    changed_by: constitutional
+    group: Finality
+    describe: Whether a member caught signing a false history is also removed from the entity.
+  finality.reanchor_rule:
+    value: constitutional
+    type: string
+    one_of: [organic, constitutional, entrenched]
+    changed_by: entrenched
+    group: Finality
+    describe: The rule under which a decision may re-anchor checkpoint signing when too few signers remain for any checkpoint to become final.

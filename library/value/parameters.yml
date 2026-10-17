@@ -1,0 +1,35 @@
+parameters:
+  value.name:
+    value: credits
+    type: string
+    changed_by: organic
+    group: Value
+    describe: What the unit is called, in the plural.
+  value.decimals:
+    value: 0
+    type: integer
+    min: 0
+    max: 6
+    changed_by: constitutional
+    group: Value
+    describe: How many places after the point amounts are shown with. Amounts are stored as whole numbers of the smallest unit.
+  value.transferable:
+    value: true
+    type: boolean
+    changed_by: organic
+    group: Value
+    describe: Whether holders may send units to each other. Retiring your own units is always allowed.
+  value.issue_rule:
+    value: organic
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: constitutional
+    group: Value
+    describe: The rule under which units are issued or revoked.
+  value.max_supply:
+    value: 0
+    type: integer
+    min: 0
+    changed_by: constitutional
+    group: Value
+    describe: The most units that may exist at once, in the smallest unit. 0 means no limit.

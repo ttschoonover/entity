@@ -1,0 +1,16 @@
+_: One person decides: a sole trader, a founder-run project, a benevolent
+   dictatorship. Others may join, propose and follow everything, but only the
+   founder votes, and a proposal carries the moment the founder votes for it.
+
+modules: [deliberation, titles, vocabulary]
+
+set:
+  entity.name: The Project
+  decision.electorate: founder
+  vocabulary.assembly: Founder
+
+note: >
+  decision.electorate is "founder". Handing over is a decision like any other:
+  set it to "members" (or an office, a committee, or "value") under the
+  entrenched rule. Everything the founder decides is on the record, signed, for
+  anyone to check. If the founder leaves, nobody can decide anything again.

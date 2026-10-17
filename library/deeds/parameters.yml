@@ -1,0 +1,25 @@
+parameters:
+  deeds.grant_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Deeds
+    describe: The rule under which deeds are granted, reassigned or retired.
+  deeds.transferability:
+    value: optional
+    type: string
+    one_of: [optional, always, never]
+    changed_by: organic
+    group: Deeds
+    describe: >
+      Whether holders may pass deeds on without a decision. optional: each deed
+      says so when granted. always: every deed. never: no deed, and switching to
+      never freezes deeds already granted as transferable. Giving a deed back to
+      the entity is always allowed.
+  deeds.default_transferable:
+    value: true
+    type: boolean
+    changed_by: organic
+    group: Deeds
+    describe: When transferability is optional, whether a new deed may be passed on unless its grant says otherwise.

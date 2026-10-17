@@ -1,0 +1,16 @@
+{
+  "name": "entity",
+  "version": "0.7.8",
+  "description": "A verifiable collective entity: law, membership, history and code in one directory.",
+  "type": "module",
+  "bin": {
+    "entity": "cli/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test --test-concurrency=4 \"test/**/*.test.js\" \"modules/**/tests.js\" \"library/**/tests.js\""
+  },
+  "license": "MIT"
+}

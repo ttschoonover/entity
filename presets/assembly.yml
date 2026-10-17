@@ -1,0 +1,11 @@
+_: A general assembly. One participant one vote, open admission, the kernel's
+   default rules. The shape to start from when no other fits.
+
+modules: [deliberation, titles, vocabulary]
+
+set:
+  entity.name: The Assembly
+
+note: >
+  Admission is open: an application takes effect when it is recorded. Switch
+  membership.admission to "decision" by an organic decision if that changes.

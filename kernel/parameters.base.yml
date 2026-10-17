@@ -1,0 +1,91 @@
+# The kernel's parameters. A preset composes this with each module's
+# parameters.yml into the entity's own parameters.yml at founding.
+
+amendment:
+  rules:
+    ordinary:       { quorum: 0.20, threshold: 0.50, readings: 1 }
+    organic:        { quorum: 0.33, threshold: 0.67, readings: 1 }
+    constitutional: { quorum: 0.50, threshold: 0.67, readings: 2, apart: 30 }
+    entrenched:     { quorum: 0.60, threshold: 0.75, readings: 2, apart: 30 }
+    immutable:      { changeable: false }
+  # Weakest to strongest. Written out because the order of the rules above does
+  # not survive being recorded: canonical serialisation sorts keys.
+  order: [ordinary, organic, constitutional, entrenched]
+  meta: entrenched
+  meta_immutable: true
+
+parameters:
+  entity.name:
+    value: The Assembly
+    type: string
+    changed_by: constitutional
+    group: Identity
+    describe: What this entity is called.
+
+  entity.founded:
+    value: null
+    type: timestamp
+    changed_by: immutable
+    group: Identity
+    why: a fact, not a choice
+    describe: When the founding act was made. Set by that act.
+
+  entity.modules:
+    value: [deliberation]
+    type: list
+    changed_by: organic
+    group: Identity
+    describe: The modules this entity runs. Their code is governed like the kernel's.
+
+  record.immutable:
+    value: true
+    type: boolean
+    changed_by: immutable
+    group: Record
+    why: a record is never altered; that is what makes it a record
+    describe: Records are appended, never changed.
+
+  record.checkpoint_cosigners:
+    value: 2
+    type: integer
+    min: 1
+    max: 7
+    changed_by: constitutional
+    group: Record
+    describe: >
+      How many must sign a checkpoint. One signing key is one key to steal, and
+      a checkpoint signed by one key refutes nothing that key can also sign.
+
+  membership.admission:
+    value: open
+    type: string
+    one_of: [open, decision]
+    changed_by: organic
+    group: Membership
+    describe: >
+      Whether an application takes effect on recording (open) or waits for a
+      decision to admit it (decision).
+
+  membership.admission_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Membership
+    describe: The rule under which applicants are admitted, when admission is by decision.
+
+  membership.transferable:
+    value: false
+    type: boolean
+    changed_by: immutable
+    group: Membership
+    why: membership is a person's, not property; a sold vote is a bought decision
+    describe: Membership cannot be sold, given or inherited.
+
+  exit.unconditional:
+    value: true
+    type: boolean
+    changed_by: immutable
+    group: Membership
+    why: an entity nobody may leave governs by capture, not consent
+    describe: Anyone may leave at any time, and nothing can prevent it.

@@ -1,0 +1,29 @@
+parameters:
+  budget.currency:
+    value: USD
+    type: string
+    changed_by: organic
+    group: Budget
+    describe: The currency the budget is kept in. The budget records decisions; it does not hold money.
+  budget.decimals:
+    value: 2
+    type: integer
+    min: 0
+    max: 4
+    changed_by: organic
+    group: Budget
+    describe: Decimal places. With 2, amounts are in cents, and 1050 is 10.50.
+  budget.approve_rule:
+    value: organic
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Budget
+    describe: The rule under which budget lines are approved, changed or closed.
+  budget.spend_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Budget
+    describe: The rule under which spending is recorded by decision. A Treasurer can be granted this power instead (authority), within the lines.

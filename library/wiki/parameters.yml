@@ -1,0 +1,16 @@
+parameters:
+  wiki.max_length:
+    value: 50000
+    type: integer
+    min: 1000
+    max: 500000
+    changed_by: ordinary
+    group: Wiki
+    describe: The longest a page may be, in characters. Every version stays in the record forever.
+  wiki.enact_rule:
+    value: organic
+    type: string
+    one_of: [ordinary, organic, constitutional, entrenched]
+    changed_by: organic
+    group: Wiki
+    describe: The rule under which a page is enacted as a statute, amended to a later version, or repealed.
