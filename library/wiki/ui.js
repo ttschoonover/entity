@@ -23,8 +23,23 @@ function list(api) {
     h('label', { for: 'wk-id' }, 'Id (its address)'), h('input', { id: 'wk-id', placeholder: 'house-rules' }),
     h('label', { for: 'wk-cat' }, 'Category'), h('input', { id: 'wk-cat', list: 'wk-cats', placeholder: 'recipes, how-to, policies…' }), h('datalist', { id: 'wk-cats' }, cats.filter(c => c !== 'Uncategorised').map(c => h('option', { value: c }))),
     h('label', { for: 'wk-body' }, 'Text'), h('textarea', { id: 'wk-body', style: 'font-family:inherit;min-height:12rem' }),
+    writingHelp(api, h, () => $('#wk-body')),
     h('div', { class: 'buttons' }, h('button', { onclick: () => api.sign('wiki.edit', { page: $('#wk-id').value.trim(), title: $('#wk-title').value.trim(), body: $('#wk-body').value, base: 0, ...($('#wk-cat').value.trim() ? { category: $('#wk-cat').value.trim() } : {}) }, 'Your new page') }, 'Sign this page')))));
   return sec;
+}
+
+// Under each text box: a button that adds a photo (on sites that can keep
+// one) and a reminder of the Markdown a page may use.
+function writingHelp(api, h, ta) {
+  const add = api.uploadImage ? h('label', { class: 'secondary', style: 'cursor:pointer;display:inline-block' }, 'Add a photo',
+    h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp,image/gif', style: 'display:none', onchange: async (ev) => {
+      const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
+      const caption = prompt('A caption for the photo, with the photographer and licence if it is not yours (optional)') ?? '';
+      try { const md = await api.uploadImage(f, { caption }); if (md) ta().setRangeText(`\n\n${md}\n\n`, ta().selectionStart, ta().selectionEnd, 'end'); }
+      catch (x) { alert(x.message); }
+    } })) : null;
+  return h('div', { class: 'buttons', style: 'align-items:center;flex-wrap:wrap' }, add,
+    h('span', { class: 'fine' }, 'Markdown works: ## headings, **bold**, *italics*, [links](https://…), lists, > quotes, | tables |, ``` code, and photos.'));
 }
 
 function one(api, id, n) {
@@ -39,7 +54,7 @@ function one(api, id, n) {
   return h('section', {}, h('p', { class: 'fine' }, link('wiki', 'Wiki'), ' › ', categoryOf(p)), h('h2', {}, v.title),
     h('p', { class: 'meta' }, `version ${v.n} of ${top.n} · by `, who(v.by), ` · ${when(v.at)}${v.note ? ` · ${v.note}` : ''}`),
     law ? h('p', { class: law === v ? 'state-carried' : 'flag' }, law === v ? `This version is the statute in force, enacted ${when(p.statute.at)} by ${api.nameOf ? api.nameOf(p.statute.by) : p.statute.by}.` : ['The statute in force is ', link(`wiki/${id}/${law.n}`, `version ${law.n}`), '. This text is a draft; enacting it amends the statute.']) : null,
-    h('div', { class: 'post-body wiki-body' }, v.body),
+    (api.markdown ? h('div', { class: 'post-body wiki-body rendered' }, api.markdown(v.body)) : h('div', { class: 'post-body wiki-body' }, v.body)),
     law && law !== v ? h('details', {}, h('summary', {}, `How this differs from the statute (version ${law.n})`), redline(h, law.body, v.body)) : null,
     prev ? h('details', {}, h('summary', {}, `What changed from version ${prev.n}`), redline(h, prev.body, v.body)) : null,
     h('h3', {}, 'History'), h('ul', {}, p.versions.slice().reverse().map(x => h('li', {}, link(`wiki/${id}/${x.n}`, `version ${x.n}`), ` · `, who(x.by), ` · ${when(x.at)}${x.note ? ` · ${x.note}` : ''}`,
@@ -49,6 +64,7 @@ function one(api, id, n) {
       h('label', { for: 'wk-t' }, 'Title'), h('input', { id: 'wk-t', value: top.title }),
       h('label', { for: 'wk-c' }, 'Category'), h('input', { id: 'wk-c', value: top.category || '' }),
       h('label', { for: 'wk-b' }, 'Text'), h('textarea', { id: 'wk-b', style: 'font-family:inherit;min-height:14rem' }, top.body),
+      writingHelp(api, h, () => $('#wk-b')),
       h('label', { for: 'wk-n' }, 'What you changed (optional, public)'), h('input', { id: 'wk-n' }),
       h('div', { class: 'buttons' }, h('button', { onclick: () => api.sign('wiki.edit', { page: id, title: $('#wk-t').value.trim(), body: $('#wk-b').value, base: top.n, ...($('#wk-n').value.trim() ? { note: $('#wk-n').value.trim() } : {}), ...($('#wk-c').value.trim() ? { category: $('#wk-c').value.trim() } : {}) }, `Your edit to ${top.title}`) }, 'Sign this version')))) : null,
     can ? h('div', { class: 'buttons' },

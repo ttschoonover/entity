@@ -1,0 +1,72 @@
+parameters:
+  laws.types:
+    value:
+      - id: constitutional
+        title: Constitutional
+        rule: constitutional
+        describe: "The functioning of the state, its institutions and powers, and citizens' rights."
+      - id: organic
+        title: Organic
+        rule: organic
+        describe: Creates an institution and governs its management.
+      - id: statutory
+        title: Statutory
+        rule: ordinary
+        describe: Ordinary legislation, below the Constitution.
+      - id: ordinary
+        title: Ordinary
+        rule: ordinary
+        levels: [constitutional, statutory]
+        level_required: true
+        describe: Text on managing an institution, at the constitutional or statutory level, whose rule it takes.
+      - id: parametric
+        title: Parametric
+        rule: ordinary
+        levels: [constitutional, statutory, organic]
+        changes: true
+        describe: Settings for how the republic and its website run. Enacting it changes them.
+    type: list
+    changed_by: constitutional
+    group: Laws
+    describe: The types of law. Each names the rule a law of it needs (rule), the levels it may pair with (levels, and level_required), and whether it carries parameter changes (changes).
+  laws.parliament:
+    value: "office:member-of-parliament"
+    type: string
+    changed_by: constitutional
+    group: Laws
+    describe: Who sits in Parliament, as office:ID (its holders) or committee:ID (its members).
+  laws.parliament_days:
+    value: 7
+    type: integer
+    min: 1
+    max: 60
+    changed_by: organic
+    group: Laws
+    describe: Days a bill stays open for Parliament's votes. It closes sooner once its outcome is certain.
+  laws.parliament_max_rule:
+    value: organic
+    type: string
+    one_of: [ordinary, organic, constitutional, entrenched]
+    changed_by: constitutional
+    group: Laws
+    describe: The strictest rule under which Parliament makes law by itself. A bill that needs a stricter rule goes to referendum once Parliament passes it.
+  laws.petition_days:
+    value: 14
+    type: integer
+    min: 0
+    max: 90
+    changed_by: constitutional
+    group: Laws
+    describe: Days after Parliament passes a bill during which citizens may petition for a referendum on it. It comes into force only after. 0 means at once, with no petition.
+  laws.petition_share:
+    value: 0.05
+    type: fraction
+    changed_by: constitutional
+    group: Laws
+    describe: The share of citizens whose petition sends a passed bill to referendum.
+  laws.settings_by_law:
+    value: true
+    type: boolean
+    changed_by: constitutional
+    group: Laws
+    describe: Whether settings change only by a parametric law. When on, a bill to the citizens cannot carry setting changes of its own (adding and removing modules aside).

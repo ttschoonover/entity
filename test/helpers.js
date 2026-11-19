@@ -23,17 +23,18 @@ export async function loadModules(names) {
   return out;
 }
 
-export function composed(presetName = 'assembly', overrides = {}) {
+export function composed(presetName = 'assembly', overrides = {}, extra = {}) {
   const preset = parsePreset(read(`presets/${presetName}.yml`));
   preset.set = { ...preset.set, ...overrides };
+  Object.assign(preset, extra);
   const moduleTexts = {};
   for (const m of ['deliberation', ...fs.readdirSync(LIB)]) { const f = path.join(moduleDir(m), 'parameters.yml'); if (fs.existsSync(f)) moduleTexts[m] = fs.readFileSync(f, 'utf8'); }
   return compose({ base: read('kernel/parameters.base.yml'), moduleTexts, preset, presetName });
 }
 
-export async function world({ preset = 'assembly', set = {}, modules = ['deliberation', 'titles', 'vocabulary', 'page'], people = 3, start = '2026-03-01T00:00:00.000Z', entity = 'e-test-000001' } = {}) {
+export async function world({ preset = 'assembly', set = {}, extra = {}, modules = ['deliberation', 'titles', 'vocabulary', 'page'], people = 3, start = '2026-03-01T00:00:00.000Z', entity = 'e-test-000001' } = {}) {
   const registry = createRegistry(await loadModules(modules));
-  const { text, doc } = composed(preset, set);
+  const { text, doc } = composed(preset, set, extra);
   let t = Date.parse(start);
   const w = {
     registry, entity, state: emptyState(), records: [], keys: {},

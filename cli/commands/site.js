@@ -12,6 +12,9 @@ import { available, packSource, prepareModule } from '../modules.js';
 import { twoFactor, mask, validEmail } from '../twofactor.js';
 import { mailConfig } from '../mail.js';
 import { chatNode } from '../chat.js';
+import { mahjongNode } from '../mahjong.js';
+import { docsNode } from '../docs.js';
+import * as media from '../media.js';
 
 export async function build({ opt }) {
   const e = await openEntity(opt);
@@ -20,7 +23,7 @@ export async function build({ opt }) {
 }
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json', '.yml': 'text/plain; charset=utf-8', '.jsonl': 'application/x-ndjson; charset=utf-8', '.pub': 'text/plain', '.md': 'text/plain; charset=utf-8' };
+  '.json': 'application/json', '.yml': 'text/plain; charset=utf-8', '.jsonl': 'application/x-ndjson; charset=utf-8', '.pub': 'text/plain', '.md': 'text/plain; charset=utf-8', ...media.MEDIA_TYPES };
 
 // A node: serves the page, the record and the code, and accepts signed acts.
 // Anyone may POST an act: the signature is the authority, and settlement
@@ -32,7 +35,7 @@ export async function serve({ opt }) {
   catch (x) { console.error(`warning: ${x.message}\nServing anyway, so participants can see the problem for themselves.`); e = await store.open((await import('../context.js')).entityDir(opt)); e.params = null; }
   const port = Number(opt.port || store.readNode(e.dir).port || 7780);
   const auto = !!opt.settle;
-  const map = [['/interface/js/', 'interface/js/'], ['/kernel/', 'kernel/'], ['/modules/', 'modules/'], ['/record/', 'record/'], ['/law/', 'law/']];
+  const map = [['/interface/js/', 'interface/js/'], ['/kernel/', 'kernel/'], ['/modules/', 'modules/'], ['/record/', 'record/'], ['/law/', 'law/'], ['/letters/', 'letters/'], ['/media/', 'media/']];
   const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type, x-chat-token',
     'access-control-allow-methods': 'GET, POST, OPTIONS', 'access-control-allow-private-network': 'true' };
   const send = (res, code, body, type = 'application/json') => {
@@ -63,6 +66,8 @@ export async function serve({ opt }) {
   // Email two-factor (the twofactor module): see cli/twofactor.js.
   const tf = twoFactor(e.dir);
   const chat = chatNode(opt);
+  const mahjong = mahjongNode(opt);
+  const docs = docsNode(opt);
   const mail = () => mailConfig(e.dir, store.readNode(e.dir));
   const json = (res, code, obj, extra) => (sendPlain(res, code, JSON.stringify(obj), TYPES['.json'], extra), true);
   const issue = (req, res, id, twofactor) => {
@@ -211,6 +216,26 @@ export async function serve({ opt }) {
       if (req.method === 'OPTIONS') return send(res, 204, '');
       // Chat (the chat module): channels kept by this node, off the record. See cli/chat.js.
       if (p.startsWith('/chat/')) { try { if (await chat.handle(req, res, p, { body, send, cors })) return; } catch (x) { return send(res, 500, { why: x.message }); } }
+      // Mahjong (the mahjong module): live tables, kept by this node until a match ends. See cli/mahjong.js.
+      if (p.startsWith('/mahjong/')) { try { if (await mahjong.handle(req, res, p, { body, send, cors })) return; } catch (x) { return send(res, 500, { why: x.message }); } }
+      // Documents (the docs module): signed files in documents/, checked against the record. See cli/docs.js.
+      if (p.startsWith('/docs/')) { try { if (await docs.handle(req, res, p, { body, send, cors })) return; } catch (x) { return send(res, 500, { why: x.message }); } }
+      // Pictures for texts (cli/media.js): a member signs for the picture's hash,
+      // and the node keeps it in media/ under that hash. In a private republic
+      // the gate above has already required a member's session as well.
+      if (p === '/media' && req.method === 'POST') {
+        let b; try { b = JSON.parse(await body(req)); } catch { return send(res, 400, { why: 'send { by, signature, data }' }); }
+        try {
+          const buf = Buffer.from(String(b.data || ''), 'base64');
+          const st = (await openEntity(opt)).state, m = st.participants[b.by];
+          if (!m || m.status !== 'active') return send(res, 403, { why: 'only an active member may add a picture' });
+          const v = await K.verify(media.signedMessage(st.entity.id, media.fullHash(buf)), String(b.signature || ''), m.keys, 'entity.media');
+          if (!v.ok) return send(res, 403, { why: 'the signature does not match this picture and member' });
+          const kept = media.keep(e.dir, buf);
+          emit(e.dir, 'media.kept', { by: b.by, path: kept.path });
+          return send(res, 200, { path: kept.path, bytes: kept.bytes, existed: kept.existed });
+        } catch (x) { return send(res, 400, { why: x.message }); }
+      }
       // Modules, from the page: what the entity's module source offers, and a
       // proposal to install or upgrade one (fetched and checked here, signed by
       // the member in their browser). Off with "modulesOnline": false in node.json.
@@ -331,11 +356,13 @@ export async function serve({ opt }) {
       }
       if (p === '/bundle') { e = await openEntity(opt); return send(res, 200, bundleOf(e)); }
       if (p === '/' || p === '/index.html') {
+        // A republic with its own website (node.json "site": a folder, built on
+        // windows) serves it, whether or not the page module is installed: the
+        // site is this node's choice of front door; the page stays a module.
+        const siteDir = siteFolder();
+        if (siteDir && fs.existsSync(path.join(siteDir, 'index.html'))) return send(res, 200, fs.readFileSync(path.join(siteDir, 'index.html')), TYPES['.html']);
         // The page is a module: without it, the republic runs headless.
         if (!store.installedModules(e.dir).includes('page')) {
-          // A headless republic may serve its own website (node.json "site": a folder).
-          const siteDir = siteFolder();
-          if (siteDir && fs.existsSync(path.join(siteDir, 'index.html'))) return send(res, 200, fs.readFileSync(path.join(siteDir, 'index.html')), TYPES['.html']);
           const name = String(e.params ? e.params.value('entity.name') : 'This republic').replace(/[<>&"]/g, '');
           return send(res, 200, `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${name}</title>
 <body style="font:16px/1.6 'Helvetica Neue',Helvetica,Arial,sans-serif;background:#131310;color:#E8E5DC;max-width:40em;margin:4rem auto;padding:0 1.5rem">

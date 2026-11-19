@@ -160,6 +160,13 @@ export async function settlePending(e, { dry = false, until = settleHorizon(e.di
   store.writeDerived(e.dir, e.state);
   if (out.applied.length) emit(e.dir, 'settled', { acts: out.applied.length, records: e.records.length, kinds: out.applied.map(a => a.act.kind) });
   if (out.refused.length) emit(e.dir, 'refused', { acts: out.refused.length, reasons: out.refused.map(r => r.reason) });
+  // node.json "wikiLetters": re-render the wiki as letters when a page changed.
+  if (store.readNode(e.dir).wikiLetters && out.records.some(r => /^(wiki\.|letterhead\.)/.test(r.kind) || (r.kind === 'wiki.edit'))) {
+    try {
+      const { spawn } = await import('node:child_process');
+      spawn(process.execPath, [new URL('./index.js', import.meta.url).pathname, 'letter', 'wiki', '--pdf', '--dir', e.dir], { detached: true, stdio: 'ignore' }).unref();
+    } catch { /* rendering is a convenience; the record is what counts */ }
+  }
   // A decision may just have installed a module: fetch its code now.
   const after = out.records.some(r => r.kind === 'module.installed') ? await bringModules(e) : { installed: [], failed: [] };
   const published = out.records.length && publish ? await publishAfterSettle(e, { wait: publish === 'wait' }) : null;

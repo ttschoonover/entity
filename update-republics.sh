@@ -65,7 +65,9 @@ for name in "${targets[@]}"; do
 
   # 2 · the page, by vote, before the core can make it a module
   page_ok=yes
-  if has_mod page; then say "   page: already installed"
+  # A republic with its own website (node.json "site") is built on windows: it gets no page.
+  if node -e "process.exit(require('./node.json').site ? 0 : 1)" 2>/dev/null; then say "   page: not needed (it has its own website)"
+  elif has_mod page; then say "   page: already installed"
   elif P="$(open_titled 'Install and enable the page module')" && [ -n "$P" ]; then
     if vote "$P"; then say "   page: installed (its proposal has now carried)"; else say "   page: still waiting for other members' votes ($P)"; pending+=("page $P"); page_ok=no; fi
   else
@@ -104,7 +106,11 @@ for name in "${targets[@]}"; do
   for m in $(node "$PWD/cli/index.js" module list 2>/dev/null | awk '{print $1}'); do
     case "$m" in deliberation|titles|vocabulary|page) continue;; esac
     P="$(open_titled "Upgrade the $m module")"
-    if [ -z "$P" ]; then out="$(cliout module upgrade "$m" --as "$ME")"; P="$(printf '%s' "$out" | pid_of)"; fi
+    # Newer code for it in this copy of the library is offered first; otherwise
+    # the published module source (library.yml) is asked.
+    if [ -z "$P" ] && [ -d "$SRC/library/$m" ] && ! diff -rq "$SRC/library/$m" "modules/$m" >/dev/null 2>&1; then
+      out="$(cliout module upgrade "$m" "dir:$SRC/library/$m" --as "$ME")"; P="$(printf '%s' "$out" | pid_of)"; fi
+    if [ -z "$P" ] && [ ! -d "$SRC/library/$m" ]; then out="$(cliout module upgrade "$m" --as "$ME")"; P="$(printf '%s' "$out" | pid_of)"; fi
     [ -z "$P" ] && continue
     cli settle
     if vote "$P"; then say "   $m: updated"; else say "   $m: update proposed ($P), waiting for votes"; pending+=("$m $P"); break; fi
@@ -117,4 +123,4 @@ for name in "${targets[@]}"; do
 done
 
 say ""; say "Summary"; for s in "${SUMMARY[@]}"; do say "  $s"; done
-say ""; say "Start them again: ~/tsite/deploy/start-all.sh   (log: $LOG)"
+say ""; say "Start them again: bash athenes.sh start   (log: $LOG)"

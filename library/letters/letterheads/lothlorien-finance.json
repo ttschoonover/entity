@@ -1,0 +1,18 @@
+{
+  "letterhead": "lothlorien-finance",
+  "issuer": "office:finance-manager",
+  "name": "Lothlórien",
+  "title": "Office of the Finance Manager",
+  "subtitle": "A house of the Berkeley Student Cooperative",
+  "address": [
+    "Berkeley, California"
+  ],
+  "closing": "Respectfully,",
+  "seal_top": "Lothlórien",
+  "seal_bottom": "Finance Manager",
+  "style": {
+    "accent": "2F4F3A",
+    "emblem": "seal",
+    "emblem_text": "L"
+  }
+}

@@ -1,0 +1,95 @@
+parameters:
+  letters.letterhead_rule:
+    value: organic
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Letters
+    describe: The rule under which letterheads are made, amended or retired.
+  letters.issue_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Letters
+    describe: >
+      The rule under which the members issue or withdraw a letter on their own
+      letterhead. A grant to issue letters needs at least this rule too.
+  letters.assembly_may_issue_for_any:
+    value: false
+    type: boolean
+    changed_by: constitutional
+    group: Letters
+    describe: >
+      Whether the members, by decision, may issue letters on an office's or a
+      committee's letterhead. Off: only the office or committee itself may,
+      through a grant it holds.
+  letters.signatures:
+    value: optional
+    type: string
+    one_of: [optional, always, never]
+    changed_by: organic
+    group: Letters
+    describe: >
+      Whether letters show their signatories (each with their drawn signature,
+      if deposited): each letter says (optional, on unless it says no), every
+      letter does, or none does.
+  letters.max_length:
+    value: 20000
+    type: integer
+    min: 500
+    max: 100000
+    changed_by: organic
+    group: Letters
+    describe: The longest a letter's body may be, in characters.
+  letters.face:
+    value: palatino
+    type: string
+    one_of: [palatino, computer-modern, times, garamond, baskerville]
+    changed_by: organic
+    group: Letters (house style)
+    describe: >
+      The typeface of every letterhead, unless one says otherwise. palatino,
+      computer-modern and times need only a basic TeX installation; garamond
+      (ebgaramond) and baskerville (librebaskerville) need those packages.
+  letters.accent:
+    value: 6B1E1E
+    type: string
+    changed_by: organic
+    group: Letters (house style)
+    describe: The colour of rules and the seal, as six hex digits. It prints as a dark grey in black and white.
+  letters.layout:
+    value: centered
+    type: string
+    one_of: [centered, flush]
+    changed_by: organic
+    group: Letters (house style)
+    describe: "centered: the name over the title, centred, like a crest. flush: the name on the left, the address on the right."
+  letters.rule:
+    value: double
+    type: string
+    one_of: [double, single, none]
+    changed_by: organic
+    group: Letters (house style)
+    describe: The rule under the letterhead.
+  letters.paper:
+    value: letter
+    type: string
+    one_of: [letter, a4]
+    changed_by: organic
+    group: Letters (house style)
+    describe: The paper size.
+  letters.dates:
+    value: us
+    type: string
+    one_of: [us, eu, iso]
+    changed_by: organic
+    group: Letters (house style)
+    describe: "How dates are written: us (November 1, 2026), eu (1 November 2026) or iso (2026-11-01)."
+  letters.emblem:
+    value: seal
+    type: string
+    one_of: [seal, ornament, none]
+    changed_by: organic
+    group: Letters (house style)
+    describe: "What sits above the name: a round seal with the issuer's initials, an ornament, or nothing."

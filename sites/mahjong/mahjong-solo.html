@@ -1,0 +1,1622 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mahjong · offline</title>
+<script>try{var m=document.cookie.match(/(?:^|;\s*)mj_theme=([a-z]+)/),t=m?m[1]:localStorage.getItem('mj:theme');t={rosewood:'traditional',jade:'traditional',paper:'minimal',neon:'arcade'}[t]||t;if(t&&t!=='traditional')document.documentElement.dataset.mjTheme=t}catch(e){}</script>
+<meta name="description" content="Hong Kong mahjong against three AIs. One file, no internet needed.">
+<style>:root{--sans:system-ui,-apple-system,"Segoe UI",sans-serif;--serif:Georgia,serif;--wrap:72rem;--gutter:1.25rem}
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;font:1rem/1.55 var(--sans);color:var(--ink)}
+h1{font:600 clamp(2.6rem,7vw,4.5rem)/1 var(--serif);margin:0 0 .6rem}.lede{font-size:1.15rem;max-width:34em}.fine{color:var(--muted);font-size:.9rem}
+label{display:block;font-weight:600;margin:.8rem 0 .25rem}label.check{display:flex;gap:.5rem;font-weight:400}
+.primary,.secondary{font:600 .95rem/1 var(--sans);padding:.75rem 1.15rem;border-radius:6px;border:1.5px solid var(--brass);cursor:pointer}
+.primary{background:var(--brass);color:#22100B}.secondary{background:transparent;color:var(--ink)}.actions{display:flex;gap:.8rem;margin-top:1.2rem;flex-wrap:wrap}
+/* site.css · the mahjong world: a rosewood table with a lacquer finish, ivory
+   tiles on jade backs, brass for what matters. The kit's stylesheet first,
+   then this. Tiles carry real faces: 萬 筒 索, 東 南 西 北, 中 發 白, in the
+   colours of a printed set. */
+
+
+:root {
+  --bg: #1F0E0A; --surface: #2C1510; --ink: #F3EBDD; --muted: #CDBBA7; --rule: #4A271E; --strong-rule: #F3EBDD;
+  --wood: #4A1C14; --wood-2: #3A150F; --lacquer: #2A100B; --brass: #D2A852; --brass-2: #A47F33;
+  --ivory: #FBF6EA; --ivory-2: #EBE1CB; --jade: #2E7D5B; --jade-2: #1F5C42;
+  --cn-red: #B3261E; --cn-green: #1E6B3A; --cn-blue: #1F4E9C; --cn-ink: #1B1714; --cn-plum: #7A2E6E;
+  --aye: #7FCB9B; --no: #F08A7E; --accent: var(--brass);
+  /* The table's own tokens: each look in the themes section below redefines them. */
+  --felt-hi: #5A2418; --grain: rgba(0,0,0,.05); --table-ink: #F3EBDD; --table-muted: #E7D6BC; --table-dim: #CDBBA7;
+  --tray: rgba(0,0,0,.2); --brass-soft: rgba(210,168,82,.28); --on-brass: #22100B; --win: var(--cn-red); --win-edge: #E2574C;
+  --panel: #3A160F; --panel-2: #2A100B; --overlay: rgba(15,6,4,.62); --plus: #8FD9A8; --minus: #F4A094;
+  --table-radius: 18px; --tile-radius: 6px; --tile-border: 0; --table-glow: 0 18px 40px rgba(0,0,0,.45);
+  --tile-font: "Noto Serif CJK TC", "Noto Serif TC", "Songti TC", "STSong", "PMingLiU", "MingLiU", "Source Han Serif TC", serif;
+  color-scheme: dark;
+}
+/* The kit's dark palette is set under these selectors; the rosewood one must be too, or the kit's wins. */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #1F0E0A; --surface: #2C1510; --ink: #F3EBDD; --muted: #CDBBA7; --rule: #4A271E; --strong-rule: #F3EBDD; --aye: #7FCB9B; --no: #F08A7E; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #1F0E0A; --surface: #2C1510; --ink: #F3EBDD; --muted: #CDBBA7; --rule: #4A271E; --strong-rule: #F3EBDD; --aye: #7FCB9B; --no: #F08A7E; color-scheme: dark; }
+:root[data-theme="light"] { --bg: #F4EDE0; --surface: #EADFCB; --ink: #2A140F; --muted: #6B5246; --rule: #D9C9AF; --strong-rule: #2A140F; --aye: #1E6B3A; --no: #B3261E; color-scheme: light; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg: #F4EDE0; --surface: #EADFCB; --ink: #2A140F; --muted: #6B5246; --rule: #D9C9AF; --strong-rule: #2A140F; --aye: #1E6B3A; --no: #B3261E; color-scheme: light; } }
+
+body { background: var(--bg); }
+.masthead { background: var(--bg); box-shadow: inset 0 -1px 0 var(--rule), inset 0 -3px 0 var(--brass-2); }
+.primary, .hall-view button:not(.linklike):not(.quiet):not(.danger):not(.secondary) { background: var(--brass); border-color: var(--brass); color: var(--on-brass); }
+.secondary { border-color: var(--brass); color: var(--ink); }
+.tabs a[aria-current] { box-shadow: inset 0 -3px 0 var(--brass); }
+h1, h2 { letter-spacing: -0.02em; }
+h1[data-name="full"] { font-family: var(--serif); font-weight: 600; font-size: clamp(3.4rem, 9vw, 6.5rem); }
+
+/* ── the front page ─────────────────────────────────────────────────────── */
+.mj-hero { max-width: var(--wrap); margin: 0 auto; padding: 4rem var(--gutter) 4.5rem; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 2rem; align-items: center; }
+@media (max-width: 52rem) { .mj-hero { grid-template-columns: 1fr; } }
+.mj-fan { position: relative; height: 15rem; display: flex; justify-content: center; align-items: flex-end; }
+.mj-fan .tile { --w: 4.2rem; position: absolute; bottom: 2rem; left: calc(50% - 2.1rem); transform-origin: 50% 230%; transform: rotate(calc(var(--i) * 11deg)); }
+.mj-doors { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; }
+.mj-doors li { background: var(--surface); border: 1px solid var(--rule); border-top: 3px solid var(--brass); border-radius: 6px; padding: 1.1rem 1.2rem; }
+.mj-doors p { color: var(--muted); font-size: .95rem; }
+.mj-mini, .mj-standings { list-style: none; padding: 0; margin: 0; }
+.mj-mini li, .mj-standings li { padding: .5rem 0; border-bottom: 1px solid var(--rule); }
+.mj-standings { counter-reset: n; } .mj-standings li { counter-increment: n; }
+.mj-standings li::before { content: counter(n); display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem; margin-right: .6rem; border-radius: 50%; background: var(--brass); color: #22100B; font-weight: 800; font-size: .85rem; }
+
+/* ── tiles ──────────────────────────────────────────────────────────────── */
+.tile { --w: 2.45rem; position: relative; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: .05em;
+  width: var(--w); height: calc(var(--w) * 1.38); padding: 0; margin: 0 1px; border: var(--tile-border); border-radius: var(--tile-radius); flex: none;
+  background: linear-gradient(180deg, var(--ivory) 0%, var(--ivory-2) 100%); box-shadow: 0 3px 0 var(--jade), 0 5px 0 var(--jade-2), 0 6px 10px rgba(0,0,0,.35);
+  font: 600 calc(var(--w) * .5)/1 var(--tile-font); color: var(--cn-ink); vertical-align: bottom; transition: transform .12s; }
+.tile .t-top { font-size: 1em; line-height: 1; }
+.tile .t-bot { font-size: .72em; line-height: 1; }
+.tile.small { --w: 1.7rem; margin: 0 1px 6px; }
+.tile.back { background: var(--back-pattern, none), linear-gradient(160deg, var(--jade) 0%, var(--jade-2) 100%); box-shadow: inset 0 0 0 2px rgba(255,255,255,.08), 0 3px 0 var(--ivory-2), 0 6px 10px rgba(0,0,0,.35); }
+.s-m .t-top { color: var(--cn-ink); } .s-m .t-bot { color: var(--cn-red); }
+.s-p .t-top, .s-p .t-bot { color: var(--cn-blue); }
+.s-s .t-top, .s-s .t-bot { color: var(--cn-green); }
+.s-z .t-top { color: var(--cn-ink); }
+.s-zC .t-top { color: var(--cn-red); } .s-zF .t-top { color: var(--cn-green); }
+.s-zP .t-top { color: var(--cn-blue); outline: 2px solid var(--cn-blue); outline-offset: 3px; border-radius: 2px; font-size: .8em; }
+.s-f .t-top, .s-g .t-top { color: var(--cn-plum); } .s-f .t-bot, .s-g .t-bot { color: var(--cn-plum); font-family: var(--sans); font-size: .5em; }
+button.tile { cursor: pointer; }
+button.tile:hover { transform: translateY(-4px); }
+button.tile:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+.tile.selected { transform: translateY(-12px); box-shadow: 0 0 0 3px var(--brass), 0 3px 0 var(--jade), 0 5px 0 var(--jade-2), 0 14px 16px rgba(0,0,0,.4); }
+.tile.dim { opacity: .38; }
+.tile.last { box-shadow: 0 0 0 3px var(--brass), 0 3px 0 var(--jade), 0 6px 10px rgba(0,0,0,.35); }
+
+/* ── the table ──────────────────────────────────────────────────────────── */
+.mj-page main { padding-bottom: 2rem; }
+.mj-game { max-width: 82rem; margin: 0 auto; padding: 1.2rem var(--gutter) 0; }
+.mj-topline { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: .8rem; }
+.mj-tabletitle { font-size: 1.6rem; margin: 0; }
+.mj-table { display: grid; grid-template-columns: minmax(8rem, 1fr) minmax(0, 3.4fr) minmax(8rem, 1fr); grid-template-areas: "top top top" "left mid right" "me me me"; gap: .8rem;
+  padding: 1rem; border-radius: var(--table-radius); color: var(--table-ink);
+  background: radial-gradient(ellipse at 50% 40%, var(--felt-hi) 0%, var(--wood) 55%, var(--wood-2) 100%), repeating-linear-gradient(95deg, var(--grain) 0 3px, transparent 3px 9px);
+  box-shadow: inset 0 0 0 3px var(--brass-2), inset 0 0 0 6px var(--lacquer), var(--table-glow); }
+.mj-seat { min-width: 0; }
+.mj-seat.pos-2 { grid-area: top; text-align: center; }
+.mj-seat.pos-3 { grid-area: left; }
+.mj-seat.pos-1 { grid-area: right; text-align: right; }
+.mj-me { grid-area: me; }
+.mj-mid { grid-area: mid; display: grid; gap: .6rem; padding: .8rem; border-radius: 12px; background: var(--tray); box-shadow: inset 0 0 0 1px var(--brass-soft); }
+.mj-ponds-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: .8rem; align-items: center; }
+.mj-pond { display: flex; flex-wrap: wrap; align-content: flex-start; min-height: 2.6rem; gap: 0; }
+.mj-pond.pos-2 { justify-content: center; } .mj-pond.pos-0 { justify-content: center; }
+.mj-pond.pos-1 { justify-content: flex-end; }
+.mj-center { display: grid; gap: .5rem; justify-items: center; text-align: center; padding: .6rem 1rem; border-radius: 10px; background: var(--lacquer); box-shadow: inset 0 0 0 1px var(--brass-2); min-width: 9rem; }
+.mj-center span { font-size: .78rem; color: var(--table-muted); }
+.mj-big { display: block; font: 600 1.8rem/1 var(--tile-font) !important; color: var(--brass) !important; }
+.mj-round, .mj-left, .mj-lastd { display: grid; justify-items: center; gap: .2rem; }
+.mj-name { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin-bottom: .35rem; font-size: .92rem; }
+.mj-seat.pos-2 .mj-name { justify-content: center; } .mj-seat.pos-1 .mj-name { justify-content: flex-end; }
+.mj-wind { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem; border-radius: 4px; background: var(--ivory); color: var(--cn-ink); font: 600 1rem/1 var(--tile-font); box-shadow: 0 2px 0 var(--jade); }
+.mj-who { font-weight: 600; }
+.mj-lvl { color: var(--table-dim); font-weight: 400; font-size: .82rem; }
+.mj-dealer { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--cn-red); color: #fff; font: 600 .85rem/1 var(--tile-font); }
+.mj-score { margin-left: auto; font: 700 .95rem var(--sans); color: var(--brass); font-variant-numeric: tabular-nums; }
+.mj-seat.pos-2 .mj-score, .mj-seat.pos-1 .mj-score { margin-left: .4rem; }
+.mj-thinking { font-size: .75rem; color: var(--table-dim); font-style: italic; }
+.mj-seat.turn .mj-name .mj-who { color: var(--brass); }
+.mj-seat.turn .mj-name::before { content: ""; width: .55rem; height: .55rem; border-radius: 50%; background: var(--brass); box-shadow: 0 0 0 4px var(--brass-soft); }
+.mj-melds { display: flex; flex-wrap: wrap; gap: .5rem; min-height: .5rem; margin-bottom: .4rem; }
+.mj-seat.pos-2 .mj-melds { justify-content: center; } .mj-seat.pos-1 .mj-melds { justify-content: flex-end; }
+.mj-meld { display: inline-flex; padding: 3px 4px 0; border-radius: 6px; background: var(--tray); }
+.mj-meld.bonus { background: rgba(122,46,110,.25); }
+.mj-hand { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0; min-height: 2.6rem; }
+.mj-seat.pos-2 .mj-hand { justify-content: center; } .mj-seat.pos-1 .mj-hand { justify-content: flex-end; }
+.mj-seat.pos-0 .mj-hand { justify-content: center; padding-top: 14px; }
+.mj-seat.pos-0 .tile:not(.small) { --w: clamp(2.2rem, 5.2vw, 3.3rem); }
+.mj-gap { width: .9rem; }
+.mj-me { padding-top: .4rem; border-top: 1px solid var(--brass-soft); }
+.mj-me .mj-name { justify-content: center; }
+.mj-me .mj-melds { justify-content: center; }
+.mj-bar { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .5rem; min-height: 3.2rem; margin-top: .9rem; }
+.mj-prompt { color: var(--table-muted); font-size: .95rem; }
+.mj-timer { font: 700 .9rem var(--sans); color: var(--brass); padding: .2rem .5rem; border: 1px solid var(--brass-2); border-radius: 999px; font-variant-numeric: tabular-nums; }
+.mj-act { font: 600 .95rem/1 var(--sans); padding: .75rem 1.15rem; border-radius: 6px; border: 1.5px solid var(--brass); background: transparent; color: var(--table-ink); cursor: pointer; }
+.mj-act:hover { background: var(--brass-soft); }
+.mj-act:disabled { opacity: .45; cursor: default; }
+.mj-act.a-win { background: var(--win); border-color: var(--win-edge); color: #fff; font-size: 1.05rem; }
+.mj-act.a-pung, .mj-act.a-kong, .mj-act.a-chow { background: var(--brass); color: var(--on-brass); }
+.mj-act.a-discard { border-style: dashed; }
+.mj-empty { color: var(--muted); padding: 3rem 0; text-align: center; }
+@media (max-width: 52rem) {
+  .mj-table { grid-template-columns: 1fr 1fr; grid-template-areas: "top top" "left right" "mid mid" "me me"; }
+  .mj-ponds-row { grid-template-columns: 1fr; }
+  .mj-seat.pos-1 { text-align: left; } .mj-seat.pos-1 .mj-name, .mj-seat.pos-1 .mj-melds, .mj-seat.pos-1 .mj-hand, .mj-pond.pos-1 { justify-content: flex-start; }
+  .tile.small { --w: 1.35rem; }
+}
+
+/* ── the end of a hand ──────────────────────────────────────────────────── */
+#result:not([hidden]) { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 1rem; background: var(--overlay); }
+.mj-result { width: min(40rem, 100%); max-height: calc(100vh - 2rem); overflow: auto; padding: 1.5rem 1.6rem; border-radius: 14px; color: var(--table-ink);
+  background: linear-gradient(180deg, var(--panel), var(--panel-2)); box-shadow: inset 0 0 0 2px var(--brass-2), 0 24px 60px rgba(0,0,0,.5); }
+.mj-result h2 { color: var(--brass); }
+.mj-win-hand { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .4rem; margin: .8rem 0 1rem; }
+.mj-faan, .mj-pay { width: 100%; list-style: none; padding: 0; margin: 0 0 1rem; border-collapse: collapse; }
+.mj-faan li { display: flex; justify-content: space-between; padding: .3rem 0; border-bottom: 1px dotted var(--brass-soft); }
+.mj-faan li.total { font-weight: 800; color: var(--brass); border-bottom: 0; }
+.mj-pay td { padding: .3rem .4rem; border-bottom: 1px solid var(--brass-soft); font-variant-numeric: tabular-nums; }
+.mj-pay td:nth-child(2), .mj-pay td:nth-child(3) { text-align: right; }
+.mj-pay .plus { color: var(--plus); font-weight: 700; } .mj-pay .minus { color: var(--minus); }
+.mj-verified { font-size: .88rem; padding: .6rem .8rem; border-radius: 8px; background: var(--tray); border: 1px solid var(--brass-2); }
+.mj-final { font-weight: 700; }
+.mj-after { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin-top: 1rem; }
+.mj-after p { flex-basis: 100%; margin: 0; }
+
+/* ── setup, lobby, waiting room ─────────────────────────────────────────── */
+.mj-setup { max-width: 40rem; margin: 0 auto; padding: 3rem var(--gutter); }
+.mj-form { display: grid; gap: .3rem; }
+.mj-form select, .mj-form input:not([type=checkbox]):not([type=radio]) { font: inherit; padding: .55rem .7rem; border-radius: 6px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); }
+.mj-form fieldset { border: 1px solid var(--rule); border-radius: 8px; padding: .6rem .9rem; margin: .8rem 0; }
+.mj-mix { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: .5rem; margin-top: .5rem; }
+.mj-mix label { margin: 0; font-weight: 400; display: grid; gap: .25rem; }
+.mj-lobby { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 2.5rem; }
+@media (max-width: 52rem) { .mj-lobby { grid-template-columns: 1fr; } }
+.mj-tablelist { list-style: none; padding: 0; margin: 0; display: grid; gap: .8rem; }
+.mj-tablecard { background: var(--surface); border: 1px solid var(--rule); border-left: 4px solid var(--brass); border-radius: 8px; padding: .9rem 1.1rem; }
+.mj-tablecard.st-over { border-left-color: var(--rule); }
+.mj-seats { list-style: none; padding: 0; margin: .4rem 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .3rem .8rem; }
+.mj-seats.big { grid-template-columns: 1fr; gap: .6rem; margin: 1.2rem 0; }
+.mj-seats.big li { display: flex; align-items: center; gap: .5rem; font-size: 1.05rem; }
+.mj-waiting { max-width: 38rem; margin: 1rem auto; padding: 1.4rem 1.6rem; border-radius: 14px; background: var(--surface); border: 1px solid var(--rule); }
+.mj-share input { width: 100%; font: .85rem ui-monospace, Menlo, monospace; padding: .5rem; border-radius: 6px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); }
+.mj-stats { display: grid; grid-template-columns: max-content 1fr; gap: .3rem 1.2rem; }
+.mj-stats dt { color: var(--muted); } .mj-stats dd { margin: 0; font-weight: 600; }
+
+/* ── looks: html[data-mj-theme], chosen with the picker, kept in a cookie (theme.js) ──
+   Each is a different design, not a palette: its own type, shapes, tile faces,
+   table and page. Traditional is the default (no attribute). */
+.tile .t-lat, .tile .t-sub { display: none; }
+
+/* ── Traditional: rosewood, a carved double frame, seal-stamp winds, bone tiles on bamboo ── */
+:root:not([data-mj-theme]) .mj-table, :root[data-mj-theme="traditional"] .mj-table {
+  box-shadow: inset 0 0 0 3px var(--brass-2), inset 0 0 0 7px var(--lacquer), inset 0 0 0 9px var(--brass-2), 0 18px 40px rgba(0,0,0,.45); padding: 1.3rem; }
+:root:not([data-mj-theme]) .mj-wind, :root[data-mj-theme="traditional"] .mj-wind { background: var(--cn-red); color: #FBEFD9; border-radius: 3px; box-shadow: inset 0 0 0 2px rgba(255,255,255,.35); }
+:root:not([data-mj-theme]) .tile, :root[data-mj-theme="traditional"] .tile { box-shadow: 0 3px 0 #EDE3CC, 0 6px 0 var(--jade), 0 8px 0 var(--jade-2), 0 9px 12px rgba(0,0,0,.4); }
+
+/* ── Minimal: quiet, light, flat. Latin faces, no frames, no shadows, lots of room ── */
+:root[data-mj-theme="minimal"] {
+  --bg: #FAFAF8; --surface: #F2F2EF; --ink: #1F1F1D; --muted: #8A8A84; --rule: #E6E6E1; --strong-rule: #1F1F1D;
+  --sans: system-ui, -apple-system, "Segoe UI", sans-serif; --serif: var(--sans); color-scheme: light;
+  --wood: #FAFAF8; --wood-2: #FAFAF8; --felt-hi: #FAFAF8; --lacquer: #FAFAF8; --grain: transparent; --brass: #1F1F1D; --brass-2: #E6E6E1; --on-brass: #FFFFFF;
+  --table-ink: #1F1F1D; --table-muted: #8A8A84; --table-dim: #A6A6A0; --tray: transparent; --brass-soft: #E6E6E1;
+  --ivory: #EFEFEB; --ivory-2: #EFEFEB; --jade: #DADAD4; --jade-2: #DADAD4; --panel: #FFFFFF; --panel-2: #FFFFFF; --overlay: rgba(250,250,248,.82);
+  --plus: #2F7D4F; --minus: #B23A30; --win: #1F1F1D; --win-edge: #1F1F1D; --table-radius: 0; --tile-radius: 8px; --table-glow: none;
+  --cn-red: #C2453A; --cn-green: #3F8A5C; --cn-blue: #3F64A8; --cn-ink: #1F1F1D;
+}
+:root[data-mj-theme="minimal"] body { font-weight: 300; }
+:root[data-mj-theme="minimal"] h1, :root[data-mj-theme="minimal"] h2 { font-weight: 300; letter-spacing: -0.02em; }
+:root[data-mj-theme="minimal"] h1[data-name="full"] { font: 200 clamp(3.2rem, 9vw, 6rem)/1 var(--sans); }
+:root[data-mj-theme="minimal"] .masthead { box-shadow: none; border-bottom: 1px solid var(--rule); }
+:root[data-mj-theme="minimal"] .primary, :root[data-mj-theme="minimal"] .secondary, :root[data-mj-theme="minimal"] .mj-act { border-radius: 999px; font-weight: 400; }
+:root[data-mj-theme="minimal"] .mj-table { padding: 2.5rem 1rem; gap: 2rem; }
+:root[data-mj-theme="minimal"] .mj-mid { box-shadow: none; padding: 1.5rem 0; }
+:root[data-mj-theme="minimal"] .mj-center { background: none; box-shadow: none; }
+:root[data-mj-theme="minimal"] .mj-big { font: 200 2.4rem/1 var(--sans) !important; color: var(--ink) !important; }
+:root[data-mj-theme="minimal"] .mj-wind { background: none; box-shadow: none; color: var(--muted); font-family: var(--sans); font-size: .8rem; width: auto; }
+:root[data-mj-theme="minimal"] .mj-dealer { background: none; color: var(--ink); border: 1px solid var(--ink); }
+:root[data-mj-theme="minimal"] .mj-me { border-top: 1px solid var(--rule); }
+:root[data-mj-theme="minimal"] .mj-meld, :root[data-mj-theme="minimal"] .mj-meld.bonus { background: none; padding: 0; }
+:root[data-mj-theme="minimal"] .tile { box-shadow: none; flex-direction: column; gap: 0; font-family: var(--sans); }
+:root[data-mj-theme="minimal"] .tile .t-lat { display: block; font: 300 1em/1 var(--sans); }
+:root[data-mj-theme="minimal"] .tile .t-sub { display: block; font: 400 .3em/1.4 var(--sans); letter-spacing: .04em; color: var(--muted); }
+:root[data-mj-theme="minimal"] .tile .t-top, :root[data-mj-theme="minimal"] .tile .t-bot { display: none; }
+:root[data-mj-theme="minimal"] .s-m .t-lat { color: var(--cn-red); } :root[data-mj-theme="minimal"] .s-p .t-lat { color: var(--cn-blue); } :root[data-mj-theme="minimal"] .s-s .t-lat { color: var(--cn-green); }
+:root[data-mj-theme="minimal"] .s-zC .t-lat { color: var(--cn-red); } :root[data-mj-theme="minimal"] .s-zF .t-lat { color: var(--cn-green); } :root[data-mj-theme="minimal"] .s-zP .t-lat { color: var(--cn-blue); }
+:root[data-mj-theme="minimal"] .tile.back { background: #E4E4DF; box-shadow: none; }
+:root[data-mj-theme="minimal"] .tile.selected { transform: translateY(-10px); box-shadow: 0 0 0 1.5px var(--ink); }
+:root[data-mj-theme="minimal"] .tile.last { box-shadow: 0 0 0 1.5px var(--ink); }
+:root[data-mj-theme="minimal"] .mj-result { box-shadow: 0 1px 0 var(--rule), 0 24px 60px rgba(0,0,0,.08); border-radius: 4px; }
+:root[data-mj-theme="minimal"] .mj-result h2 { color: var(--ink); font-weight: 300; }
+:root[data-mj-theme="minimal"] .mj-doors li, :root[data-mj-theme="minimal"] .mj-tablecard { border: 0; border-radius: 0; background: none; border-top: 1px solid var(--rule); }
+
+/* ── Swiss: white field, black rules, a strict grid, suit bars and big numerals ── */
+:root[data-mj-theme="swiss"] {
+  --bg: #FFFFFF; --surface: #F2F2F2; --ink: #000000; --muted: #666666; --rule: #000000; --strong-rule: #000000;
+  --sans: "Helvetica Neue", Helvetica, "Public Sans", Arial, sans-serif; --serif: var(--sans); color-scheme: light;
+  --wood: #FFFFFF; --wood-2: #FFFFFF; --felt-hi: #FFFFFF; --lacquer: #FFFFFF; --grain: transparent; --brass: #E30613; --brass-2: #000000; --on-brass: #FFFFFF;
+  --table-ink: #000000; --table-muted: #000000; --table-dim: #666666; --tray: transparent; --brass-soft: #000000;
+  --ivory: #FFFFFF; --ivory-2: #FFFFFF; --jade: #000000; --jade-2: #000000; --panel: #FFFFFF; --panel-2: #FFFFFF; --overlay: rgba(255,255,255,.88);
+  --plus: #000000; --minus: #E30613; --win: #E30613; --win-edge: #E30613; --table-radius: 0; --tile-radius: 0; --tile-border: 1.5px solid #000; --table-glow: none;
+  --cn-red: #E30613; --cn-green: #00843D; --cn-blue: #0047BB; --cn-ink: #000000;
+}
+:root[data-mj-theme="swiss"] h1, :root[data-mj-theme="swiss"] h2, :root[data-mj-theme="swiss"] h3 { font-family: var(--sans); font-weight: 700; letter-spacing: -0.03em; }
+:root[data-mj-theme="swiss"] h1[data-name="full"] { font: 700 clamp(4rem, 13vw, 9rem)/.9 var(--sans); letter-spacing: -0.05em; }
+:root[data-mj-theme="swiss"] .lede { font-family: var(--sans); }
+:root[data-mj-theme="swiss"] .masthead { box-shadow: none; border-bottom: 2px solid #000; }
+:root[data-mj-theme="swiss"] .primary, :root[data-mj-theme="swiss"] .secondary, :root[data-mj-theme="swiss"] .mj-act { border-radius: 0; }
+:root[data-mj-theme="swiss"] .secondary, :root[data-mj-theme="swiss"] .mj-act { border: 1.5px solid #000; color: #000; }
+:root[data-mj-theme="swiss"] .mj-table { border: 2px solid #000; box-shadow: none; padding: 0; gap: 0; }
+:root[data-mj-theme="swiss"] .mj-table > * { padding: 1rem; }
+:root[data-mj-theme="swiss"] .mj-seat.pos-2 { border-bottom: 1px solid #000; }
+:root[data-mj-theme="swiss"] .mj-seat.pos-3 { border-right: 1px solid #000; }
+:root[data-mj-theme="swiss"] .mj-seat.pos-1 { border-left: 1px solid #000; }
+:root[data-mj-theme="swiss"] .mj-me { border-top: 2px solid #000; }
+:root[data-mj-theme="swiss"] .mj-mid { box-shadow: none; border-radius: 0; }
+:root[data-mj-theme="swiss"] .mj-center { background: none; box-shadow: none; border-radius: 0; border: 1px solid #000; }
+:root[data-mj-theme="swiss"] .mj-big { font: 700 2.8rem/1 var(--sans) !important; color: #000 !important; letter-spacing: -0.04em; }
+:root[data-mj-theme="swiss"] .mj-wind { background: #000; color: #fff; border-radius: 0; box-shadow: none; font: 700 .9rem/1 var(--sans); }
+:root[data-mj-theme="swiss"] .mj-dealer { background: #E30613; border-radius: 0; font: 700 .75rem/1 var(--sans); }
+:root[data-mj-theme="swiss"] .mj-score { color: #000; font-size: 1.1rem; }
+:root[data-mj-theme="swiss"] .mj-seat.turn .mj-who { color: #E30613; }
+:root[data-mj-theme="swiss"] .mj-seat.turn .mj-name::before { background: #E30613; border-radius: 0; box-shadow: none; }
+:root[data-mj-theme="swiss"] .mj-meld, :root[data-mj-theme="swiss"] .mj-meld.bonus { background: none; border-radius: 0; padding: 0; outline: 1px solid #000; outline-offset: 2px; }
+:root[data-mj-theme="swiss"] .tile { box-shadow: none; margin: 0 -0.75px; justify-content: flex-start; padding-top: .55em; font-family: var(--sans); border-top: .32em solid var(--suit, #000); }
+:root[data-mj-theme="swiss"] .s-m { --suit: #E30613; } :root[data-mj-theme="swiss"] .s-p { --suit: #0047BB; } :root[data-mj-theme="swiss"] .s-s { --suit: #00843D; }
+:root[data-mj-theme="swiss"] .s-z, :root[data-mj-theme="swiss"] .s-zC, :root[data-mj-theme="swiss"] .s-zF, :root[data-mj-theme="swiss"] .s-zP { --suit: #000; }
+:root[data-mj-theme="swiss"] .s-f, :root[data-mj-theme="swiss"] .s-g { --suit: #999; }
+:root[data-mj-theme="swiss"] .tile .t-top, :root[data-mj-theme="swiss"] .tile .t-bot { display: none; }
+:root[data-mj-theme="swiss"] .tile .t-lat { display: block; font: 700 1.05em/1 var(--sans); letter-spacing: -0.04em; color: #000; }
+:root[data-mj-theme="swiss"] .tile .t-sub { display: block; font: 400 .26em/1.5 var(--sans); color: #000; }
+:root[data-mj-theme="swiss"] .s-zC .t-lat { color: #E30613; } :root[data-mj-theme="swiss"] .s-zF .t-lat { color: #00843D; } :root[data-mj-theme="swiss"] .s-zP .t-lat { color: #0047BB; }
+:root[data-mj-theme="swiss"] .tile.back { background: #000; box-shadow: inset 0 0 0 1px #fff; border-top-width: 1.5px; }
+:root[data-mj-theme="swiss"] .tile.selected { transform: translateY(-10px); box-shadow: 0 0 0 3px #E30613; }
+:root[data-mj-theme="swiss"] .tile.last { box-shadow: 0 0 0 3px #E30613; }
+:root[data-mj-theme="swiss"] .mj-result { border-radius: 0; box-shadow: none; border: 2px solid #000; }
+:root[data-mj-theme="swiss"] .mj-result h2 { color: #000; font-size: 2rem; letter-spacing: -0.03em; }
+:root[data-mj-theme="swiss"] .mj-faan li, :root[data-mj-theme="swiss"] .mj-pay td { border-color: #000; }
+:root[data-mj-theme="swiss"] .mj-doors li, :root[data-mj-theme="swiss"] .mj-tablecard { border: 0; border-top: 4px solid #000; border-radius: 0; background: none; }
+
+:root[data-mj-theme="swiss"] h1[data-name="full"] { margin-bottom: 1.4rem; }
+:root[data-mj-theme="swiss"] .mj-fan { align-items: center; }
+:root[data-mj-theme="swiss"] .mj-fan .tile { position: static; transform: none; margin: 0 -0.75px; --w: 3.6rem; }
+
+/* ── Fancy: Art Deco gilt. Black lacquer, gold frames and fans, Didone capitals ── */
+:root[data-mj-theme="fancy"] {
+  --bg: #0B0B0C; --surface: #141416; --ink: #F4EBD6; --muted: #B9A97F; --rule: #3A3222; --strong-rule: #C9A54C;
+  --serif: "Didot", "Bodoni 72", "Bodoni MT", "Playfair Display", "Source Serif 4", Georgia, serif; color-scheme: dark;
+  --wood: #0E0E10; --wood-2: #060607; --felt-hi: #1A1A1E; --lacquer: #000; --grain: transparent; --brass: #C9A54C; --brass-2: #8C6E2C; --on-brass: #0B0B0C;
+  --table-ink: #F4EBD6; --table-muted: #D9C796; --table-dim: #B9A97F; --tray: rgba(201,165,76,.06); --brass-soft: rgba(201,165,76,.35);
+  --ivory: #FFFBF0; --ivory-2: #F1E6CC; --jade: #0B0B0C; --jade-2: #C9A54C; --panel: #111113; --panel-2: #050506; --overlay: rgba(0,0,0,.72);
+  --plus: #E6CF8B; --minus: #E39A86; --win: #0B0B0C; --win-edge: #C9A54C; --table-radius: 2px; --tile-radius: 4px;
+  --table-glow: 0 0 0 1px #C9A54C, 0 0 0 7px #0B0B0C, 0 0 0 8px #C9A54C, 0 30px 60px rgba(0,0,0,.6);
+  --back-pattern: repeating-linear-gradient(45deg, transparent 0 5px, rgba(201,165,76,.55) 5px 6px), repeating-linear-gradient(-45deg, transparent 0 5px, rgba(201,165,76,.55) 5px 6px);
+}
+:root[data-mj-theme="fancy"] body { background: radial-gradient(circle at 50% -20%, #1E1A12 0%, #0B0B0C 60%); }
+:root[data-mj-theme="fancy"] h1, :root[data-mj-theme="fancy"] h2, :root[data-mj-theme="fancy"] h3 { font-family: var(--serif); font-weight: 400; letter-spacing: .02em; }
+:root[data-mj-theme="fancy"] h1[data-name="full"] { font: 400 clamp(3.4rem, 9vw, 6.4rem)/1 var(--serif); letter-spacing: .06em; text-transform: uppercase; color: #E6CF8B; }
+:root[data-mj-theme="fancy"] .masthead { box-shadow: inset 0 -1px 0 #C9A54C, inset 0 -4px 0 #0B0B0C, inset 0 -5px 0 #C9A54C; }
+:root[data-mj-theme="fancy"] .primary { background: transparent; color: #E6CF8B; border: 1px solid #C9A54C; box-shadow: inset 0 0 0 3px #0B0B0C, inset 0 0 0 4px #C9A54C; letter-spacing: .12em; text-transform: uppercase; font-size: .8rem; }
+:root[data-mj-theme="fancy"] .secondary, :root[data-mj-theme="fancy"] .mj-act { letter-spacing: .1em; text-transform: uppercase; font-size: .78rem; border-radius: 0; }
+:root[data-mj-theme="fancy"] .mj-act.a-win { color: #E6CF8B; box-shadow: inset 0 0 0 3px #0B0B0C, inset 0 0 0 4px #C9A54C; }
+:root[data-mj-theme="fancy"] .mj-table { position: relative; padding: 2rem 1.6rem 1.6rem;
+  background: radial-gradient(circle at 50% 100%, transparent 0 22%, rgba(201,165,76,.07) 22% 22.4%, transparent 22.4% 30%, rgba(201,165,76,.06) 30% 30.4%, transparent 30.4%), radial-gradient(ellipse at 50% 40%, var(--felt-hi), var(--wood) 60%, var(--wood-2)); }
+:root[data-mj-theme="fancy"] .mj-table::before { content: ""; position: absolute; inset: 10px; border: 1px solid rgba(201,165,76,.45); pointer-events: none; }
+:root[data-mj-theme="fancy"] .mj-center { background: #050506; border-radius: 50%; aspect-ratio: 1; min-width: 11rem; align-content: center; box-shadow: 0 0 0 1px #C9A54C, 0 0 0 5px #050506, 0 0 0 6px #8C6E2C; }
+:root[data-mj-theme="fancy"] .mj-big { font: 400 2.2rem/1 var(--serif) !important; color: #E6CF8B !important; }
+:root[data-mj-theme="fancy"] .mj-wind { background: #0B0B0C; color: #E6CF8B; border-radius: 0; box-shadow: 0 0 0 1px #C9A54C; }
+:root[data-mj-theme="fancy"] .mj-wind { font-size: 0; } :root[data-mj-theme="fancy"] .mj-wind::after { content: attr(data-w); font: 400 .95rem/1 var(--serif); }
+:root[data-mj-theme="fancy"] .mj-dealer { background: #C9A54C; color: #0B0B0C; }
+:root[data-mj-theme="fancy"] .mj-who { font-family: var(--serif); letter-spacing: .06em; }
+:root[data-mj-theme="fancy"] .mj-meld { background: transparent; box-shadow: inset 0 0 0 1px rgba(201,165,76,.35); border-radius: 0; }
+:root[data-mj-theme="fancy"] .tile { box-shadow: inset 0 0 0 1px #C9A54C, inset 0 0 0 3px #FFFBF0, inset 0 0 0 4px rgba(201,165,76,.6), 0 3px 0 #0B0B0C, 0 4px 0 #C9A54C, 0 8px 14px rgba(0,0,0,.55); }
+:root[data-mj-theme="fancy"] .tile.back { background: var(--back-pattern), #0B0B0C; box-shadow: inset 0 0 0 1px #C9A54C, 0 3px 0 #C9A54C, 0 8px 14px rgba(0,0,0,.55); }
+:root[data-mj-theme="fancy"] .tile.selected { transform: translateY(-12px); box-shadow: inset 0 0 0 1px #C9A54C, 0 0 0 2px #E6CF8B, 0 14px 22px rgba(201,165,76,.25); }
+:root[data-mj-theme="fancy"] .tile.last { box-shadow: inset 0 0 0 2px #C9A54C, 0 0 0 2px #E6CF8B; }
+:root[data-mj-theme="fancy"] .mj-result { border-radius: 0; box-shadow: 0 0 0 1px #C9A54C, 0 0 0 6px #050506, 0 0 0 7px #8C6E2C, 0 30px 70px rgba(0,0,0,.7); }
+:root[data-mj-theme="fancy"] .mj-result h2 { font: 400 1.8rem var(--serif); color: #E6CF8B; letter-spacing: .04em; }
+:root[data-mj-theme="fancy"] .mj-doors li, :root[data-mj-theme="fancy"] .mj-tablecard { border-radius: 0; border: 1px solid #3A3222; box-shadow: inset 0 0 0 4px #141416, inset 0 0 0 5px #3A3222; border-top: 1px solid #3A3222; }
+
+/* ── Arcade: a retro game screen. Pixel steps, monospace, scanlines, chunky tiles ── */
+:root[data-mj-theme="arcade"] {
+  --bg: #120E2A; --surface: #1D1745; --ink: #F5F1FF; --muted: #A79BE0; --rule: #3B2F7A; --strong-rule: #F5F1FF;
+  --sans: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace; --serif: var(--sans); color-scheme: dark;
+  --wood: #1A1440; --wood-2: #120E2A; --felt-hi: #241C5A; --lacquer: #0A0820; --grain: rgba(255,255,255,.035); --brass: #FFD23F; --brass-2: #FF4FA3; --on-brass: #120E2A;
+  --table-ink: #F5F1FF; --table-muted: #C9C1FF; --table-dim: #A79BE0; --tray: rgba(0,0,0,.25); --brass-soft: rgba(255,210,63,.3);
+  --ivory: #F5F1FF; --ivory-2: #DCD5FF; --jade: #4F3BD9; --jade-2: #2D1F8C; --panel: #1D1745; --panel-2: #120E2A; --overlay: rgba(10,8,32,.8);
+  --plus: #5DFFA8; --minus: #FF7A9E; --win: #FF4FA3; --win-edge: #FFD23F; --table-radius: 0; --tile-radius: 0; --table-glow: none;
+  --cn-red: #E5246B; --cn-green: #0E9F5A; --cn-blue: #3557E8; --cn-ink: #120E2A;
+}
+:root[data-mj-theme="arcade"] h1, :root[data-mj-theme="arcade"] h2, :root[data-mj-theme="arcade"] h3 { font-family: var(--sans); letter-spacing: 0; }
+:root[data-mj-theme="arcade"] h1[data-name="full"] { font: 800 clamp(3rem, 9vw, 6rem)/1 var(--sans); color: #FFD23F; text-shadow: 4px 4px 0 #FF4FA3, 8px 8px 0 #4F3BD9; }
+:root[data-mj-theme="arcade"] .primary, :root[data-mj-theme="arcade"] .secondary, :root[data-mj-theme="arcade"] .mj-act { border-radius: 0; border-width: 3px; box-shadow: 4px 4px 0 #000; }
+:root[data-mj-theme="arcade"] .mj-table { position: relative; padding: 1.4rem;
+  box-shadow: 0 0 0 4px #F5F1FF, 0 0 0 8px #120E2A, 0 0 0 12px #FF4FA3, 12px 12px 0 12px #000; }
+:root[data-mj-theme="arcade"] .mj-table::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px); }
+:root[data-mj-theme="arcade"] .mj-center { border-radius: 0; box-shadow: 0 0 0 3px #FFD23F; background: #0A0820; }
+:root[data-mj-theme="arcade"] .mj-big { font: 800 2rem/1 var(--sans) !important; color: #FFD23F !important; }
+:root[data-mj-theme="arcade"] .mj-wind { border-radius: 0; background: #FFD23F; color: #120E2A; box-shadow: 2px 2px 0 #000; font-family: var(--sans); font-size: 0; }
+:root[data-mj-theme="arcade"] .mj-wind::after { content: attr(data-w); font-size: .85rem; font-weight: 800; }
+:root[data-mj-theme="arcade"] .mj-dealer { border-radius: 0; background: #FF4FA3; font: 800 .7rem/1 var(--sans); }
+:root[data-mj-theme="arcade"] .mj-meld { border-radius: 0; }
+:root[data-mj-theme="arcade"] .tile { font-family: var(--sans); box-shadow: 0 0 0 2px #120E2A, 3px 3px 0 2px #4F3BD9; margin: 0 2px; }
+:root[data-mj-theme="arcade"] .tile .t-top, :root[data-mj-theme="arcade"] .tile .t-bot { display: none; }
+:root[data-mj-theme="arcade"] .tile .t-lat { display: block; font: 800 1.05em/1 var(--sans); }
+:root[data-mj-theme="arcade"] .tile .t-sub { display: block; font: 700 .26em/1.6 var(--sans); }
+:root[data-mj-theme="arcade"] .s-m { color: #E5246B; } :root[data-mj-theme="arcade"] .s-p { color: #3557E8; } :root[data-mj-theme="arcade"] .s-s { color: #0E9F5A; }
+:root[data-mj-theme="arcade"] .s-z { color: #120E2A; } :root[data-mj-theme="arcade"] .s-zC { color: #E5246B; } :root[data-mj-theme="arcade"] .s-zF { color: #0E9F5A; } :root[data-mj-theme="arcade"] .s-zP { color: #3557E8; }
+:root[data-mj-theme="arcade"] .s-f, :root[data-mj-theme="arcade"] .s-g { color: #9B3BD9; }
+:root[data-mj-theme="arcade"] .tile.back { background: repeating-conic-gradient(#4F3BD9 0 25%, #2D1F8C 0 50%) 0 0 / 8px 8px; box-shadow: 0 0 0 2px #120E2A, 3px 3px 0 2px #000; }
+:root[data-mj-theme="arcade"] .tile.selected { transform: translateY(-10px); box-shadow: 0 0 0 3px #FFD23F, 4px 4px 0 3px #000; }
+:root[data-mj-theme="arcade"] .tile.last { box-shadow: 0 0 0 3px #FF4FA3; }
+:root[data-mj-theme="arcade"] .mj-result { border-radius: 0; box-shadow: 0 0 0 4px #F5F1FF, 0 0 0 8px #FF4FA3, 10px 10px 0 8px #000; }
+:root[data-mj-theme="arcade"] .mj-result h2 { color: #FFD23F; text-shadow: 3px 3px 0 #FF4FA3; }
+:root[data-mj-theme="arcade"] .mj-doors li, :root[data-mj-theme="arcade"] .mj-tablecard { border-radius: 0; border: 3px solid #F5F1FF; box-shadow: 6px 6px 0 #000; }
+
+:root[data-mj-theme="arcade"] .mj-swatch { font-size: .74rem; padding-right: .5rem; }
+:root[data-mj-theme="arcade"] .mj-topline .secondary { white-space: nowrap; }
+
+/* ── High contrast: black and white, yellow for what you can act on, larger faces ── */
+:root[data-mj-theme="contrast"] {
+  --wood: #000; --wood-2: #000; --felt-hi: #000; --lacquer: #000; --brass: #FFD400; --brass-2: #FFFFFF; --on-brass: #000;
+  --jade: #FFD400; --jade-2: #8A7300; --ivory: #FFFFFF; --ivory-2: #FFFFFF; --grain: transparent;
+  --table-ink: #FFFFFF; --table-muted: #FFFFFF; --table-dim: #FFFFFF; --tray: #000; --brass-soft: #FFFFFF;
+  --panel: #000; --panel-2: #000; --overlay: rgba(0,0,0,.88); --plus: #7CFF9B; --minus: #FF9A9A;
+  --cn-red: #C8000F; --cn-green: #006B2A; --cn-blue: #0033B3; --cn-ink: #000; --cn-plum: #6A007A;
+  --win: #C8000F; --win-edge: #FFFFFF; --tile-border: 2px solid #000; --table-glow: 0 0 0 3px #FFFFFF;
+}
+:root[data-mj-theme="contrast"] .tile { font-weight: 800; }
+:root[data-mj-theme="contrast"] .tile.small { --w: 2rem; }
+:root[data-mj-theme="contrast"] .mj-act { border-width: 2px; }
+:root[data-mj-theme="contrast"] .tile.selected, :root[data-mj-theme="contrast"] .tile.last { box-shadow: 0 0 0 4px #FFD400; }
+
+/* ── the picker ─────────────────────────────────────────────────────────── */
+.mj-themes { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; margin: .4rem 0; }
+.mj-themes > span { font-size: .85rem; color: var(--muted); margin-right: .2rem; }
+.mj-swatch { display: inline-flex; align-items: center; gap: .45rem; padding: .3rem .65rem .3rem .35rem; border-radius: 999px; border: 1px solid var(--rule); background: transparent; color: var(--ink); font: .82rem var(--sans); cursor: pointer; }
+.mj-swatch[aria-pressed="true"] { border-color: var(--brass); box-shadow: 0 0 0 2px var(--brass); }
+.mj-swatch i { display: inline-block; width: 1.4rem; height: 1.4rem; border-radius: 50%; background: var(--sw-table); box-shadow: inset 0 0 0 3px var(--sw-rim); position: relative; }
+.mj-swatch i::after { content: ""; position: absolute; left: 50%; top: 50%; width: .5rem; height: .7rem; margin: -.35rem 0 0 -.25rem; border-radius: 2px; background: var(--sw-tile); box-shadow: 0 2px 0 var(--sw-back); }
+</style>
+</head>
+<body class="mj-page">
+<main>
+  <section id="setup" class="mj-setup">
+    <h1>Mahjong</h1>
+    <p class="lede">You against three AIs, Hong Kong rules. This file needs no internet and sends nothing anywhere; your game is saved in this browser.</p>
+    <div data-mj-themes></div>
+    <div class="mj-form">
+      <label for="level">AI strength</label>
+      <select id="level"><option value="1">1 · learning the tiles</option><option value="2">2 · casual</option><option value="3" selected>3 · solid</option><option value="4">4 · plays for value, defends</option><option value="5">5 · sharp</option></select>
+      <label for="rounds">Length</label>
+      <select id="rounds"><option value="1" selected>East round</option><option value="2">East and South</option><option value="4">Full game</option></select>
+      <label for="min">Smallest winning hand</label>
+      <select id="min"><option value="0" selected>Any hand</option><option value="1">1 faan</option><option value="3">3 faan</option></select>
+      <label class="check"><input type="checkbox" id="flowers" checked> Flowers and seasons</label>
+      <div class="actions"><button class="primary" id="start" type="button">Deal</button><button class="secondary" id="resume" type="button" hidden>Resume your game</button></div>
+    </div>
+  </section>
+  <section id="game" class="mj-game" hidden>
+    <div class="mj-topline"><p class="fine">Click a tile to pick it, click again to discard.</p><div data-mj-themes></div><button class="secondary" id="quit" type="button">Leave the table</button></div>
+    <div id="table"></div>
+    <div id="result" hidden></div>
+  </section>
+</main>
+<script>
+// ── library/mahjong/engine/tiles.js
+const __m4 = (() => {
+
+const __x = {};
+// tiles.js · the 144 tiles of Hong Kong mahjong, as short codes.
+//
+//   m1–m9  characters (萬)    p1–p9  dots (筒)    s1–s9  bamboo (索)
+//   zE zS zW zN  winds (東 南 西 北)    zC zF zP  dragons (中 發 白)
+//   f1–f4  flowers (梅 蘭 菊 竹)        g1–g4  seasons (春 夏 秋 冬)
+//
+// The 34 playing kinds have an index 0–33 for counting: suits in order, then
+// winds, then dragons. Flowers and seasons are bonus tiles, never in a hand.
+
+const SUITS = ['m', 'p', 's'];
+const WINDS = ['zE', 'zS', 'zW', 'zN'];
+const DRAGONS = ['zC', 'zF', 'zP'];
+const BONUS = ['f1', 'f2', 'f3', 'f4', 'g1', 'g2', 'g3', 'g4'];
+const KINDS = [...SUITS.flatMap(s => [1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => s + n)), ...WINDS, ...DRAGONS];
+const INDEX = Object.fromEntries(KINDS.map((t, i) => [t, i]));
+
+const idx = (t) => INDEX[t];
+const kind = (i) => KINDS[i];
+const isBonus = (t) => t[0] === 'f' || t[0] === 'g';
+const isHonor = (t) => t[0] === 'z';
+const isSuited = (t) => SUITS.includes(t[0]);
+const suitOf = (t) => (isSuited(t) ? t[0] : null);
+const num = (t) => (isSuited(t) ? Number(t[1]) : 0);
+const isTerminal = (t) => isSuited(t) && (num(t) === 1 || num(t) === 9);
+const isDragon = (t) => DRAGONS.includes(t);
+const isWind = (t) => WINDS.includes(t);
+
+// The full set, four of each playing kind and one of each bonus tile.
+function fullSet(withBonus = true) {
+  const out = [];
+  for (const t of KINDS) for (let i = 0; i < 4; i++) out.push(t);
+  if (withBonus) out.push(...BONUS);
+  return out;
+}
+
+const ORDER = (t) => (isBonus(t) ? 100 + BONUS.indexOf(t) : INDEX[t]);
+const sortTiles = (ts) => [...ts].sort((a, b) => ORDER(a) - ORDER(b));
+
+function counts(ts) {
+  const c = new Array(34).fill(0);
+  for (const t of ts) if (!isBonus(t)) c[INDEX[t]]++;
+  return c;
+}
+
+// How tiles are written on their faces, and named in words.
+const CN = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+const SUIT_CN = { m: '萬', p: '筒', s: '索' };
+const SUIT_EN = { m: 'characters', p: 'dots', s: 'bamboo' };
+const HONOR = { zE: ['東', 'East wind'], zS: ['南', 'South wind'], zW: ['西', 'West wind'], zN: ['北', 'North wind'], zC: ['中', 'Red dragon'], zF: ['發', 'Green dragon'], zP: ['白', 'White dragon'] };
+const FLOWER = { f1: ['梅', 'Plum'], f2: ['蘭', 'Orchid'], f3: ['菊', 'Chrysanthemum'], f4: ['竹', 'Bamboo flower'], g1: ['春', 'Spring'], g2: ['夏', 'Summer'], g3: ['秋', 'Autumn'], g4: ['冬', 'Winter'] };
+
+function face(t) {
+  if (isSuited(t)) return { top: t[0] === 'm' ? CN[num(t)] : String(num(t)), bottom: SUIT_CN[t[0]], suit: t[0] };
+  if (HONOR[t]) return { top: HONOR[t][0], bottom: '', suit: isDragon(t) ? t : 'z' };
+  if (FLOWER[t]) return { top: FLOWER[t][0], bottom: t[1], suit: t[0] };
+  return { top: '?', bottom: '', suit: '' };
+}
+function name(t) {
+  if (isSuited(t)) return `${num(t)} of ${SUIT_EN[t[0]]}`;
+  return (HONOR[t] || FLOWER[t] || [t, t])[1];
+}
+
+__x.SUITS = SUITS;
+__x.WINDS = WINDS;
+__x.DRAGONS = DRAGONS;
+__x.BONUS = BONUS;
+__x.KINDS = KINDS;
+__x.idx = idx;
+__x.kind = kind;
+__x.isBonus = isBonus;
+__x.isHonor = isHonor;
+__x.isSuited = isSuited;
+__x.suitOf = suitOf;
+__x.num = num;
+__x.isTerminal = isTerminal;
+__x.isDragon = isDragon;
+__x.isWind = isWind;
+__x.fullSet = fullSet;
+__x.sortTiles = sortTiles;
+__x.counts = counts;
+__x.face = face;
+__x.name = name;
+
+return __x;
+})();
+
+// ── kernel/hash.js
+const __m6 = (() => {
+
+const __x = {};
+// 1.2 · SHA-256, synchronous and identical in every runtime.
+// A pure implementation is used deliberately: Web Crypto's digest is async in
+// browsers, and one implementation beats a fast path and a correct path.
+
+const K = new Uint32Array([
+  0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+  0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+  0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+  0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+  0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+  0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+  0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+  0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2,
+]);
+
+const utf8 = (s) => new TextEncoder().encode(s);
+
+function sha256Bytes(bytes) {
+  const len = bytes.length;
+  const withPad = ((len + 9 + 63) >> 6) << 6;
+  const buf = new Uint8Array(withPad);
+  buf.set(bytes);
+  buf[len] = 0x80;
+  const bitLen = len * 8;
+  const dv = new DataView(buf.buffer);
+  dv.setUint32(withPad - 8, Math.floor(bitLen / 0x100000000));
+  dv.setUint32(withPad - 4, bitLen >>> 0);
+  const H = new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]);
+  const W = new Uint32Array(64);
+  for (let off = 0; off < withPad; off += 64) {
+    for (let i = 0; i < 16; i++) W[i] = dv.getUint32(off + i * 4);
+    for (let i = 16; i < 64; i++) {
+      const a = W[i - 15], b = W[i - 2];
+      const s0 = ((a >>> 7) | (a << 25)) ^ ((a >>> 18) | (a << 14)) ^ (a >>> 3);
+      const s1 = ((b >>> 17) | (b << 15)) ^ ((b >>> 19) | (b << 13)) ^ (b >>> 10);
+      W[i] = (W[i - 16] + s0 + W[i - 7] + s1) >>> 0;
+    }
+    let [a, b, c, d, e, f, g, h] = H;
+    for (let i = 0; i < 64; i++) {
+      const S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+      const ch = (e & f) ^ (~e & g);
+      const t1 = (h + S1 + ch + K[i] + W[i]) >>> 0;
+      const S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+      const mj = (a & b) ^ (a & c) ^ (b & c);
+      const t2 = (S0 + mj) >>> 0;
+      h = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+    }
+    H[0] += a; H[1] += b; H[2] += c; H[3] += d; H[4] += e; H[5] += f; H[6] += g; H[7] += h;
+  }
+  const out = new Uint8Array(32);
+  const odv = new DataView(out.buffer);
+  for (let i = 0; i < 8; i++) odv.setUint32(i * 4, H[i]);
+  return out;
+}
+
+const toHex = (b) => Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+const fromHex = (h) => Uint8Array.from(h.match(/../g) || [], x => parseInt(x, 16));
+
+function hash(input) {
+  return toHex(sha256Bytes(typeof input === 'string' ? utf8(input) : input));
+}
+
+const ZERO = '0'.repeat(64);
+
+// Merkle root over hex leaves. Leaves and nodes are domain-separated so a leaf
+// can never be passed off as an interior node. An odd node is promoted.
+function merkleRoot(leaves) {
+  if (!leaves.length) return ZERO;
+  let level = leaves.map(l => hash('L' + l));
+  while (level.length > 1) {
+    const next = [];
+    for (let i = 0; i < level.length; i += 2) {
+      next.push(i + 1 < level.length ? hash('N' + level[i] + level[i + 1]) : level[i]);
+    }
+    level = next;
+  }
+  return level[0];
+}
+
+function toBase64(bytes) {
+  let s = '';
+  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  return btoa(s);
+}
+function fromBase64(b64) {
+  const s = atob(b64.replace(/\s+/g, ''));
+  const out = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+  return out;
+}
+
+function randomHex(n = 16) {
+  const b = new Uint8Array(n);
+  globalThis.crypto.getRandomValues(b);
+  return toHex(b);
+}
+
+__x.utf8 = utf8;
+__x.sha256Bytes = sha256Bytes;
+__x.toHex = toHex;
+__x.fromHex = fromHex;
+__x.hash = hash;
+__x.ZERO = ZERO;
+__x.merkleRoot = merkleRoot;
+__x.toBase64 = toBase64;
+__x.fromBase64 = fromBase64;
+__x.randomHex = randomHex;
+
+return __x;
+})();
+
+// ── library/mahjong/engine/rng.js
+const __m5 = (() => {
+const { hash } = __m6;
+const __x = {};
+// rng.js · randomness that is never random: a generator seeded from a hash,
+// so the same seed always gives the same wall and the same AI choices, on
+// every computer. (sfc32, seeded with the first 16 bytes of SHA-256.)
+
+
+const H = (s) => hash(String(s));
+
+function rngFrom(seedText) {
+  const h = H(seedText);
+  let a = parseInt(h.slice(0, 8), 16) >>> 0, b = parseInt(h.slice(8, 16), 16) >>> 0, c = parseInt(h.slice(16, 24), 16) >>> 0, d = parseInt(h.slice(24, 32), 16) >>> 0;
+  const next = () => {
+    a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0;
+    const t = (a + b) | 0; a = b ^ (b >>> 9); b = (c + (c << 3)) | 0; c = (c << 21) | (c >>> 11); d = (d + 1) | 0;
+    const r = (t + d) | 0; c = (c + r) | 0;
+    return r >>> 0;
+  };
+  for (let i = 0; i < 12; i++) next();
+  return {
+    next,
+    int: (n) => next() % n,              // 0 … n-1 (n is small, the bias negligible and the same everywhere)
+    pick: (xs) => xs[next() % xs.length],
+  };
+}
+
+function shuffle(xs, rng) {
+  const a = [...xs];
+  for (let i = a.length - 1; i > 0; i--) { const j = rng.int(i + 1); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+__x.H = H;
+__x.rngFrom = rngFrom;
+__x.shuffle = shuffle;
+
+return __x;
+})();
+
+// ── library/mahjong/engine/rules.js
+const __m7 = (() => {
+const { idx, kind, counts, isHonor, isSuited, isDragon, isWind, isTerminal, suitOf, WINDS, DRAGONS } = __m4;
+const __x = {};
+// rules.js · what wins, how far a hand is from winning, and what a win scores,
+// under Hong Kong rules with faan.
+//
+// A winning hand is four sets (chows: three in a row of one suit; pungs: three
+// alike; kongs count as pungs) and a pair, counting the sets already exposed,
+// or the thirteen orphans. Scoring adds faan for patterns; a hand of 13 faan or
+// more is a limit hand.
+
+
+const ORPHANS = ['m1', 'm9', 'p1', 'p9', 's1', 's9', ...WINDS, ...DRAGONS].map(idx);
+const LIMIT = 13;
+
+// ── decomposition ───────────────────────────────────────────────────────────
+// Every way to split concealed counts into sets and one pair.
+function decompositions(c) {
+  const out = [];
+  const sets = [];
+  const walk = (i) => {
+    while (i < 34 && c[i] === 0) i++;
+    if (i === 34) { out.push(sets.slice()); return; }
+    if (c[i] >= 3) { c[i] -= 3; sets.push({ type: 'pung', tile: kind(i) }); walk(i); sets.pop(); c[i] += 3; }
+    if (i < 27 && i % 9 <= 6 && c[i + 1] && c[i + 2]) {
+      c[i]--; c[i + 1]--; c[i + 2]--; sets.push({ type: 'chow', tile: kind(i) }); walk(i); sets.pop(); c[i]++; c[i + 1]++; c[i + 2]++;
+    }
+  };
+  for (let p = 0; p < 34; p++) {
+    if (c[p] < 2) continue;
+    c[p] -= 2;
+    const before = out.length;
+    walk(0);
+    for (let k = before; k < out.length; k++) out[k] = { pair: kind(p), sets: out[k] };
+    c[p] += 2;
+  }
+  return out;
+}
+
+function isThirteenOrphans(c) {
+  let pair = false;
+  for (let i = 0; i < 34; i++) {
+    if (ORPHANS.includes(i)) { if (c[i] === 0) return false; if (c[i] === 2) { if (pair) return false; pair = true; } if (c[i] > 2) return false; }
+    else if (c[i]) return false;
+  }
+  return pair;
+}
+
+// Is this (concealed tiles, exposed melds) a complete hand? Returns its shapes.
+function winningShapes(concealed, melds) {
+  const c = counts(concealed);
+  const n = c.reduce((a, b) => a + b, 0);
+  if (n !== 14 - 3 * melds.length) return [];
+  const out = decompositions(c).filter(d => d.sets.length === 4 - melds.length).map(d => ({ ...d, special: null }));
+  if (!melds.length && isThirteenOrphans(c)) out.push({ pair: null, sets: [], special: 'thirteen-orphans' });
+  return out;
+}
+
+// ── shanten: how many tiles from ready (0 = one tile from winning, -1 = won) ─
+const memo = new Map();
+function shanten(c, meldCount = 0) {
+  const key = c.join('') + meldCount;
+  if (memo.has(key)) return memo.get(key);
+  const need = 4 - meldCount;
+  let best = 8;
+  const scan = (i, sets, partials, pair) => {
+    while (i < 34 && c[i] === 0) i++;
+    if (i >= 34) {
+      const p = Math.min(partials, need - sets);
+      const s = 2 * (need - sets) - p - pair;
+      if (s < best) best = s;
+      return;
+    }
+    if (c[i] >= 3) { c[i] -= 3; scan(i, sets + 1, partials, pair); c[i] += 3; }
+    if (i < 27 && i % 9 <= 6 && c[i + 1] && c[i + 2]) { c[i]--; c[i + 1]--; c[i + 2]--; scan(i, sets + 1, partials, pair); c[i]++; c[i + 1]++; c[i + 2]++; }
+    if (sets + partials < need) {
+      if (c[i] >= 2) { c[i] -= 2; scan(i, sets, partials + 1, pair); c[i] += 2; }
+      if (i < 27 && i % 9 <= 7 && c[i + 1]) { c[i]--; c[i + 1]--; scan(i, sets, partials + 1, pair); c[i]++; c[i + 1]++; }
+      if (i < 27 && i % 9 <= 6 && c[i + 2]) { c[i]--; c[i + 2]--; scan(i, sets, partials + 1, pair); c[i]++; c[i + 2]++; }
+    }
+    c[i]--; scan(i + (c[i] === 0 ? 1 : 0), sets, partials, pair); c[i]++;
+  };
+  scan(0, 0, 0, 0);
+  for (let p = 0; p < 34; p++) if (c[p] >= 2) { c[p] -= 2; scan(0, 0, 0, 1); c[p] += 2; }
+  if (!meldCount) {
+    let kinds = 0, pair = 0;
+    for (const i of ORPHANS) { if (c[i]) kinds++; if (c[i] >= 2) pair = 1; }
+    best = Math.min(best, 13 - kinds - pair);
+  }
+  if (memo.size > 200000) memo.clear();
+  memo.set(key, best);
+  return best;
+}
+
+// ── scoring ─────────────────────────────────────────────────────────────────
+// ctx: { melds, bonus, seatWind (0–3), roundWind (0–3), selfDraw, lastTile, kongReplacement, flowers (rules on?) }
+function score(shape, ctx) {
+  const items = [];
+  const add = (faan, why) => items.push({ faan, why });
+  if (shape.special === 'thirteen-orphans') { add(LIMIT, 'Thirteen orphans'); return total(items); }
+
+  // Every set in the hand, exposed ones first.
+  const sets = [...ctx.melds.map(m => ({ type: m.type === 'chow' ? 'chow' : 'pung', tile: m.tiles[0], concealed: !!m.concealed })), ...shape.sets.map(s => ({ ...s, concealed: true }))];
+  const tiles = [shape.pair, ...sets.flatMap(s => (s.type === 'chow' ? [s.tile] : [s.tile]))];
+  const all = [shape.pair, ...sets.map(s => s.tile)];
+  const pungs = sets.filter(s => s.type === 'pung');
+  const suits = new Set(all.filter(isSuited).map(suitOf));
+  const honors = all.some(isHonor);
+  const seatW = WINDS[ctx.seatWind], roundW = WINDS[ctx.roundWind];
+  const exposed = ctx.melds.some(m => !m.concealed);
+
+  const dragonPungs = pungs.filter(s => isDragon(s.tile)).length;
+  const windPungs = pungs.filter(s => isWind(s.tile)).length;
+  if (windPungs === 4) add(LIMIT, 'Great four winds');
+  else if (windPungs === 3 && isWind(shape.pair)) add(6, 'Small four winds');
+  if (dragonPungs === 3) add(8, 'Great three dragons');
+  else if (dragonPungs === 2 && isDragon(shape.pair)) add(5, 'Small three dragons');
+
+  if (!suits.size) add(10, 'All honours');
+  else if (suits.size === 1 && !honors) add(7, 'Pure one suit');
+  else if (suits.size === 1) add(3, 'Mixed one suit');
+  if (all.every(t => isHonor(t) || isTerminal(t)) && suits.size) add(honors ? 4 : 10, honors ? 'Mixed orphans' : 'Pure orphans');
+
+  if (pungs.length === 4) add(3, 'All pungs');
+  else if (sets.every(s => s.type === 'chow') && !isDragon(shape.pair) && shape.pair !== seatW && shape.pair !== roundW) add(1, 'All chows');
+
+  for (const s of pungs) {
+    if (isDragon(s.tile)) add(1, `Pung of ${{ zC: 'red', zF: 'green', zP: 'white' }[s.tile]} dragons`);
+    if (s.tile === seatW) add(1, 'Pung of your seat wind');
+    if (s.tile === roundW) add(1, 'Pung of the prevailing wind');
+  }
+  if (ctx.selfDraw) add(1, 'Self-drawn');
+  if (!exposed) add(1, 'Concealed hand');
+  if (ctx.lastTile) add(1, ctx.selfDraw ? 'Won on the last tile of the wall' : 'Won on the last discard');
+  if (ctx.kongReplacement) add(1, 'Won on a kong replacement');
+  if (ctx.flowers) {
+    const b = ctx.bonus || [];
+    if (!b.length) add(1, 'No flowers or seasons');
+    for (const t of b) if (Number(t[1]) === ctx.seatWind + 1) add(1, `Your own ${t[0] === 'f' ? 'flower' : 'season'}`);
+    for (const set of ['f', 'g']) if (b.filter(t => t[0] === set).length === 4) add(2, set === 'f' ? 'All four flowers' : 'All four seasons');
+  }
+  void tiles;
+  return total(items);
+}
+const total = (items) => {
+  const faan = Math.min(LIMIT, items.reduce((a, x) => a + x.faan, 0));
+  return { faan, items, limit: faan >= LIMIT };
+};
+
+// The best score any shape of this winning hand earns.
+function bestScore(shapes, ctx) {
+  let best = null;
+  for (const s of shapes) { const r = score(s, ctx); if (!best || r.faan > best.faan) best = { ...r, shape: s }; }
+  return best;
+}
+
+// Points from faan: the base doubles with each faan, capped at 10.
+// Self-drawn: each other player pays twice the base. On a discard: the
+// discarder pays twice the base, the other two the base.
+const base = (faan) => 2 ** Math.min(faan, 10);
+function payments(faan, winner, discarder) {
+  const b = base(faan), p = [0, 0, 0, 0];
+  for (let s = 0; s < 4; s++) {
+    if (s === winner) continue;
+    const pay = discarder === null || discarder === undefined ? 2 * b : s === discarder ? 2 * b : b;
+    p[s] -= pay; p[winner] += pay;
+  }
+  return p;
+}
+
+
+__x.idx = idx;
+__x.LIMIT = LIMIT;
+__x.decompositions = decompositions;
+__x.isThirteenOrphans = isThirteenOrphans;
+__x.winningShapes = winningShapes;
+__x.shanten = shanten;
+__x.score = score;
+__x.bestScore = bestScore;
+__x.base = base;
+__x.payments = payments;
+
+return __x;
+})();
+
+// ── library/mahjong/engine/game.js
+const __m3 = (() => {
+const { fullSet, isBonus, sortTiles, counts, idx, kind, isSuited, num, suitOf } = __m4;
+const { rngFrom, shuffle } = __m5;
+const { winningShapes, bestScore, payments } = __m7;
+const __x = {};
+// game.js · a match of mahjong as a state machine with no hidden randomness.
+//
+// Each hand's wall is shuffled from that hand's seed, and nothing else is ever
+// random, so a match is fully determined by its hand seeds and the decisions
+// the players made. That is what lets the record, or any browser, replay a game
+// and check it.
+//
+//   const m = newMatch({ rules, seats: ['human', 3, 3, 3] })   // a seat is 'human' or an AI level 1–5
+//   startHand(m, handSeed)
+//   pending(m)           → seats whose decision is needed now
+//   options(m, seat)     → the legal actions for that seat
+//   act(m, seat, action) → applies it, then plays on (draws, claims) until someone must decide
+//   view(m, seat)        → what that seat may see
+//
+// Actions: { type: 'discard', tile } | { type: 'kong', tile } | { type: 'win' }
+//          { type: 'pass' } | { type: 'chow', tiles: [a, b] } | { type: 'pung' } | { type: 'kong' } | { type: 'win' }
+
+
+
+
+const DEFAULT_RULES = { minFaan: 0, flowers: true, rounds: 1, maxHands: 16 };
+
+function newMatch({ rules = {}, seats = ['human', 3, 3, 3], names } = {}) {
+  return {
+    rules: { ...DEFAULT_RULES, ...rules }, seats: seats.slice(0, 4), names: names || seats.map((s, i) => (s === 'human' ? `Player ${i + 1}` : `AI ${i + 1}`)),
+    round: 0, dealer: 0, handNo: 0, scores: [0, 0, 0, 0], history: [], phase: 'ready', hand: null,
+  };
+}
+const seatWind = (m, seat) => (seat - m.dealer + 4) % 4;
+const remove = (arr, t, n = 1) => { for (let k = 0; k < n; k++) { const i = arr.indexOf(t); if (i < 0) throw new Error(`no ${t} to remove`); arr.splice(i, 1); } };
+const countOf = (arr, t) => arr.reduce((a, x) => a + (x === t), 0);
+const left = (m) => m.hand.back - m.hand.front;
+
+// ── dealing ─────────────────────────────────────────────────────────────────
+function startHand(m, seed) {
+  if (m.phase === 'over') throw new Error('the match is over');
+  const rng = rngFrom(`wall:${seed}`);
+  const wall = shuffle(sortTiles(fullSet(m.rules.flowers)), rng);
+  const h = m.hand = { seed, wall, front: 0, back: wall.length, players: [0, 1, 2, 3].map(() => ({ concealed: [], melds: [], bonus: [], discards: [] })),
+    turn: m.dealer, dealer: m.dealer, round: m.round, stage: 'discard', drawn: null, last: null, decisions: {}, kongReplacement: false, result: null, n: 0, log: [] };
+  for (let r = 0; r < 13; r++) for (let k = 0; k < 4; k++) h.players[(m.dealer + k) % 4].concealed.push(wall[h.front++]);
+  h.players[m.dealer].concealed.push(wall[h.front++]);
+  // Bonus tiles out, replaced from the back, the dealer first, until none remain.
+  for (let k = 0; k < 4; k++) {
+    const p = h.players[(m.dealer + k) % 4];
+    for (let t; (t = p.concealed.find(isBonus));) { remove(p.concealed, t); p.bonus.push(t); if (left(m) <= 0) break; p.concealed.push(wall[--h.back]); }
+  }
+  for (const p of h.players) p.concealed = sortTiles(p.concealed);
+  h.drawn = null; h.fresh = true;
+  m.phase = 'play';
+  return m;
+}
+
+// A tile from the front (or the back, as a replacement), flowers set aside.
+function draw(m, seat, fromBack = false, afterKong = false) {
+  const h = m.hand, p = h.players[seat];
+  for (;;) {
+    if (left(m) <= 0) return endHand(m, { type: 'draw' });
+    const t = fromBack ? h.wall[--h.back] : h.wall[h.front++];
+    if (isBonus(t)) { p.bonus.push(t); h.log.push({ seat, type: 'bonus', tile: t }); fromBack = true; continue; }
+    p.concealed.push(t); p.concealed = sortTiles(p.concealed);
+    h.drawn = t; h.turn = seat; h.stage = 'discard'; h.kongReplacement = afterKong;
+    return m;
+  }
+}
+
+// ── who must decide, and what they may do ───────────────────────────────────
+function pending(m) {
+  if (m.phase !== 'play') return [];
+  const h = m.hand;
+  if (h.stage === 'discard') return [h.turn];
+  return claimants(m).filter(s => !(s in h.decisions));
+}
+function claimants(m) {
+  const h = m.hand, out = [];
+  for (let k = 1; k < 4; k++) { const s = (h.last.from + k) % 4; if (claimOptions(m, s).length > 1) out.push(s); }
+  return out;
+}
+
+function winScore(m, seat, concealed, selfDraw) {
+  const h = m.hand, p = h.players[seat];
+  const shapes = winningShapes(concealed, p.melds);
+  if (!shapes.length) return null;
+  return bestScore(shapes, { melds: p.melds, bonus: p.bonus, seatWind: seatWind(m, seat), roundWind: m.round % 4, selfDraw,
+    lastTile: left(m) === 0, kongReplacement: selfDraw && h.kongReplacement, flowers: m.rules.flowers });
+}
+
+function turnOptions(m, seat) {
+  const h = m.hand, p = h.players[seat], out = [];
+  const w = h.drawn !== null || h.fresh ? winScore(m, seat, p.concealed, true) : null;
+  if (w && w.faan >= m.rules.minFaan) out.push({ type: 'win' });
+  if (left(m) > 0) {
+    const c = counts(p.concealed);
+    for (let i = 0; i < 34; i++) if (c[i] === 4) out.push({ type: 'kong', tile: kind(i) });
+    for (const meld of p.melds) if (meld.type === 'pung' && p.concealed.includes(meld.tiles[0])) out.push({ type: 'kong', tile: meld.tiles[0] });
+  }
+  for (const t of [...new Set(p.concealed)]) out.push({ type: 'discard', tile: t });
+  return out;
+}
+
+function claimOptions(m, seat) {
+  const h = m.hand, p = h.players[seat], t = h.last.tile, out = [{ type: 'pass' }];
+  const w = winScore(m, seat, [...p.concealed, t], false);
+  if (w && w.faan >= m.rules.minFaan) out.push({ type: 'win' });
+  const n = countOf(p.concealed, t);
+  if (left(m) > 0) {
+    if (n >= 2) out.push({ type: 'pung' });
+    if (n >= 3) out.push({ type: 'kong' });
+    if (seat === (h.last.from + 1) % 4 && isSuited(t)) {
+      const s = suitOf(t), v = num(t), has = (x) => x >= 1 && x <= 9 && p.concealed.includes(s + x);
+      for (const [a, b] of [[v - 2, v - 1], [v - 1, v + 1], [v + 1, v + 2]]) if (has(a) && has(b)) out.push({ type: 'chow', tiles: [s + a, s + b] });
+    }
+  }
+  return out;
+}
+
+function options(m, seat) {
+  if (!pending(m).includes(seat)) return [];
+  return m.hand.stage === 'discard' ? turnOptions(m, seat) : claimOptions(m, seat);
+}
+const sameAction = (a, b) => a.type === b.type && (a.tile || null) === (b.tile || null) && JSON.stringify(a.tiles || null) === JSON.stringify(b.tiles || null);
+
+// ── playing ─────────────────────────────────────────────────────────────────
+function act(m, seat, action) {
+  const legal = options(m, seat);
+  if (!legal.some(a => sameAction(a, action))) throw new Error(`seat ${seat} may not ${JSON.stringify(action)} now`);
+  const h = m.hand, p = h.players[seat];
+  h.n++;
+  if (h.stage === 'discard') {
+    h.fresh = false;
+    if (action.type === 'win') return endHand(m, { type: 'win', winner: seat, from: null, ...winScore(m, seat, p.concealed, true) });
+    if (action.type === 'kong') {
+      const t = action.tile, meld = p.melds.find(x => x.type === 'pung' && x.tiles[0] === t);
+      if (meld) { remove(p.concealed, t); meld.type = 'kong'; meld.tiles.push(t); }
+      else { remove(p.concealed, t, 4); p.melds.push({ type: 'kong', tiles: [t, t, t, t], concealed: true, from: null }); }
+      h.log.push({ seat, type: 'kong', tile: t, concealed: !meld });
+      return draw(m, seat, true, true);
+    }
+    // A discard: others may claim it.
+    remove(p.concealed, action.tile);
+    p.discards.push({ tile: action.tile, claimed: false });
+    h.last = { tile: action.tile, from: seat }; h.drawn = null; h.kongReplacement = false;
+    h.log.push({ seat, type: 'discard', tile: action.tile });
+    h.stage = 'claim'; h.decisions = {};
+    return resolve(m);
+  }
+  h.decisions[seat] = action;
+  return resolve(m);
+}
+
+// Once everyone who could claim has decided: a win, then a pung or kong, then a chow, else the next draw.
+function resolve(m) {
+  const h = m.hand;
+  if (pending(m).length) return m;
+  const order = [1, 2, 3].map(k => (h.last.from + k) % 4);
+  const d = (s) => h.decisions[s];
+  const winner = order.find(s => d(s)?.type === 'win');
+  const t = h.last.tile, from = h.last.from;
+  const take = () => { h.players[from].discards.at(-1).claimed = true; };
+  if (winner !== undefined) {
+    const p = h.players[winner];
+    take();
+    return endHand(m, { type: 'win', winner, from, ...winScore(m, winner, [...p.concealed, t], false), tile: t });
+  }
+  const big = order.find(s => ['pung', 'kong'].includes(d(s)?.type));
+  if (big !== undefined) {
+    const p = h.players[big], kong = d(big).type === 'kong';
+    take(); remove(p.concealed, t, kong ? 3 : 2);
+    p.melds.push({ type: kong ? 'kong' : 'pung', tiles: Array(kong ? 4 : 3).fill(t), concealed: false, from });
+    h.log.push({ seat: big, type: kong ? 'kong' : 'pung', tile: t, from });
+    h.last = null; h.decisions = {}; h.turn = big; h.stage = 'discard'; h.drawn = null;
+    return kong ? draw(m, big, true, true) : m;
+  }
+  const chower = order.find(s => d(s)?.type === 'chow');
+  if (chower !== undefined) {
+    const p = h.players[chower], [a, b] = d(chower).tiles;
+    take(); remove(p.concealed, a); remove(p.concealed, b);
+    p.melds.push({ type: 'chow', tiles: sortTiles([a, t, b]), concealed: false, from });
+    h.log.push({ seat: chower, type: 'chow', tile: t, tiles: [a, b], from });
+    h.last = null; h.decisions = {}; h.turn = chower; h.stage = 'discard'; h.drawn = null;
+    return m;
+  }
+  h.last = null; h.decisions = {};
+  return draw(m, (from + 1) % 4);
+}
+
+// ── the end of a hand, and of the match ─────────────────────────────────────
+function endHand(m, result) {
+  const h = m.hand;
+  if (result.type === 'win') {
+    result.points = payments(result.faan, result.winner, result.from);
+    for (let s = 0; s < 4; s++) m.scores[s] += result.points[s];
+    result.hand = sortTiles(h.players[result.winner].concealed.concat(result.tile && result.from !== null ? [result.tile] : []));
+  } else result.points = [0, 0, 0, 0];
+  h.result = result; h.stage = 'over';
+  m.history.push({ handNo: m.handNo, round: m.round, dealer: m.dealer, seed: h.seed, result: { ...result, items: result.items } });
+  m.handNo++;
+  // The dealer keeps the deal on a win or a draw; otherwise it passes, and a full turn of the table ends the round.
+  const keeps = result.type === 'draw' || result.winner === m.dealer;
+  if (!keeps) { m.dealer = (m.dealer + 1) % 4; if (m.dealer === 0) m.round++; }
+  m.phase = m.round >= m.rules.rounds || m.handNo >= m.rules.maxHands ? 'over' : 'between';
+  return m;
+}
+
+// ── what one seat may see ───────────────────────────────────────────────────
+function view(m, seat) {
+  const h = m.hand;
+  return {
+    rules: m.rules, names: m.names, seats: m.seats, round: h ? h.round : m.round, dealer: h ? h.dealer : m.dealer, handNo: h && h.result ? m.handNo - 1 : m.handNo, scores: m.scores, phase: m.phase, me: seat,
+    hand: h && {
+      wallLeft: left(m), turn: h.turn, stage: h.stage, last: h.last, drawn: h.turn === seat ? h.drawn : null, result: h.result,
+      players: h.players.map((p, s) => ({ melds: p.melds.map(x => (x.concealed && s !== seat && !h.result ? { ...x, tiles: x.tiles.map((t, i) => (i === 0 || i === 3 ? 'back' : t)) } : x)),
+        bonus: p.bonus, discards: p.discards, size: p.concealed.length, concealed: s === seat || h.result ? p.concealed : null })),
+      log: h.log.slice(-30),
+    },
+    options: options(m, seat), pending: pending(m),
+  };
+}
+
+
+__x.idx = idx;
+__x.DEFAULT_RULES = DEFAULT_RULES;
+__x.newMatch = newMatch;
+__x.seatWind = seatWind;
+__x.startHand = startHand;
+__x.pending = pending;
+__x.options = options;
+__x.sameAction = sameAction;
+__x.act = act;
+__x.view = view;
+
+return __x;
+})();
+
+// ── library/mahjong/engine/ai.js
+const __m8 = (() => {
+const { counts, idx, kind, isHonor, isDragon, suitOf, WINDS } = __m4;
+const { shanten } = __m7;
+const { rngFrom } = __m5;
+const { options, seatWind } = __m3;
+const __x = {};
+// ai.js · opponents of adjustable strength, 1 (beginner) to 5 (sharp).
+//
+// Every choice is deterministic: where an AI "guesses" it draws from a
+// generator seeded by the hand's seed, its seat and the move number, so a
+// replay makes exactly the same choices. It sees only what its seat sees: its
+// own tiles, every discard and every exposed meld.
+//
+//   1  discards mostly at random; claims whatever it can
+//   2  moves towards a winning hand, but slips often
+//   3  also counts how many unseen tiles would help (ukeire)
+//   4  also plays for value (one suit, dragon and wind pairs) and defends
+//      against a player who looks ready
+//   5  as 4, without the slips, defending earlier
+
+
+
+
+
+const SLIP = { 1: 70, 2: 25, 3: 10, 4: 3, 5: 0 };
+
+function unseen(m, seat) {
+  const u = new Array(34).fill(4);
+  const see = (t) => { const i = idx(t); if (i !== undefined) u[i]--; };
+  const h = m.hand;
+  h.players[seat].concealed.forEach(see);
+  for (const p of h.players) { p.discards.forEach(d => { if (!d.claimed) see(d.tile); }); p.melds.forEach(x => x.tiles.forEach(see)); }
+  return u.map(x => Math.max(0, x));
+}
+function ukeire(c, mc, u) {
+  const s = shanten(c, mc);
+  let n = 0;
+  for (let i = 0; i < 34; i++) { if (!u[i] || c[i] >= 4) continue; c[i]++; if (shanten(c, mc) < s) n += u[i]; c[i]--; }
+  return n;
+}
+const valueTiles = (m, seat) => new Set(['zC', 'zF', 'zP', WINDS[seatWind(m, seat)], WINDS[m.round % 4]]);
+
+// Players who look close to winning.
+function threats(m, seat) {
+  const h = m.hand, left = h.back - h.front;
+  return [0, 1, 2, 3].filter(s => s !== seat && (h.players[s].melds.length >= 3 || (h.players[s].melds.length >= 2 && left < 40)));
+}
+function danger(m, t, who) {
+  let d = 0;
+  for (const s of who) {
+    const safe = m.hand.players[s].discards.some(x => x.tile === t);
+    if (!safe) d += isHonor(t) ? 1 : 3;
+  }
+  return d;
+}
+
+function chooseDiscard(m, seat, level, opts, rng) {
+  const h = m.hand, p = h.players[seat], mc = p.melds.length;
+  const discards = opts.filter(o => o.type === 'discard');
+  if (rng.int(100) < (level === 1 ? 70 : 0)) return rng.pick(discards);
+  const u = unseen(m, seat), vt = valueTiles(m, seat);
+  const c = counts(p.concealed);
+  // The suit the hand leans to, for the value-minded.
+  const bySuit = { m: 0, p: 0, s: 0 };
+  for (const t of p.concealed) if (!isHonor(t)) bySuit[suitOf(t)]++;
+  for (const x of p.melds) if (!isHonor(x.tiles[0])) bySuit[suitOf(x.tiles[0])] += 3;
+  const lean = Object.entries(bySuit).sort((a, b) => b[1] - a[1])[0];
+  const flush = level >= 4 && lean[1] >= 8 ? lean[0] : null;
+  const who = level >= 4 ? threats(m, seat) : [];
+  const scored = discards.map(o => {
+    const i = idx(o.tile); c[i]--;
+    const sh = shanten(c, mc);
+    let s = -sh * 10000;
+    if (level >= 3) s += ukeire(c, mc, u) * 10;
+    if (level >= 4) {
+      if (flush && !isHonor(o.tile) && suitOf(o.tile) !== flush) s += 300;
+      if (flush && suitOf(o.tile) === flush) s -= 150;
+      if (vt.has(o.tile) && c[i] >= 1) s -= 250;                 // breaking a pair of value tiles
+      if (isHonor(o.tile) && c[i] === 0 && u[i] <= 1) s += 60;  // a dead honour goes early
+      if (who.length && (sh >= 2 || (level === 5 && sh >= 1))) s -= danger(m, o.tile, who) * 400;
+    }
+    c[i]++;
+    return { o, s };
+  }).sort((a, b) => b.s - a.s || (a.o.tile < b.o.tile ? -1 : 1));
+  if (rng.int(100) < SLIP[level]) return scored[Math.min(scored.length - 1, rng.int(3))].o;
+  const top = scored.filter(x => x.s === scored[0].s);
+  return (level <= 2 ? rng.pick(top) : top[0]).o;
+}
+
+// Best shanten reachable after claiming and then discarding.
+function afterClaim(p, take, addMeld) {
+  const rest = p.concealed.slice();
+  for (const t of take) rest.splice(rest.indexOf(t), 1);
+  const c = counts(rest), mc = p.melds.length + addMeld;
+  let best = 9;
+  for (let i = 0; i < 34; i++) if (c[i]) { c[i]--; best = Math.min(best, shanten(c, mc)); c[i]++; }
+  return best;
+}
+
+function choose(m, seat, level = 3) {
+  const opts = options(m, seat);
+  if (!opts.length) return null;
+  const h = m.hand, p = h.players[seat];
+  const rng = rngFrom(`ai:${h.seed}:${seat}:${h.n}`);
+  const win = opts.find(o => o.type === 'win');
+  if (win) return win;
+  if (h.stage === 'discard') {
+    const kongs = opts.filter(o => o.type === 'kong');
+    for (const k of kongs) {
+      if (level === 1) return k;
+      const c = counts(p.concealed), now = shanten(c, p.melds.length);
+      const after = c.slice(); after[idx(k.tile)] = 0;
+      if (shanten(after, p.melds.length + 1) <= now) return k;
+    }
+    return chooseDiscard(m, seat, level, opts, rng);
+  }
+  // A discard is on the table: claim it?
+  const t = h.last.tile, c = counts(p.concealed), now = shanten(c, p.melds.length);
+  const concealedHand = !p.melds.some(x => !x.concealed);
+  const vt = valueTiles(m, seat);
+  if (level === 1) { const claim = opts.filter(o => o.type !== 'pass'); return claim.length && rng.int(2) ? rng.pick(claim) : { type: 'pass' }; }
+  const kong = opts.find(o => o.type === 'kong');
+  if (kong && (level < 4 || vt.has(t) || !concealedHand)) return kong;
+  const pung = opts.find(o => o.type === 'pung');
+  if (pung) {
+    const after = afterClaim(p, [t, t], 1);
+    if (vt.has(t) && level >= 3) return pung;
+    if (after < now || (level === 2 && after <= now)) { if (!(level >= 4 && concealedHand && now >= 3 && !vt.has(t))) return pung; }
+  }
+  const chows = opts.filter(o => o.type === 'chow');
+  let best = null;
+  for (const ch of chows) { const after = afterClaim(p, ch.tiles, 1); if (after < now && (!best || after < best.after)) best = { ch, after }; }
+  if (best && !(level >= 4 && concealedHand && now >= 2)) return best.ch;
+  return { type: 'pass' };
+}
+
+
+__x.kind = kind;
+__x.isDragon = isDragon;
+__x.choose = choose;
+
+return __x;
+})();
+
+// ── library/mahjong/engine/index.js
+const __m2 = (() => {
+const { newMatch, startHand, pending, act } = __m3;
+const { choose } = __m8;
+const { H } = __m5;
+const __x = {};
+// The mahjong engine: tiles, rules, the game and its AI, plus replay.
+
+
+
+
+
+
+
+
+
+// A solo game's hand seeds all come from one seed.
+const handSeed = (seed, n) => H(`hand:${seed}:${n}`);
+
+// Play the AIs' moves until a human must decide or the hand ends.
+function runAI(m) {
+  for (let guard = 0; guard < 2000; guard++) {
+    if (m.phase !== 'play') return m;
+    const ai = pending(m).filter(s => m.seats[s] !== 'human');
+    if (!ai.length) return m;
+    for (const s of ai) { if (!pending(m).includes(s)) continue; act(m, s, choose(m, s, m.seats[s])); if (m.phase !== 'play') return m; }
+  }
+  throw new Error('the AIs did not finish');
+}
+
+// Replay a match from its hand seeds and each human seat's decisions, in order.
+// Returns { match, complete, error }: complete when every seed was played out.
+function replay({ rules, seats, names, seeds, moves }) {
+  const m = newMatch({ rules, seats, names });
+  const queue = (moves || [[], [], [], []]).map(q => q.slice());
+  let hand = 0;
+  try {
+    while (m.phase !== 'over') {
+      if (m.phase === 'ready' || m.phase === 'between') {
+        if (hand >= seeds.length) return { match: m, complete: false, error: null };
+        startHand(m, seeds[hand++]);
+      }
+      runAI(m);
+      if (m.phase !== 'play') continue;
+      const human = pending(m).filter(s => m.seats[s] === 'human');
+      let moved = false;
+      for (const s of human) {
+        if (!pending(m).includes(s)) continue;
+        const next = queue[s].shift();
+        if (!next) continue;
+        act(m, s, next); moved = true;
+        if (m.phase !== 'play') break;
+      }
+      if (!moved && m.phase === 'play') return { match: m, complete: false, error: null };
+    }
+    const leftover = queue.reduce((a, q) => a + q.length, 0);
+    return { match: m, complete: true, error: leftover ? `${leftover} decision(s) left over after the match ended` : null };
+  } catch (x) { return { match: m, complete: false, error: x.message }; }
+}
+
+__x.handSeed = handSeed;
+__x.runAI = runAI;
+__x.replay = replay;
+Object.assign(__x, __m4);
+__x.winningShapes = __m7.winningShapes;
+__x.shanten = __m7.shanten;
+__x.score = __m7.score;
+__x.bestScore = __m7.bestScore;
+__x.payments = __m7.payments;
+__x.base = __m7.base;
+__x.LIMIT = __m7.LIMIT;
+__x.newMatch = __m3.newMatch;
+__x.startHand = __m3.startHand;
+__x.pending = __m3.pending;
+__x.options = __m3.options;
+__x.act = __m3.act;
+__x.view = __m3.view;
+__x.seatWind = __m3.seatWind;
+__x.sameAction = __m3.sameAction;
+__x.DEFAULT_RULES = __m3.DEFAULT_RULES;
+__x.choose = __m8.choose;
+__x.rngFrom = __m5.rngFrom;
+__x.H = __m5.H;
+return __x;
+})();
+
+// ── sites/mahjong/mj-ui.js
+const __m9 = (() => {
+const { face, name: tileName } = __m2;
+const __x = {};
+// mj-ui.js · draws a mahjong table from a seat's view, for the solo game, the
+// live tables and the offline file alike. It knows nothing about where the
+// game runs: it is given a view and calls back with the action chosen.
+//
+//   drawTable(root, view, { onAct, timer, title, note })
+//   drawResult(box, view, { next, verified })
+//   tileEl(code, { small, back, label, onClick, selected, dim, last })
+
+
+const WIND = ['東', '南', '西', '北'];
+const WIND_EN = ['East', 'South', 'West', 'North'];
+function el(tag, attrs = {}, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k.startsWith('on') && typeof v === 'function') n.addEventListener(k.slice(2), v);
+    else if (k === 'class') n.className = v;
+    else n.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids.flat(Infinity)) if (k !== null && k !== undefined && k !== false) n.append(k.nodeType ? k : document.createTextNode(String(k)));
+  return n;
+}
+
+const LATIN_SUIT = { m: 'char', p: 'dot', s: 'bam' };
+const LATIN_HONOR = { zE: ['E', 'wind'], zS: ['S', 'wind'], zW: ['W', 'wind'], zN: ['N', 'wind'], zC: ['R', 'dragon'], zF: ['G', 'dragon'], zP: ['W', 'dragon'] };
+function latin(t) {
+  if (LATIN_SUIT[t[0]]) return [t[1], LATIN_SUIT[t[0]]];
+  if (LATIN_HONOR[t]) return LATIN_HONOR[t];
+  return [t[1], t[0] === 'f' ? 'flower' : 'season'];
+}
+
+function tileEl(t, o = {}) {
+  if (o.back || t === 'back') return el('span', { class: `tile back${o.small ? ' small' : ''}`, 'aria-hidden': 'true' });
+  const f = face(t);
+  // Two faces on every tile: the traditional characters, and a Latin one (a
+  // number or letter over a short suit name). Each look shows whichever suits it.
+  const [lat, sub] = latin(t);
+  const kids = [el('span', { class: 't-top' }, f.top), f.bottom ? el('span', { class: 't-bot' }, f.bottom) : null,
+    el('span', { class: 't-lat', 'aria-hidden': 'true' }, lat), el('span', { class: 't-sub', 'aria-hidden': 'true' }, sub)];
+  const cls = `tile s-${f.suit}${o.small ? ' small' : ''}${o.selected ? ' selected' : ''}${o.dim ? ' dim' : ''}${o.last ? ' last' : ''}${o.drawn ? ' drawn' : ''}`;
+  if (o.onClick) return el('button', { class: cls, type: 'button', 'aria-label': o.label || tileName(t), 'aria-pressed': o.selected ? 'true' : null, onclick: o.onClick, ondblclick: o.onDouble }, kids);
+  return el('span', { class: cls, role: 'img', 'aria-label': o.label || tileName(t) }, kids);
+}
+
+const label = (a) => ({ win: 'Mahjong!', pung: 'Pung', kong: a.tile ? `Kong ${tileName(a.tile)}` : 'Kong', pass: 'Pass', chow: `Chow ${a.tiles ? a.tiles.map(x => x[1]).join('·') : ''}` }[a.type] || a.type);
+
+let selected = null;
+function drawTable(root, v, { onAct, timer, note } = {}) {
+  const me = v.me >= 0 && v.me < 4 ? v.me : 0, h = v.hand;
+  if (!h) { root.replaceChildren(el('p', { class: 'mj-empty' }, note || 'Waiting for the deal…')); return; }
+  const seatAt = (k) => (me + k) % 4; // 0 me (bottom), 1 right, 2 top, 3 left
+  const wind = (s) => (s - v.dealer + 4) % 4;
+  const opts = v.options || [];
+  const myTurn = h.stage === 'discard' && v.pending.includes(v.me);
+  const canDiscard = new Set(opts.filter(o => o.type === 'discard').map(o => o.tile));
+  if (!myTurn || !canDiscard.has(selected)) selected = null;
+  const doDiscard = (t) => onAct && onAct({ type: 'discard', tile: t });
+
+  const seatBox = (k) => {
+    const s = seatAt(k), p = h.players[s], turn = h.turn === s && h.stage === 'discard' && !h.result;
+    const waiting = v.pending.includes(s);
+    const head = el('div', { class: 'mj-name' },
+      el('span', { class: 'mj-wind', title: `${WIND_EN[wind(s)]} seat`, 'data-w': WIND_EN[wind(s)][0] }, WIND[wind(s)]),
+      el('span', { class: 'mj-who' }, v.names[s] || `Seat ${s + 1}`, typeof v.seats[s] === 'number' ? el('span', { class: 'mj-lvl' }, ` AI ${v.seats[s]}`) : null),
+      s === v.dealer ? el('span', { class: 'mj-dealer', title: 'Dealer' }, '莊') : null,
+      el('span', { class: 'mj-score' }, String(v.scores[s])),
+      waiting && !turn ? el('span', { class: 'mj-thinking' }, 'deciding') : null);
+    const melds = el('div', { class: 'mj-melds' }, p.melds.map(m => el('span', { class: 'mj-meld' }, m.tiles.map(t => tileEl(t, { small: k !== 0 })))),
+      p.bonus.length ? el('span', { class: 'mj-meld bonus' }, p.bonus.map(t => tileEl(t, { small: true }))) : null);
+    let hand;
+    if (k === 0 && p.concealed) {
+      const drawn = h.drawn && myTurn ? h.drawn : null;
+      let skipped = false;
+      const tiles = p.concealed.filter(t => { if (drawn && !skipped && t === drawn) { skipped = true; return false; } return true; });
+      const mk = (t, isDrawn) => tileEl(t, { drawn: isDrawn, selected: selected === t,
+        label: myTurn ? `Discard ${tileName(t)}` : tileName(t),
+        onClick: myTurn && canDiscard.has(t) ? () => { if (selected === t) doDiscard(t); else { selected = t; drawTable(root, v, { onAct, timer, note }); } } : null,
+        onDouble: myTurn && canDiscard.has(t) ? () => doDiscard(t) : null });
+      hand = el('div', { class: 'mj-hand' }, tiles.map(t => mk(t, false)), drawn ? el('span', { class: 'mj-gap' }) : null, drawn ? mk(drawn, true) : null);
+    } else if (p.concealed) hand = el('div', { class: 'mj-hand open' }, p.concealed.map(t => tileEl(t, { small: true })));
+    else hand = el('div', { class: 'mj-hand hidden' }, Array.from({ length: p.size }, () => tileEl('back', { small: true })));
+    return el('section', { class: `mj-seat pos-${k}${turn ? ' turn' : ''}`, 'aria-label': `${v.names[s]}, ${WIND_EN[wind(s)]}` }, head, melds, hand);
+  };
+  const pond = (k) => {
+    const s = seatAt(k), p = h.players[s];
+    return el('div', { class: `mj-pond pos-${k}`, 'aria-label': `${v.names[s]}'s discards` }, p.discards.map((d, i) => tileEl(d.tile, { small: true, dim: d.claimed, last: h.last && h.last.from === s && i === p.discards.length - 1 })));
+  };
+  const center = el('div', { class: 'mj-center' },
+    el('div', { class: 'mj-round' }, el('span', { class: 'mj-big' }, WIND[v.round % 4]), el('span', {}, `${WIND_EN[v.round % 4]} round · hand ${v.handNo + 1}`)),
+    el('div', { class: 'mj-left' }, el('span', { class: 'mj-big' }, String(h.wallLeft)), el('span', {}, 'tiles left')),
+    h.last ? el('div', { class: 'mj-lastd' }, tileEl(h.last.tile), el('span', {}, `${v.names[h.last.from]} discarded`)) : null);
+
+  const bar = el('div', { class: 'mj-bar', role: 'group', 'aria-label': 'Your options' });
+  if (!h.result && v.pending.includes(v.me)) {
+    const special = opts.filter(o => o.type !== 'discard');
+    for (const o of special) bar.append(el('button', { type: 'button', class: `mj-act a-${o.type}`, onclick: () => onAct && onAct(o) }, label(o)));
+    if (myTurn) bar.append(el('button', { type: 'button', class: 'mj-act a-discard', disabled: !selected, onclick: () => selected && doDiscard(selected) }, selected ? `Discard ${tileName(selected)}` : 'Pick a tile to discard'));
+    if (h.stage === 'claim' && h.last) bar.prepend(el('span', { class: 'mj-prompt' }, `${v.names[h.last.from]} discarded ${tileName(h.last.tile)}.`));
+  } else if (!h.result) bar.append(el('span', { class: 'mj-prompt' }, v.me >= 0 && v.me < 4 ? (h.turn === v.me ? '…' : `${v.names[h.turn]} to play`) : 'Watching'));
+  if (timer) bar.append(el('span', { class: 'mj-timer', 'aria-live': 'off' }, timer));
+
+  root.replaceChildren(el('div', { class: 'mj-table' }, seatBox(2), seatBox(3), el('div', { class: 'mj-mid' }, pond(2), el('div', { class: 'mj-ponds-row' }, pond(3), center, pond(1)), pond(0)), seatBox(1), el('div', { class: 'mj-me' }, seatBox(0), bar)));
+}
+
+// The end of a hand: who won, with what, and what everyone paid.
+function drawResult(box, v, { next, nextLabel = 'Next hand', verified, final } = {}) {
+  const r = v.hand?.result;
+  if (!r) { box.replaceChildren(); box.hidden = true; return; }
+  box.hidden = false;
+  const won = r.type === 'win';
+  box.replaceChildren(el('div', { class: 'mj-result', role: 'dialog', 'aria-label': 'End of the hand' },
+    el('h2', {}, won ? `${v.names[r.winner]} wins${r.from === null ? ' (self-drawn)' : `, off ${v.names[r.from]}`}` : 'A draw: the wall ran out'),
+    won ? el('div', { class: 'mj-win-hand' }, (r.hand || []).map(t => tileEl(t)), v.hand.players[r.winner].melds.map(m => el('span', { class: 'mj-meld' }, m.tiles.map(t => tileEl(t))))) : null,
+    won ? el('ul', { class: 'mj-faan' }, (r.items.length ? r.items : [{ faan: 0, why: 'Chicken hand: no scoring patterns' }]).map(x => el('li', {}, el('span', {}, x.why), el('span', {}, `${x.faan} faan`))), el('li', { class: 'total' }, el('span', {}, 'Total'), el('span', {}, `${r.faan} faan${r.limit ? ' (limit)' : ''}`))) : null,
+    el('table', { class: 'mj-pay' }, el('tbody', {}, v.names.map((n, s) => el('tr', {}, el('td', {}, n), el('td', { class: r.points[s] > 0 ? 'plus' : r.points[s] < 0 ? 'minus' : '' }, r.points[s] > 0 ? `+${r.points[s]}` : String(r.points[s])), el('td', {}, String(v.scores[s])))))),
+    verified ? el('p', { class: 'mj-verified' }, verified) : null,
+    final ? el('p', { class: 'mj-final' }, final) : null,
+    next ? el('button', { type: 'button', class: 'mj-act a-win', onclick: next }, nextLabel) : null));
+}
+
+__x.el = el;
+__x.latin = latin;
+__x.tileEl = tileEl;
+__x.drawTable = drawTable;
+__x.drawResult = drawResult;
+
+return __x;
+})();
+
+// ── sites/mahjong/solo.js
+const __m1 = (() => {
+const { newMatch, startHand, pending, options, act, view, choose, handSeed, DEFAULT_RULES } = __m2;
+const { drawTable, drawResult } = __m9;
+const __x = {};
+// solo.js · one person against three AIs, entirely in this browser. Used by
+// the world's solo page (just for fun, or for a profile) and by the offline file.
+//
+//   const g = soloGame(table, resultBox, { seats, rules, seed, names, moves?, onChange, onOver })
+// seed decides every wall (one per hand, derived from it); moves resumes a game.
+
+
+
+const PACE = 550; // ms between AI moves, so a person can follow them
+
+function soloGame(table, resultBox, { seats, rules = {}, seed, names, moves = [], onChange, onOver, paced = true }) {
+  const m = newMatch({ rules: { ...DEFAULT_RULES, ...rules }, seats, names });
+  const mine = [];       // the human's decisions, in order: all a replay needs
+  const queue = moves.slice();
+  let hand = 0, timer = null, stopped = false;
+
+  const draw = () => { drawTable(table, view(m, 0), { onAct: human }); drawResult(resultBox, view(m, 0), resultOpts()); onChange?.({ m, moves: mine }); };
+  const resultOpts = () => (m.phase === 'over' ? { final: finalLine() } : { next: () => { nextHand(); } });
+  const finalLine = () => {
+    const order = [0, 1, 2, 3].sort((a, b) => m.scores[b] - m.scores[a]);
+    return `Final: ${order.map(s => `${m.names[s]} ${m.scores[s]}`).join(' · ')}`;
+  };
+
+  function nextHand() {
+    if (m.phase === 'over') return;
+    startHand(m, handSeed(seed, hand++));
+    loop();
+  }
+  function human(a) {
+    if (stopped || !pending(m).includes(0)) return;
+    act(m, 0, a); mine.push(a);
+    loop();
+  }
+  // Let the AIs play, one move at a time, until it is the person's turn or the hand ends.
+  function loop() {
+    clearTimeout(timer);
+    if (stopped) return;
+    if (m.phase !== 'play') { draw(); if (m.phase === 'over') onOver?.({ m, moves: mine }); return; }
+    // Replaying a saved game: feed the saved decisions back without pausing.
+    if (queue.length && pending(m).includes(0)) { const a = queue.shift(); act(m, 0, a); mine.push(a); return loop(); }
+    const ai = pending(m).filter(s => s !== 0);
+    if (ai.length) {
+      const go = () => { for (const s of pending(m).filter(x => x !== 0)) { if (!pending(m).includes(s)) continue; act(m, s, choose(m, s, seats[s])); if (m.phase !== 'play') break; } loop(); };
+      if (paced && !queue.length && pending(m).includes(0) === false && m.hand.stage === 'discard') { draw(); timer = setTimeout(go, PACE); return; }
+      return go();
+    }
+    draw();
+  }
+
+  // A resumed game skips the hands it already finished.
+  startHand(m, handSeed(seed, hand++));
+  loop();
+  while (queue.length && m.phase === 'between') { startHand(m, handSeed(seed, hand++)); loop(); }
+  return { match: m, moves: mine, stop: () => { stopped = true; clearTimeout(timer); }, options: () => options(m, 0) };
+}
+
+__x.soloGame = soloGame;
+
+return __x;
+})();
+
+// ── sites/mahjong/theme.js
+const __m10 = (() => {
+
+const __x = {};
+// theme.js · the table's look, chosen with a row of swatches and kept in a
+// cookie (mj_theme, a year, this site only), with a copy in local storage for
+// the offline file, which browsers do not give cookies. A tiny script in each
+// page's <head> applies it before anything is drawn, so the page never flashes.
+const THEMES = [
+  { id: 'traditional', name: 'Traditional', table: '#4A1C14', rim: '#A47F33', tile: '#FBF6EA', back: '#2E7D5B' },
+  { id: 'minimal', name: 'Minimal', table: '#FAFAF8', rim: '#E6E6E1', tile: '#EFEFEB', back: '#DADAD4' },
+  { id: 'swiss', name: 'Swiss', table: '#FFFFFF', rim: '#000000', tile: '#FFFFFF', back: '#E30613' },
+  { id: 'fancy', name: 'Art Deco', table: '#0B0B0C', rim: '#C9A54C', tile: '#FFFBF0', back: '#C9A54C' },
+  { id: 'arcade', name: 'Arcade', table: '#1A1440', rim: '#FF4FA3', tile: '#F5F1FF', back: '#4F3BD9' },
+  { id: 'contrast', name: 'High contrast', table: '#000000', rim: '#FFFFFF', tile: '#FFFFFF', back: '#FFD400' },
+];
+// Names from the first version of the picker, so a saved choice still lands somewhere sensible.
+const OLD = { rosewood: 'traditional', jade: 'traditional', paper: 'minimal', neon: 'arcade' };
+const COOKIE = 'mj_theme', YEAR = 365 * 24 * 3600;
+
+function current() {
+  const m = document.cookie.match(/(?:^|;\s*)mj_theme=([a-z]+)/);
+  let t = m ? m[1] : null;
+  if (!t) { try { t = localStorage.getItem('mj:theme'); } catch { /* none */ } }
+  t = OLD[t] || t;
+  return THEMES.some(x => x.id === t) ? t : 'traditional';
+}
+function choose(id) {
+  if (!THEMES.some(x => x.id === id)) return;
+  if (id === 'traditional') delete document.documentElement.dataset.mjTheme; else document.documentElement.dataset.mjTheme = id;
+  const secure = location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${COOKIE}=${id}; Max-Age=${YEAR}; Path=/; SameSite=Lax${secure}`;
+  try { localStorage.setItem('mj:theme', id); } catch { /* the cookie is enough */ }
+  const now = current();
+if (now === 'traditional') delete document.documentElement.dataset.mjTheme; else document.documentElement.dataset.mjTheme = now;
+draw();
+}
+
+// Every [data-mj-themes] on the page becomes a picker.
+function draw(root = document) {
+  const now = current();
+  for (const box of root.querySelectorAll('[data-mj-themes]')) {
+    box.classList.add('mj-themes');
+    box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Table look');
+    box.replaceChildren(Object.assign(document.createElement('span'), { textContent: 'Table' }), ...THEMES.map(t => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'mj-swatch'; b.setAttribute('aria-pressed', String(t.id === now));
+      b.style.cssText = `--sw-table:${t.table};--sw-rim:${t.rim};--sw-tile:${t.tile};--sw-back:${t.back}`;
+      b.append(document.createElement('i'), t.name);
+      b.addEventListener('click', () => choose(t.id));
+      return b;
+    }));
+  }
+}
+const now = current();
+if (now === 'traditional') delete document.documentElement.dataset.mjTheme; else document.documentElement.dataset.mjTheme = now;
+draw();
+
+__x.THEMES = THEMES;
+__x.current = current;
+__x.choose = choose;
+__x.draw = draw;
+
+return __x;
+})();
+
+// ── sites/mahjong/offline.js
+const __m0 = (() => {
+const { soloGame } = __m1;
+const __x = {};
+// offline.js · the offline file's own page: settings, a saved game to come
+// back to, and the solo table. No network, no record, no account.
+
+
+
+const $ = (s) => document.querySelector(s);
+const SAVE = 'mj:offline';
+const read = () => { try { return JSON.parse(localStorage.getItem(SAVE) || 'null'); } catch { return null; } };
+const write = (v) => { try { v ? localStorage.setItem(SAVE, JSON.stringify(v)) : localStorage.removeItem(SAVE); } catch { /* a file opened without storage: the game lasts this visit */ } };
+const randomSeed = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('');
+let game = null;
+
+function begin({ seed, seats, rules, moves = [] }) {
+  game?.stop();
+  $('#setup').hidden = true; $('#game').hidden = false;
+  game = soloGame($('#table'), $('#result'), {
+    seats, rules, seed, moves, names: ['You', 'South AI', 'West AI', 'North AI'],
+    onChange: ({ moves: mv }) => write({ seed, seats, rules, moves: mv }),
+    onOver: () => {
+      write(null);
+      const b = document.createElement('button');
+      b.className = 'mj-act'; b.type = 'button'; b.textContent = 'New game';
+      b.onclick = () => { game?.stop(); $('#game').hidden = true; $('#setup').hidden = false; drawSetup(); };
+      $('#result .mj-result')?.append(b);
+    },
+  });
+}
+function drawSetup() {
+  const saved = read();
+  $('#resume').hidden = !saved;
+  $('#resume').onclick = () => begin(saved);
+}
+$('#start').onclick = () => {
+  const lv = Number($('#level').value);
+  begin({ seed: randomSeed(), seats: ['human', lv, lv, lv], rules: { minFaan: Number($('#min').value), flowers: $('#flowers').checked, rounds: Number($('#rounds').value) } });
+};
+$('#quit').onclick = () => { game?.stop(); $('#game').hidden = true; $('#setup').hidden = false; drawSetup(); };
+drawSetup();
+
+
+
+return __x;
+})();
+</script>
+</body>
+</html>

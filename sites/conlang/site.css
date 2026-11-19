@@ -1,0 +1,99 @@
+/* site.css · the language society: a field linguist's lexicon. The kit's
+   stylesheet first, then this: serif headwords, small-capital parts of speech,
+   entries in two columns with a hanging indent, letters set as type sorts,
+   and one indigo, the colour of a library stamp. */
+@import url("kit.css");
+
+:root {
+  --bg: #FCFCFA; --surface: #F1F0EC; --ink: #1D1A16; --muted: #5E584F; --rule: #DDD8CE; --strong-rule: #1D1A16;
+  --stamp: #3730A3; --stamp-soft: #E6E5F6; --sort: #26221D; --sort-ink: #F4F1EA;
+  --aye: #2F6F4F; --no: #9B2C2C;
+  --radius: 2px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #14130F; --surface: #1E1C17; --ink: #ECE8DF; --muted: #A9A296; --rule: #34302A; --strong-rule: #ECE8DF;
+    --stamp: #A5B4FC; --stamp-soft: #24234A; --sort: #ECE8DF; --sort-ink: #14130F; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #14130F; --surface: #1E1C17; --ink: #ECE8DF; --muted: #A9A296; --rule: #34302A; --strong-rule: #ECE8DF;
+  --stamp: #A5B4FC; --stamp-soft: #24234A; --sort: #ECE8DF; --sort-ink: #14130F; color-scheme: dark; }
+
+/* A printed book: serif throughout, generous measure. */
+body { font-family: var(--serif); font-size: 1.05rem; }
+h1, h2, h3, h4 { font-family: var(--serif); font-weight: 600; letter-spacing: -0.01em; }
+h1 { font-weight: 400; font-style: italic; letter-spacing: -0.02em; }
+h1[data-name="full"] { font-size: clamp(2.8rem, 7vw, 5rem); max-width: 14ch; }
+.lang-name { font: italic 1.4rem/1 var(--serif); color: var(--stamp); margin: 0 0 .5rem; }
+.masthead { box-shadow: inset 0 -3px 0 var(--ink), inset 0 -5px 0 var(--bg), inset 0 -6px 0 var(--ink); }
+a { text-decoration-color: color-mix(in srgb, var(--stamp) 55%, transparent); }
+.primary, .hall-view button:not(.linklike):not(.quiet):not(.danger):not(.secondary) { background: var(--stamp); border-color: var(--stamp); color: var(--bg); font-family: var(--sans); }
+.secondary, .hall-view button.quiet { font-family: var(--sans); }
+.band { border-top: 1px solid var(--ink); }
+.band-head h2 { font-style: italic; font-weight: 400; font-size: 1.7rem; }
+
+/* Today's word: an index card stamped in indigo. */
+.wotd { border: 1px solid var(--ink); padding: 1.6rem 1.8rem 1.4rem; position: relative; background: var(--bg); }
+.wotd::after { content: ""; position: absolute; inset: 6px; border: 1px solid var(--rule); pointer-events: none; }
+.wotd h2 { font: 600 .85rem var(--sans); color: var(--stamp); margin: 0 0 .8rem; }
+.wotd-word { font: 600 clamp(2.6rem, 6vw, 3.8rem)/1 var(--serif); margin: 0 0 .35rem; }
+.wotd-line { display: flex; gap: .8rem; align-items: baseline; margin: 0 0 .4rem; }
+.wotd-gloss { font: italic 1.35rem var(--serif); margin: 0 0 .5rem; }
+.wotd-ex { border-left: 2px solid var(--stamp); padding-left: .8rem; font-style: italic; }
+
+/* The sounds: letters as pieces of metal type. */
+.type-case { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1.5rem 2.5rem; }
+.type-case h3 { font: 600 .9rem var(--sans); color: var(--muted); }
+.sorts { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0; }
+.sort, .lex-letter { display: inline-grid; place-items: center; min-width: 2.4rem; height: 2.6rem; padding: 0 .35rem; background: var(--sort); color: var(--sort-ink);
+  font: 600 1.35rem/1 var(--serif); border-radius: 2px; box-shadow: inset 0 -4px 0 rgba(0,0,0,.25); }
+.sort.vowel { background: var(--stamp); color: #fff; }
+.lex-letter { min-width: 1.9rem; height: 2rem; font-size: 1.05rem; margin: 0 .15rem .25rem 0; }
+.syll { font: 600 2rem/1 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .12em; margin: 0 0 .5rem; color: var(--stamp); }
+
+/* Word lists on the front page. */
+.lex-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem 3rem; }
+.lex-columns h3 { font: 600 .9rem var(--sans); color: var(--muted); }
+.word-list { list-style: none; padding: 0; margin: 0; }
+.word-list li { padding: .45rem 0; border-bottom: 1px dotted var(--rule); display: flex; flex-wrap: wrap; gap: .25rem .6rem; align-items: baseline; }
+.wl-word { font-weight: 600; font-size: 1.15rem; text-decoration: none; }
+.wl-pos, .lex-pos { font-variant: small-caps; letter-spacing: .06em; color: var(--stamp); text-transform: lowercase; }
+.wl-gloss { font-style: italic; }
+.gram-toc { padding-left: 1.4rem; columns: 2 16rem; column-gap: 3rem; }
+.gram-toc li { margin: 0 0 .5rem; break-inside: avoid; }
+
+/* The dictionary itself: two columns, hanging indents, headwords in bold. */
+.lexicon .items { border-top: 1px solid var(--ink); columns: 2 22rem; column-gap: 2.5rem; column-rule: 1px solid var(--rule); }
+.items > li.lex-entry { break-inside: avoid; padding: .9rem 0 .9rem 1.4rem; border-bottom: 1px solid var(--rule); }
+.lex-head { display: flex; flex-wrap: wrap; gap: .2rem .7rem; align-items: baseline; margin-left: -1.4rem; }
+.lex-word { font: 600 1.45rem/1.1 var(--serif); }
+.lex-ipa { font-family: "Charis SIL", "Doulos SIL", "Gentium Plus", var(--serif); color: var(--muted); }
+.lex-status { font: 600 .72rem var(--sans); padding: .1rem .4rem; border: 1px solid currentColor; border-radius: 2px; color: var(--muted); }
+.lex-official .lex-status { color: var(--stamp); border-color: var(--stamp); }
+.lex-proposed .lex-status { color: #8A5A00; border-style: dashed; }
+.lex-retired .lex-word, .lex-withdrawn .lex-word { text-decoration: line-through; color: var(--muted); }
+.lex-gloss { font-style: italic; font-size: 1.1rem; margin: .2rem 0; }
+.lex-def { margin: .2rem 0; }
+.lex-ex { font-style: italic; color: var(--muted); margin: .2rem 0; }
+.lex-ex::before { content: "e.g. "; font-style: normal; font-variant: small-caps; color: var(--stamp); }
+.lex-sounds { display: grid; gap: .3rem; margin: 0 0 1.5rem; padding: 1rem 1.2rem; background: var(--surface); }
+.lex-sounds p { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: .2rem; }
+.lex-sounds strong { font: 600 .85rem var(--sans); min-width: 6rem; }
+.lex-verdict { margin: .3rem 0 0; font: 600 .9rem var(--sans); }
+.lex-verdict.good { color: var(--aye); } .lex-verdict.bad { color: var(--no); }
+
+/* The glosser: interlinear, word over meaning. */
+.lex-glosser { margin: 0 0 2rem; padding: 1.2rem 1.3rem; border: 1px solid var(--ink); }
+.lex-glosser input { width: 100%; font: italic 1.25rem var(--serif); }
+.lex-gloss-out { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; margin-top: .9rem; min-height: 2.6rem; }
+.lex-g { display: inline-flex; flex-direction: column; }
+.lex-g-w { font: 600 1.15rem var(--serif); }
+.lex-g-t { font: .82rem var(--sans); color: var(--stamp); }
+.lex-g.unknown .lex-g-t { color: var(--no); }
+
+/* The grammar reads like a statute book. */
+.gr-chapter { font-style: italic; font-weight: 400; font-size: 1.5rem; border-bottom: 1px solid var(--ink); padding-bottom: .3rem; margin-top: 2rem; }
+.gr-section { margin: 1rem 0 1.5rem; padding-left: 1rem; border-left: 3px solid var(--rule); }
+.gr-section.in-force { border-left-color: var(--stamp); }
+.gr-section h4 { font-size: 1.15rem; }
+.gr-auto { font-style: italic; color: var(--muted); }
+.gr-draft { margin: .8rem 0; padding: .8rem 1rem; background: var(--surface); }
+.tabs a[aria-current] { box-shadow: inset 0 -3px 0 var(--stamp); }

@@ -1,0 +1,54 @@
+parameters:
+  wagers.arbiter_office:
+    value: arbiter
+    type: string
+    changed_by: organic
+    group: Wagers
+    describe: The office whose holders resolve bets. Elect someone to it (the offices and elections modules); an arbiter may not bet while in office.
+  wagers.share_value:
+    value: 100
+    type: integer
+    min: 1
+    max: 100000
+    changed_by: organic
+    group: Wagers
+    describe: What one winning share in a prediction market pays, in points. Prices are shown as a share of this, so 100 makes them read as percentages.
+  wagers.max_liquidity:
+    value: 500
+    type: integer
+    min: 1
+    max: 100000
+    changed_by: ordinary
+    group: Wagers
+    describe: The deepest a market may be. Deeper markets move less per share bought, and cost their opener more to back.
+  wagers.max_stake:
+    value: 10000
+    type: integer
+    min: 1
+    max: 100000000
+    changed_by: ordinary
+    group: Wagers
+    describe: The most points one stake, or one side of a challenge, may put at risk.
+  wagers.max_days:
+    value: 180
+    type: integer
+    min: 1
+    max: 3650
+    changed_by: ordinary
+    group: Wagers
+    describe: The longest a bet may take stakes, or a challenge stand.
+  wagers.appeal_days:
+    value: 2
+    type: integer
+    min: 0
+    max: 60
+    changed_by: organic
+    group: Wagers
+    describe: Days after the arbiter's result in which anyone with a stake may appeal it. Payout waits until they pass.
+  wagers.decide_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Wagers
+    describe: The rule under which the members settle or void a bet themselves, overruling or standing in for the arbiter.

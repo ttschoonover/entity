@@ -1,0 +1,53 @@
+parameters:
+  nomic.turns:
+    value: true
+    type: boolean
+    changed_by: ordinary
+    group: Nomic
+    describe: Whether players take turns. When on, only the player whose turn it is may propose a change to the game, one proposal a turn.
+  nomic.turn_days:
+    value: 3
+    type: integer
+    min: 1
+    max: 60
+    changed_by: ordinary
+    group: Nomic
+    describe: How long a turn lasts before any player may end it and pass play on.
+  nomic.points_adopted:
+    value: 10
+    type: integer
+    min: 0
+    max: 10000
+    changed_by: ordinary
+    group: Nomic
+    describe: Points a player gains when a change they proposed passes.
+  nomic.points_dissent:
+    value: 0
+    type: integer
+    min: 0
+    max: 10000
+    changed_by: ordinary
+    group: Nomic
+    describe: Points each player gains for voting against a change that passes anyway.
+  nomic.win_points:
+    value: 100
+    type: integer
+    min: 1
+    max: 1000000
+    changed_by: ordinary
+    group: Nomic
+    describe: The score that wins the game.
+  nomic.amend_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Nomic
+    describe: The rule under which mutable rules are enacted, amended and repealed, and points awarded by vote.
+  nomic.transmute_rule:
+    value: organic
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Nomic
+    describe: The rule under which a rule is made mutable or immutable, or an immutable rule enacted.

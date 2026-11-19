@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mahjong</title>
+<meta name="description" content="Hong Kong mahjong: solo against an AI you tune, or at a table with friends. No account needed.">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<script>try{var p=JSON.parse(localStorage.getItem('site:prefs')||'{}');for(var k in p)document.documentElement.dataset[k]=p[k]}catch(e){}</script>
+<script>try{var m=document.cookie.match(/(?:^|;\s*)mj_theme=([a-z]+)/),t=m?m[1]:localStorage.getItem('mj:theme');t={rosewood:'traditional',jade:'traditional',paper:'minimal',neon:'arcade'}[t]||t;if(t&&t!=='traditional')document.documentElement.dataset.mjTheme=t}catch(e){}</script>
+<link rel="stylesheet" href="site.css">
+<script type="module" src="theme.js"></script>
+<script type="module" src="home.js"></script>
+</head>
+<body class="mj-page">
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead"></header>
+<main id="main">
+  <section class="mj-hero" id="top">
+    <div>
+      <h1 data-name="full">Mahjong</h1>
+      <p class="lede">Hong Kong rules, four winds, scored in faan. Play the AI at the strength you like, or open a table for your friends and let the AI fill the empty seats. Nobody needs an account.</p>
+      <div class="actions"><a class="primary" href="play.html">Play solo</a><a class="secondary" href="tables.html">Open a table</a></div>
+      <div data-mj-themes></div>
+    </div>
+    <div class="mj-fan" id="fan" aria-hidden="true"></div>
+  </section>
+
+  <section class="band" aria-labelledby="ways-h">
+    <div class="band-head"><h2 id="ways-h">Three ways to play</h2><p>All on one engine, so a game plays the same wherever it runs.</p></div>
+    <ul class="mj-doors">
+      <li><h3>Solo, just for fun</h3><p>You against three AIs, from beginner to sharp. Nothing is recorded; the game is saved in your browser. There is also an offline file you can open with no internet at all.</p><p><a href="play.html">Play now</a> · <a href="mahjong-solo.html" download>Download the offline file</a></p></li>
+      <li><h3>Solo, for your profile</h3><p>Sign in as a member and the deal is signed before you see a tile, so nobody can pick a good wall. When you finish, the record replays the whole game before it counts.</p><p><a href="play.html">Play for your profile</a></p></li>
+      <li><h3>With friends</h3><p>Open a table, send the link. Friends sit with a name, no account. Each hand's wall is committed before the deal and revealed after, and every browser checks it.</p><p><a href="tables.html">See the tables</a></p></li>
+    </ul>
+  </section>
+
+  <section class="band" aria-labelledby="live-h">
+    <div class="band-head"><h2 id="live-h">At the tables</h2><p id="live-meta">Tables open in this world now.</p></div>
+    <div id="live"><p class="empty">Loading…</p></div>
+  </section>
+
+  <section class="band" aria-labelledby="st-h">
+    <div class="band-head"><h2 id="st-h">Standings</h2><p>Members' recorded games, solo and at tables. Every one was replayed before it counted.</p><p class="more"><a href="hall.html#/mahjong">All standings</a></p></div>
+    <ol class="mj-standings" id="standings"></ol>
+  </section>
+</main>
+<footer class="footer"></footer>
+</body>
+</html>

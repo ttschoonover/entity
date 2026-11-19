@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Play solo · Mahjong</title>
+<meta name="description" content="Hong Kong mahjong against three AIs of the strength you choose: just for fun, or for your profile.">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<script>try{var p=JSON.parse(localStorage.getItem('site:prefs')||'{}');for(var k in p)document.documentElement.dataset[k]=p[k]}catch(e){}</script>
+<script>try{var m=document.cookie.match(/(?:^|;\s*)mj_theme=([a-z]+)/),t=m?m[1]:localStorage.getItem('mj:theme');t={rosewood:'traditional',jade:'traditional',paper:'minimal',neon:'arcade'}[t]||t;if(t&&t!=='traditional')document.documentElement.dataset.mjTheme=t}catch(e){}</script>
+<link rel="stylesheet" href="site.css">
+<script type="module" src="theme.js"></script>
+<script type="module" src="play.js"></script>
+</head>
+<body class="mj-page">
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead"></header>
+<main id="main">
+  <section id="setup" class="mj-setup" aria-labelledby="setup-h">
+    <h1 id="setup-h">Play solo</h1>
+    <p class="lede">You against three AIs. Hong Kong rules, scored in faan.</p>
+    <div data-mj-themes></div>
+    <div class="mj-form">
+      <label for="mj-level">AI strength</label>
+      <select id="mj-level">
+        <option value="1">1 · learning the tiles</option><option value="2">2 · casual</option>
+        <option value="3" selected>3 · solid</option><option value="4">4 · plays for value, defends</option><option value="5">5 · sharp</option>
+      </select>
+      <details id="mj-mixed"><summary>A different strength for each AI</summary>
+        <div class="mj-mix">
+          <label>South <select id="mj-l1"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
+          <label>West <select id="mj-l2"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
+          <label>North <select id="mj-l3"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
+        </div>
+      </details>
+      <label for="mj-rounds">Length</label>
+      <select id="mj-rounds"><option value="1" selected>East round (about 4–8 hands)</option><option value="2">East and South rounds</option><option value="4">A full game, all four winds</option></select>
+      <label for="mj-min">Smallest winning hand</label>
+      <select id="mj-min"><option value="0" selected>Any hand (chicken hands allowed)</option><option value="1">1 faan</option><option value="3">3 faan (club rules)</option></select>
+      <label class="check"><input type="checkbox" id="mj-flowers" checked> Play with flowers and seasons</label>
+      <fieldset class="mj-modes"><legend>Record it?</legend>
+        <label class="check"><input type="radio" name="mode" id="mj-fun" checked> Just for fun: nothing leaves this browser</label>
+        <label class="check"><input type="radio" name="mode" id="mj-profile"> For my profile: the deal and the finished game are signed and replayed by the record</label>
+        <p class="fine" id="mj-profile-note"></p>
+      </fieldset>
+      <div class="actions"><button class="primary" id="mj-start" type="button">Deal</button><span id="mj-resume"></span></div>
+    </div>
+  </section>
+  <section id="game" class="mj-game" hidden aria-label="The table">
+    <div class="mj-topline"><p class="fine" id="mj-mode"></p><div data-mj-themes></div><button class="secondary" id="mj-quit" type="button">Leave the table</button></div>
+    <div id="table"></div>
+    <div id="result" hidden></div>
+  </section>
+</main>
+<footer class="footer"></footer>
+</body>
+</html>

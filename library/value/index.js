@@ -4,11 +4,22 @@
 //
 // Amounts are whole numbers of the smallest unit. value.decimals says where the
 // point goes when they are shown: 1250 with decimals 2 is 12.50.
+//
+// A committee may hold units too, in an account named committee:ID (a central
+// bank's reserve, a fund kept by a board). Only decisions, or the committee
+// acting through a grant of power (the authority module), move them: units are
+// issued into it (value.issue), destroyed from it (value.revoke), and paid out
+// of it (value.pay). Members may send units to it like to anyone else.
 
 const whole = (n) => Number.isSafeInteger(n) && n > 0;
 const bal = (state, id) => state.m.value?.balances?.[id] || 0;
 const ledger = (state) => (state.m.value = state.m.value || { balances: {}, supply: 0 });
 const alive = (state, id) => state.participants[id] && state.participants[id].status !== 'left';
+// A committee's account: committee:ID, while the committee exists.
+export const committeeAccount = (id) => /^committee:[a-z0-9][a-z0-9-]{0,39}$/.test(String(id));
+const committeeLive = (state, id) => { const c = state.m.committees?.[String(id).slice(10)]; return !!c && !c.dissolved; };
+// Who may hold units: a participant who has not left, or a committee that exists.
+const holder = (state, id) => (committeeAccount(id) ? committeeLive(state, id) : !!alive(state, id));
 
 export function show(amount, params) {
   const d = params.has('value.decimals') ? params.value('value.decimals') : 0;
@@ -23,7 +34,7 @@ function install(r) {
     describe: (e) => `Issue ${e.amount} to ${e.to}${e.memo ? ` (${e.memo})` : ''}`,
     check(state, e, p) {
       if (!whole(e.amount)) return 'amount must be a whole number above zero, in the smallest unit';
-      if (!alive(state, e.to)) return `${e.to} is not a participant`;
+      if (!holder(state, e.to)) return committeeAccount(e.to) ? `there is no committee ${e.to.slice(10)}` : `${e.to} is not a participant`;
       const cap = p.value('value.max_supply');
       if (cap > 0 && (state.m.value?.supply || 0) + e.amount > cap) return `this would exceed the maximum supply of ${cap}`;
       return null;
@@ -39,6 +50,22 @@ function install(r) {
       return null;
     },
   });
+  r.registerEffect({
+    name: 'value.pay', module: 'value',
+    rule: (p) => p.value('value.issue_rule'),
+    describe: (e) => `Pay ${e.amount} from ${e.from} to ${e.to}${e.memo ? ` (${e.memo})` : ''}`,
+    check(state, e) {
+      if (!whole(e.amount)) return 'amount must be a whole number above zero';
+      if (!committeeAccount(e.from)) return 'from is a committee\'s account, committee:ID: members pay from their own balance themselves';
+      if (!holder(state, e.to)) return `${e.to} cannot hold units`;
+      if (e.to === e.from) return 'that is the same account';
+      if (bal(state, e.from) < e.amount) return `${e.from} holds only ${bal(state, e.from)}`;
+      return null;
+    },
+  });
+  r.registerRecord('value.pay', (state, rec) => {
+    const l = ledger(state); l.balances[rec.payload.from] -= rec.payload.amount; l.balances[rec.payload.to] = bal(state, rec.payload.to) + rec.payload.amount;
+  });
   r.registerRecord('value.issue', (state, rec) => {
     const l = ledger(state); l.balances[rec.payload.to] = bal(state, rec.payload.to) + rec.payload.amount; l.supply += rec.payload.amount;
   });
@@ -46,14 +73,14 @@ function install(r) {
     const l = ledger(state); l.balances[rec.payload.from] -= rec.payload.amount; l.supply -= rec.payload.amount;
   });
 
-  // decision.electorate "value": holders vote with their balance. One unit, one
+  // decision.electorate "value": holders vote with their balance (committees' accounts do not vote). One unit, one
   // vote: a shareholder meeting, a token vote. Balances are read when a
   // proposal is laid, so buying units during a vote changes nothing.
   r.registerElectorate({
     name: 'value', module: 'value',
     describe: () => 'holders of the unit, one vote per smallest unit held',
     check: (state, arg) => (arg ? '"value" takes no argument' : null),
-    roll: (state) => ({ ...(state.m.value?.balances || {}) }),
+    roll: (state) => Object.fromEntries(Object.entries(state.m.value?.balances || {}).filter(([k]) => !committeeAccount(k))),
   });
 
   r.registerKind({
@@ -62,7 +89,7 @@ function install(r) {
       if (!params.value('value.transferable')) return 'units cannot be transferred in this entity';
       if (!whole(act.amount)) return 'amount must be a whole number above zero';
       if (act.to === act.by) return 'you cannot send units to yourself';
-      if (!alive(state, act.to)) return `${act.to} is not a participant`;
+      if (!holder(state, act.to)) return `${act.to} cannot hold units`;
       if (bal(state, act.by) < act.amount) return `you hold ${bal(state, act.by)}`;
       if (act.memo !== undefined && (typeof act.memo !== 'string' || act.memo.length > 200)) return 'a memo is at most 200 characters';
       return null;
@@ -104,5 +131,5 @@ export function payHold(state, id, to, amount) {
 }
 export const heldAmount = (state, id) => state.m.value?.held?.[id]?.amount || 0;
 export const heldBy = (state, member) => Object.values(state.m.value?.held || {}).filter(h => h.from === member).reduce((a, h) => a + h.amount, 0);
-export default { name: 'value', core: '0.4', install, show, balance: bal, hold, payHold, heldAmount,
+export default { name: 'value', core: '0.4', install, show, balance: bal, hold, payHold, heldAmount, committeeAccount,
   parameterKeys: ['value.name', 'value.decimals', 'value.transferable', 'value.issue_rule', 'value.max_supply'] };

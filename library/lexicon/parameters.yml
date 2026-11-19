@@ -1,0 +1,62 @@
+parameters:
+  lexicon.name:
+    value: "the language"
+    type: string
+    changed_by: organic
+    group: Lexicon
+    describe: What the language is called, in English and in itself if you like ("Velani · velani").
+  lexicon.consonants:
+    value: [p, t, k, m, n, s, l, r, v, h]
+    type: list
+    changed_by: organic
+    group: Lexicon
+    describe: The consonant letters. A letter may be several characters (sh, ng). Words may use only these and the vowels.
+  lexicon.vowels:
+    value: [a, e, i, o, u]
+    type: list
+    changed_by: organic
+    group: Lexicon
+    describe: The vowel letters.
+  lexicon.syllable:
+    value: "(C)V(n)"
+    type: string
+    changed_by: organic
+    group: Lexicon
+    describe: >
+      The shape of a syllable. C is any consonant, V any vowel, brackets mark
+      what may be left out, and a lowercase letter stands for itself. "(C)V(n)"
+      allows a, ka, an, kan; every word must split into such syllables.
+  lexicon.parts:
+    value: [noun, verb, adjective, adverb, pronoun, particle, numeral, interjection]
+    type: list
+    changed_by: organic
+    group: Lexicon
+    describe: The parts of speech a word may be.
+  lexicon.chapters:
+    value: [phonology, orthography, morphology, syntax, semantics, pragmatics]
+    type: list
+    changed_by: organic
+    group: Lexicon
+    describe: The chapters of the grammar. Every section belongs to one.
+  lexicon.max_length:
+    value: 40
+    type: integer
+    min: 1
+    max: 200
+    changed_by: ordinary
+    group: Lexicon
+    describe: The longest a word may be, in characters.
+  lexicon.adopt_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Lexicon
+    describe: The rule under which words are adopted, revised and retired.
+  lexicon.grammar_rule:
+    value: organic
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Lexicon
+    describe: The rule under which sections of the grammar are ratified and repealed.

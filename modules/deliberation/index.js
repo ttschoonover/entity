@@ -130,7 +130,8 @@ function closeRecords(state, p, tally, { at, closedEarly, params, registry }) {
     }
   }
   const summary = { electorate: tally.electorate, cast: tally.cast, for: tally.for, against: tally.against, abstain: tally.abstain,
-    quorumNeeded: tally.quorumNeeded, quorumMet: tally.quorumMet, thresholdMet: tally.thresholdMet, ...(p.weights ? { weighted: true } : {}) };
+    quorumNeeded: tally.quorumNeeded, quorumMet: tally.quorumMet, thresholdMet: tally.thresholdMet, ...(p.weights ? { weighted: true } : {}),
+    ...(tally.concurrent ? { concurrent: tally.concurrent } : {}) };
   return [{ kind: 'proposal.closed', payload: { proposal: p.id, carried, closedEarly, enacted, awaiting, notEnacted, tally: summary } }, ...out];
 }
 
@@ -155,6 +156,12 @@ function install(registry) {
       if (who.frozen) return 'this entity is frozen: decision.electorate is "none", so nothing can be decided';
       if (who.why) return `nobody can decide: ${who.why}`;
       if (who.total === 0) return `nobody can vote: the electorate "${who.spec}" is empty`;
+      const rr = params.rules[act.rule];
+      if (rr?.concurrent) {
+        const also = resolveElectorate(registry, state, params, act.at, rr.concurrent);
+        if (also.why || also.frozen) return `the ${act.rule} rule also counts "${rr.concurrent}", which cannot decide: ${also.why || 'frozen'}`;
+        if (also.total === 0) return `the ${act.rule} rule also counts "${rr.concurrent}", which is empty`;
+      }
       const fp = withModules(params, act);
       if (typeof act.title !== 'string' || !act.title.trim() || act.title.length > 200) return 'a proposal needs a title of 1–200 characters';
       if (typeof act.rule !== 'string' || !(act.rule in params.rules)) return `unknown rule "${act.rule}"; rules are ${params.ruleNames().join(', ')}`;
@@ -240,6 +247,8 @@ function install(registry) {
       const who = resolveElectorate(registry, state, params, act.at, electorateFor(params, act.rule));
       const roll = state.order.filter(pid => pid in who.roll);
       const weighted = roll.some(pid => who.roll[pid] !== 1);
+      // A concurrent rule: the same ballots, counted again over a second electorate.
+      const also = r.concurrent ? resolveElectorate(registry, state, params, act.at, r.concurrent) : null;
       state.proposals[id] = {
         id, by: act.by, at: act.at, title: act.title, text: act.text || '',
         rule: act.rule,
@@ -247,6 +256,7 @@ function install(registry) {
         changes: act.changes, admit: act.admit, paths: act.paths, digest: act.digest, effects: act.effects, adds: act.adds, install: act.install,
         deadline: addDays(act.at, params.value('deliberation.period')),
         roll, electorate: who.spec, ...(weighted ? { weights: who.roll } : {}),
+        ...(also ? { concurrent: { electorate: also.spec, weights: also.roll } } : {}),
         ballots: [], closed: null, enacted: false, awaiting: null,
         reading: prev ? prev.reading + 1 : 1, reading_of: act.reading_of || null, next: null,
       };

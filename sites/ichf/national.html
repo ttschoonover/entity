@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ICHF · FIHC</title>
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml"><link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<script>try{var p=JSON.parse(localStorage.getItem('site:prefs')||'{}');for(var k in p)document.documentElement.dataset[k]=p[k];var l=localStorage.getItem('ichf:lang');if(l)document.documentElement.lang=l}catch(e){}</script>
+<link rel="stylesheet" href="site.css">
+<script type="module" src="national.js"></script>
+</head>
+<body class="ichf national">
+<a class="skip" href="#main">Skip to content · Aller au contenu</a>
+<header class="masthead"></header>
+<main id="main">
+  <section class="front national-front" id="top">
+    <div class="front-text">
+      <p class="acronyms"><a href="index.html#federations" data-t="back"></a></p>
+      <h1 id="name">…</h1>
+      <div id="names" class="names"></div>
+      <p class="motto" id="motto"></p>
+      <p id="langs" class="langs"></p>
+      <div class="actions" id="actions"></div>
+    </div>
+  </section>
+  <section class="sect"><header><h2 data-t="officers"></h2></header><div id="officer-list" class="officer-grid"></div></section>
+  <section class="sect"><header><h2 data-t="votes"></h2></header><div id="votes" class="bills"></div></section>
+  <section class="sect"><header><h2 data-t="wiki"></h2></header><div id="pages" class="texts"></div></section>
+</main>
+<footer class="footer"></footer>
+</body>
+</html>

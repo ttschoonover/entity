@@ -1,0 +1,35 @@
+parameters:
+  endowment.currency:
+    value: USD
+    type: string
+    changed_by: organic
+    group: Endowment
+    describe: The currency the endowment is kept in.
+  endowment.spend_rate:
+    value: 400
+    type: integer
+    min: 0
+    max: 2000
+    changed_by: constitutional
+    group: Endowment
+    describe: The most that may be drawn each year, in hundredths of a percent of the latest value (400 is 4%). Never below the principal.
+  endowment.year_start:
+    value: "01-01"
+    type: string
+    changed_by: organic
+    group: Endowment
+    describe: The day (MM-DD) the endowment's year begins, for the yearly limit.
+  endowment.books_rule:
+    value: organic
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Endowment
+    describe: The rule under which gifts and values are recorded by decision. The treasurer can be granted this instead.
+  endowment.draw_rule:
+    value: organic
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: constitutional
+    group: Endowment
+    describe: The rule under which money is drawn from the endowment.

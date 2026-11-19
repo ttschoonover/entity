@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nomic</title>
+<meta name="description" content="A game of Nomic, played on a public record: take turns changing the rules, vote, score, win.">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<script>try{var p=JSON.parse(localStorage.getItem('site:prefs')||'{}');for(var k in p)document.documentElement.dataset[k]=p[k]}catch(e){}</script>
+<link rel="stylesheet" href="site.css">
+<script type="module" src="home.js"></script>
+</head>
+<body class="nomic-site">
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead"></header>
+
+<main id="main">
+  <section class="hero board-hero" id="top">
+    <div>
+      <h1 data-name="full">Nomic</h1>
+      <p class="lede">The game where changing the rules is the move. On your turn, propose a change. Everyone votes. If it passes, you score. Anything can be changed, including how you win.</p>
+      <div class="actions">
+        <button class="primary" id="join" type="button">Take a seat</button>
+        <a class="secondary" href="game.html">Read the rules</a>
+      </div>
+      <p class="fine" id="join-note"></p>
+    </div>
+    <aside class="turn-card" aria-labelledby="turn-h">
+      <h2 id="turn-h">Whose move</h2>
+      <p class="turn-token" id="turn-who">…</p>
+      <p class="fine" id="turn-when"></p>
+      <div id="turn-act"></div>
+    </aside>
+  </section>
+
+  <section class="band track-band" aria-labelledby="track-h">
+    <div class="band-head">
+      <h2 id="track-h">The track</h2>
+      <p id="track-meta">First to the end wins.</p>
+    </div>
+    <div>
+      <ol class="track" id="track" aria-label="Scores along the track"></ol>
+      <ul class="track-key" id="track-key"></ul>
+    </div>
+  </section>
+
+  <section class="band" id="floor" aria-labelledby="floor-h">
+    <div class="band-head">
+      <h2 id="floor-h">On the table</h2>
+      <p>Proposed changes being voted on now. One vote each; you can change yours until it closes.</p>
+    </div>
+    <div id="bills" class="bills"><p class="empty">Loading…</p></div>
+  </section>
+
+  <section class="band" aria-labelledby="rules-h">
+    <div class="band-head">
+      <h2 id="rules-h">The rules in force</h2>
+      <p>Immutable rules are marked in red: changing one takes a transmutation first. The rest change by an ordinary vote.</p>
+      <p class="more"><a href="game.html">Every rule, with its history</a></p>
+    </div>
+    <ul class="rule-deck" id="deck"><li class="empty">Loading…</li></ul>
+  </section>
+
+  <section class="band" aria-labelledby="cfj-h">
+    <div class="band-head">
+      <h2 id="cfj-h">Judgments</h2>
+      <p>When players disagree about what a rule means, they call for judgment, and the judge rules.</p>
+    </div>
+    <ul class="items" id="cfjs"><li class="empty">Loading…</li></ul>
+  </section>
+</main>
+
+<footer class="footer"></footer>
+</body>
+</html>

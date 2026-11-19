@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="900" height="600">
+<title>Flag of the People’s Commune of the Long Table</title>
+<rect width="900" height="600" fill="#A3241C"/>
+<circle cx="450" cy="300" r="170.5" fill="#F4EAD8"/>
+<rect x="419.0" y="50.4" width="62.0" height="40.3" rx="9.3" fill="none" stroke="#D9A62E" stroke-width="7.8" transform="rotate(0.0 450.0 70.6)"/>
+<rect x="533.7" y="81.2" width="62.0" height="40.3" rx="9.3" fill="#F4EAD8" transform="rotate(30.0 564.7 101.3)"/>
+<rect x="617.7" y="165.2" width="62.0" height="40.3" rx="9.3" fill="#F4EAD8" transform="rotate(60.0 648.7 185.3)"/>
+<rect x="648.4" y="279.9" width="62.0" height="40.3" rx="9.3" fill="#F4EAD8" transform="rotate(90.0 679.4 300.0)"/>
+<rect x="617.7" y="394.5" width="62.0" height="40.3" rx="9.3" fill="#F4EAD8" transform="rotate(120.0 648.7 414.7)"/>
+<rect x="533.7" y="478.5" width="62.0" height="40.3" rx="9.3" fill="#F4EAD8" transform="rotate(150.0 564.7 498.7)"/>
+<rect x="419.0" y="509.2" width="62.0" height="40.3" rx="9.3" fill="#F4EAD8" transform="rotate(180.0 450.0 529.4)"/>
+<rect x="304.3" y="478.5" width="62.0" height="40.3" rx="9.3" fill="#F4EAD8" transform="rotate(210.0 335.3 498.7)"/>
+<rect x="220.3" y="394.6" width="62.0" height="40.3" rx="9.3" fill="#F4EAD8" transform="rotate(240.0 251.3 414.7)"/>
+<rect x="189.6" y="279.9" width="62.0" height="40.3" rx="9.3" fill="#F4EAD8" transform="rotate(270.0 220.6 300.0)"/>
+<rect x="220.3" y="165.1" width="62.0" height="40.3" rx="9.3" fill="#F4EAD8" transform="rotate(300.0 251.3 185.3)"/>
+<rect x="304.3" y="81.2" width="62.0" height="40.3" rx="9.3" fill="#F4EAD8" transform="rotate(330.0 335.3 101.3)"/>
+<polygon points="450.0,219.4 469.1,273.7 526.7,275.1 481.0,310.1 497.4,365.2 450.0,332.6 402.6,365.2 419.0,310.1 373.3,275.1 430.9,273.7" fill="#D9A62E"/>
+</svg>

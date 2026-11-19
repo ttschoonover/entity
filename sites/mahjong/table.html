@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A table · Mahjong</title>
+<meta name="description" content="A live mahjong table: friends and AIs, dealt fairly and checked in your browser.">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<script>try{var p=JSON.parse(localStorage.getItem('site:prefs')||'{}');for(var k in p)document.documentElement.dataset[k]=p[k]}catch(e){}</script>
+<script>try{var m=document.cookie.match(/(?:^|;\s*)mj_theme=([a-z]+)/),t=m?m[1]:localStorage.getItem('mj:theme');t={rosewood:'traditional',jade:'traditional',paper:'minimal',neon:'arcade'}[t]||t;if(t&&t!=='traditional')document.documentElement.dataset.mjTheme=t}catch(e){}</script>
+<link rel="stylesheet" href="site.css">
+<script type="module" src="theme.js"></script>
+<script type="module" src="table.js"></script>
+</head>
+<body class="mj-page">
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead"></header>
+<main id="main" class="mj-game">
+  <div class="mj-topline"><h1 id="mj-title" class="mj-tabletitle">Table</h1><div data-mj-themes></div><a class="secondary" href="tables.html">All tables</a></div>
+  <p class="fine" id="mj-note" role="status"></p>
+  <div id="mj-room"><p class="empty">Loading…</p></div>
+  <div id="result" hidden></div>
+</main>
+<footer class="footer"></footer>
+</body>
+</html>

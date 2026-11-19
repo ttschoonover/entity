@@ -1,0 +1,37 @@
+% resume.latex · the Pandoc template for the résumé's PDF: one or two pages,
+% Latin Modern, the same Markdown as the résumé on the website. A line in the
+% Markdown like "### Treasurer | 2024 – now" becomes an entry with its dates
+% set flush right.
+\documentclass[11pt]{article}
+\usepackage{fontspec}
+\setmainfont{Latin Modern Roman}
+\setsansfont{Latin Modern Sans}
+\setmonofont{Latin Modern Mono}
+\usepackage[letterpaper,margin=0.8in,top=0.7in,bottom=0.7in]{geometry}
+\usepackage{microtype}
+\usepackage{xcolor}
+\definecolor{accent}{HTML}{9B3833}
+\definecolor{dim}{HTML}{6E6D68}
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=1.1em,itemsep=1pt,topsep=2pt,parsep=0pt,label={\color{dim}\textbullet}}
+\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{titlesec}
+\titleformat{\section}{\normalfont\sffamily\small\color{accent}}{}{0pt}{}[\vspace{-0.6em}\color{dim!40}\rule{\linewidth}{0.4pt}]
+\titlespacing*{\section}{0pt}{1.1em}{0.5em}
+\titleformat{\subsection}{\normalfont}{}{0pt}{}
+\newcommand{\entry}[2]{\par\vspace{0.45em}\noindent{\large #1}\hfill{\sffamily\small\color{dim}#2}\par\vspace{0.1em}}
+\usepackage[hidelinks]{hyperref}
+\hypersetup{pdftitle={$title-meta$},pdfauthor={$author-meta$}}
+\urlstyle{same}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2pt}
+\pagestyle{empty}
+\providecommand{\pandocbounded}[1]{#1}
+\begin{document}
+\begin{flushleft}
+{\Huge $author$\par}\vspace{0.35em}
+{\sffamily\small\color{dim}$contact$\par}
+\end{flushleft}
+\vspace{0.2em}
+$body$
+\end{document}

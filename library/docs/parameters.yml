@@ -1,0 +1,35 @@
+parameters:
+  docs.personal:
+    value: true
+    type: boolean
+    changed_by: ordinary
+    group: Documents
+    describe: Whether members keep documents of their own here, shared with whom they choose. The entity's own documents are kept either way.
+  docs.public_allowed:
+    value: true
+    type: boolean
+    changed_by: ordinary
+    group: Documents
+    describe: Whether a member may make a document of their own public (readable by anyone, and so not encrypted).
+  docs.max_per_member:
+    value: 200
+    type: integer
+    min: 1
+    max: 10000
+    changed_by: ordinary
+    group: Documents
+    describe: How many documents of their own (not archived) a member may keep at once.
+  docs.create_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional, entrenched]
+    changed_by: organic
+    group: Documents
+    describe: The rule under which the entity creates, changes the settings of, or retires one of its documents.
+  docs.adopt_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional, entrenched]
+    changed_by: organic
+    group: Documents
+    describe: The rule under which a draft becomes the version in force of one of the entity's documents. A document may ask for a stricter rule of its own.

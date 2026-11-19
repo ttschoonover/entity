@@ -1,0 +1,148 @@
+/* site.css · the International Co-operative Housing Federation.
+   Written for this site alone. The idea is a street of houses seen from across
+   the road: gables in each federation's colour, a ground line, a roofline along
+   the masthead. Cool plaster paper, harbour-blue ink for the ICHF, one colour
+   per national federation, and an old-gold for the labor credit. Every official
+   text sits in two languages, the second set beside or beneath the first, never
+   smaller than legible. The kit's stylesheet first, for its forms and dialogs. */
+@import url("kit.css");
+
+:root {
+  --bg: #F2F4F1; --surface: #E8ECE7; --paper: #FAFBF8; --ink: #13212E; --muted: #56636E; --rule: #D2D9D2; --strong-rule: #13212E;
+  --harbour: #17406B; --harbour-2: #2C5F92; --credit: #A8760F; --ground: #8A948C;
+  --f0: #2F6B4E; --f1: #8E2C3B; --f2: #5B4B8A; --f3: #A35A14;
+  --aye: #2F6B4E; --no: #8E2C3B; --gold: #A8760F; --accent: var(--harbour); --radius: 2px;
+  --sans: "Public Sans", system-ui, sans-serif; --serif: "Source Serif 4", Georgia, serif;
+  --wrap: 74rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #0E151B; --surface: #16212A; --paper: #121B22; --ink: #E6ECEF; --muted: #9DABB5; --rule: #24323D; --strong-rule: #E6ECEF;
+    --harbour: #8DB7E2; --harbour-2: #B4D0EC; --credit: #E0B04A; --ground: #5D6A73; --f0: #6FBF94; --f1: #E07F8F; --f2: #A99AE0; --f3: #E3A35E; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #0E151B; --surface: #16212A; --paper: #121B22; --ink: #E6ECEF; --muted: #9DABB5; --rule: #24323D; --strong-rule: #E6ECEF;
+  --harbour: #8DB7E2; --harbour-2: #B4D0EC; --credit: #E0B04A; --ground: #5D6A73; --f0: #6FBF94; --f1: #E07F8F; --f2: #A99AE0; --f3: #E3A35E; color-scheme: dark; }
+
+body.ichf { background: var(--bg); }
+h1, h2, h3 { font-family: var(--serif); letter-spacing: -0.01em; }
+a { color: var(--harbour); text-decoration-color: color-mix(in srgb, var(--harbour) 35%, transparent); }
+a:hover { text-decoration-color: var(--harbour); }
+
+/* ── the masthead: a roofline along its foot, and the language switch ──── */
+.masthead { background: var(--bg); box-shadow: none; position: sticky; }
+.masthead::after { content: ""; display: block; height: 7px;
+  background: linear-gradient(135deg, transparent 50%, var(--harbour) 50% 62%, transparent 62%) 0 0 / 14px 7px repeat-x,
+              linear-gradient(225deg, transparent 50%, var(--harbour) 50% 62%, transparent 62%) 0 0 / 14px 7px repeat-x; opacity: .55; }
+.lang-switch { position: absolute; right: 1.25rem; bottom: 1.15rem; display: inline-flex; border: 1px solid var(--ink); border-radius: 999px; overflow: hidden; background: var(--paper); }
+.lang-switch button { font: 600 .78rem/1 var(--sans); letter-spacing: .06em; padding: .4rem .7rem; border: 0; background: transparent; color: var(--ink); cursor: pointer; }
+.lang-switch button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.lang-switch button:focus-visible { outline: 2px solid var(--harbour); outline-offset: -2px; }
+@media (max-width: 52rem) { .lang-switch { position: static; margin: .4rem 1rem .6rem; } }
+
+/* ── the front ─────────────────────────────────────────────────────────── */
+.front { max-width: var(--wrap); margin: 0 auto; padding: 3.5rem 1.5rem 3rem; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 3rem; align-items: end; }
+@media (max-width: 56rem) { .front { grid-template-columns: minmax(0, 1fr); gap: 2rem; padding-top: 2rem; } }
+.acronyms { font: 600 .95rem/1 var(--sans); letter-spacing: .14em; color: var(--harbour); margin: 0 0 1.1rem; font-variant-numeric: tabular-nums; }
+.acronyms a { text-decoration: none; letter-spacing: .04em; }
+.front h1 { font: 400 clamp(2.2rem, 4.6vw, 3.4rem)/1.04 var(--serif); margin: 0; max-width: 18ch; }
+.other-name { font: italic 400 clamp(1.05rem, 2vw, 1.35rem)/1.3 var(--serif); color: var(--muted); margin: .7rem 0 0; padding-left: .8rem; border-left: 2px solid var(--harbour); max-width: 34ch; }
+.names .other-name + .other-name { margin-top: .35rem; }
+.motto { font: 600 1rem/1.4 var(--sans); color: var(--ink); margin: 1.4rem 0 .4rem; }
+.motto:empty { display: none; }
+.intro { font: 1.08rem/1.6 var(--serif); max-width: 38em; margin: .6rem 0; }
+.bilingual { font-size: .9rem; color: var(--muted); margin: 0 0 1.4rem; }
+.front .actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-bottom: .8rem; }
+.primary, .front .primary { background: var(--harbour); border-color: var(--harbour); color: var(--paper); border-radius: var(--radius); }
+.secondary { border-color: var(--ink); color: var(--ink); border-radius: var(--radius); }
+
+/* the street */
+.street-fig { margin: 0; }
+.street svg { display: block; width: 100%; height: auto; }
+.house path { fill: var(--h); stroke: var(--h); stroke-width: 1; stroke-linejoin: round; }
+.house .door { fill: var(--bg); }
+.house.next path { fill: none; stroke: var(--credit); stroke-width: 1.6; stroke-dasharray: 3 2.5; }
+.house.next .door { fill: none; stroke: var(--credit); stroke-width: 1; }
+.house.lot path { fill: none; stroke: var(--rule); stroke-width: 1; }
+.house.lot .door { display: none; }
+.street .ground { stroke: var(--ground); stroke-width: 1.2; }
+.house { animation: rise .5s ease-out both; transform-box: fill-box; transform-origin: bottom; }
+@keyframes rise { from { opacity: 0; transform: scaleY(.6); } to { opacity: 1; transform: none; } }
+.street-fig figcaption { font-size: .9rem; color: var(--muted); margin-top: .8rem; }
+.street-fig figcaption b { color: var(--ink); font-family: var(--serif); font-weight: 600; }
+.street-key { list-style: none; padding: 0; margin: .5rem 0 0; display: flex; flex-wrap: wrap; gap: .3rem 1.1rem; }
+.street-key i { display: inline-block; width: .8rem; height: .8rem; margin-right: .35rem; vertical-align: -.1rem; clip-path: polygon(50% 0, 100% 40%, 100% 100%, 0 100%, 0 40%); }
+
+/* ── sections: a heading column and a content column ──────────────────── */
+.sect { max-width: var(--wrap); margin: 0 auto; padding: 2.8rem 1.5rem; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2.6fr); gap: 1rem 3rem; border-top: 1px solid var(--rule); }
+.sect > header h2 { font-size: 1.55rem; font-weight: 600; margin: 0 0 .5rem; }
+.sect > header p { color: var(--muted); font-size: .95rem; max-width: 24em; }
+.sect > :not(header) { grid-column: 2; min-width: 0; }
+@media (max-width: 52rem) { .sect { grid-template-columns: minmax(0, 1fr); } .sect > :not(header) { grid-column: 1; } }
+
+/* national federations: cards with a gable on top */
+.feds { display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); gap: 1.4rem; }
+.fed { position: relative; background: var(--paper); border: 1px solid var(--rule); padding: 2.2rem 1.3rem 1.2rem; display: flex; flex-direction: column; gap: .45rem; }
+.fed::before { content: ""; position: absolute; left: 18%; right: 18%; top: -1px; height: 1.3rem; background: var(--h); clip-path: polygon(0 100%, 50% 0, 100% 100%); transform: translateY(-1.3rem); }
+.fed::after { content: ""; position: absolute; left: -1px; right: -1px; top: -1px; height: 5px; background: var(--h); }
+.fed-acronym { font: 700 .82rem/1 var(--sans); letter-spacing: .14em; color: var(--h); margin: 0; }
+.fed h3 { font: 600 1.35rem/1.2 var(--serif); margin: 0; }
+.fed-own { font: italic 1rem/1.35 var(--serif); color: var(--muted); margin: 0; }
+.fed-motto { font-size: .92rem; margin: .1rem 0 .2rem; }
+.fed dl { display: grid; grid-template-columns: auto 1fr; gap: .3rem 1rem; margin: .5rem 0; font-size: .93rem; }
+.fed dt { color: var(--muted); }
+.fed dd { margin: 0; }
+.fed .note { font-size: .85rem; color: var(--muted); margin: 0; }
+.fed .actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: auto; padding-top: .7rem; }
+.langs { display: inline-flex; flex-wrap: wrap; gap: .3rem; align-items: center; }
+.lang-chip { font: 600 .72rem/1 var(--sans); letter-spacing: .06em; padding: .28rem .45rem; border: 1px solid var(--rule); border-radius: 999px; color: var(--ink); background: var(--bg); }
+.lang-chip.first { border-color: var(--h, var(--harbour)); color: var(--h, var(--harbour)); }
+
+/* labor credits: the ledger in old gold */
+.credits .ledger { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); border-top: 3px solid var(--credit); border-bottom: 1px solid var(--rule); margin-bottom: 1.6rem; }
+.figure { padding: 1rem 1rem 1rem 0; }
+.figure + .figure { padding-left: 1rem; border-left: 1px solid var(--rule); }
+.figure b { display: block; font: 600 2.1rem/1.05 var(--serif); font-variant-numeric: tabular-nums lining-nums; }
+.figure span { font-size: .85rem; color: var(--muted); }
+.figure.mine b { color: var(--credit); }
+.credit-cols { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 2rem; }
+@media (max-width: 52rem) { .credit-cols { grid-template-columns: minmax(0, 1fr); } }
+.credit-cols h3 { font-size: 1.05rem; margin: 0 0 .5rem; }
+.equation { display: flex; flex-wrap: wrap; align-items: baseline; gap: .6rem; font: 400 1.5rem/1.2 var(--serif); margin: .2rem 0 .8rem; }
+.equation .eq { color: var(--credit); font-weight: 600; }
+.equation span:first-child { font-weight: 600; color: var(--credit); }
+.rows { list-style: none; padding: 0; margin: 0; }
+.rows li { padding: .5rem 0; border-bottom: 1px solid var(--rule); }
+.rows li.links, p.links { border: 0; font-size: .9rem; padding-top: .8rem; }
+
+/* votes */
+.votes-by { display: grid; gap: 2rem; }
+.vote-group h3 { font-size: 1.05rem; margin: 0 0 .6rem; padding-left: .7rem; border-left: 4px solid var(--h, var(--harbour)); }
+
+/* officers */
+.officer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0; border-top: 1px solid var(--ink); }
+.officer { padding: .9rem 1rem .9rem 0; border-bottom: 1px solid var(--rule); }
+.officer h3 { font: 600 .95rem/1.3 var(--sans); margin: 0 0 .25rem; color: var(--muted); }
+.officer p { margin: 0; font: 1.05rem/1.4 var(--serif); }
+.officer.committee h3 { color: var(--harbour); }
+.vacant { color: var(--muted); font-style: italic; }
+.elections { margin-top: 1.4rem; font-size: .95rem; }
+.elections h3 { font-size: 1.05rem; }
+
+/* founding texts: side by side, each marked with its language */
+.text-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1rem; margin-bottom: 1.6rem; }
+.text-card { display: flex; flex-direction: column; gap: .35rem; padding: 1rem 1.1rem; background: var(--paper); border: 1px solid var(--rule); text-decoration: none; color: var(--ink); }
+.text-card:hover { border-color: var(--harbour); }
+.text-card b { font: 600 1.05rem/1.3 var(--serif); }
+.text-card.other { background: transparent; }
+.text-lang { font: 700 .7rem/1 var(--sans); letter-spacing: .14em; color: var(--harbour); }
+.texts h3 { font-size: 1.05rem; }
+
+/* the national page */
+.national .front { grid-template-columns: minmax(0, 1fr); }
+.national .front h1 { max-width: 22ch; }
+.national .front::before { content: ""; display: block; width: 4.5rem; height: 2.2rem; background: var(--h); clip-path: polygon(0 100%, 50% 0, 100% 100%); margin-bottom: -1rem; }
+.national .langs { margin: 1rem 0; }
+
+/* the kit's pages, in this site's colours */
+.footer { border-top: 1px solid var(--rule); }
+.hall-view button:not(.linklike):not(.quiet):not(.danger):not(.secondary) { background: var(--harbour); border-color: var(--harbour); color: var(--paper); }
+.fine { color: var(--muted); }

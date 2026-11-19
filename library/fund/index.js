@@ -127,6 +127,68 @@ function install(r) {
     f.ledger.push({ at: rec.at, kind: 'withdrawal', member: e.member, amount: -(gross - fee), units: -Number(burn), fee, by: originOf(e) });
   });
 
+  // ── opening balances: a club that already exists brings its books in ──────
+  // fund.opening { as_of, cash, holdings: [{ symbol, quantity, cost, price }],
+  //                capital: { member: cents }, note? }
+  // A DECISION of the members, once, before anything else is on the books:
+  // the cash and securities the club already holds (with what they cost, for
+  // gains, and what they are worth now), and each partner's capital account.
+  // The capital accounts must add up to what the club is worth (cash plus
+  // holdings at the prices given), to the cent for each line. Units are issued
+  // at the initial unit value, so each partner's share is their capital ÷ all.
+  eff({
+    name: 'fund.opening',
+    rule: (p) => p.value('fund.trade_rule'),
+    describe: (e) => `Open the books as of ${e.as_of}: $${(e.cash / 100).toFixed(2)} in cash, ${(e.holdings || []).length} holding(s), capital for ${Object.keys(e.capital || {}).length} partner(s)`,
+    check(state, e, p, at, ctx = {}) {
+      if (ctx.via) return 'opening balances are adopted by the members, never under a grant';
+      const f = state.m.fund;
+      if (f && (f.ledger.length || Object.keys(f.units).length)) return 'the books are already open: opening balances come before anything else';
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(e.as_of || '') || e.as_of > at.slice(0, 10)) return 'as_of is the date of the balances, YYYY-MM-DD, not in the future';
+      if (!(Number.isSafeInteger(e.cash) && e.cash >= 0)) return 'cash is in cents, zero or more';
+      if (!Array.isArray(e.holdings) || e.holdings.length > 200) return 'holdings is a list of { symbol, quantity, cost, price }';
+      const seen = new Set();
+      let worth = BigInt(e.cash);
+      for (const h of e.holdings) {
+        if (!SYM.test(h.symbol || '')) return `${h.symbol} is not a ticker (capitals, digits, . and -)`;
+        if (seen.has(h.symbol)) return `${h.symbol} is listed twice`; seen.add(h.symbol);
+        const q = micro(h.quantity); if (q === null) return `the quantity of ${h.symbol} is a positive number of shares`;
+        if (!(Number.isSafeInteger(h.cost) && h.cost >= 0)) return `the cost of ${h.symbol} is the total paid, in cents`;
+        if (!cents(h.price)) return `the price of ${h.symbol} is in cents a share`;
+        worth += BigInt(q) * BigInt(h.price) / M;
+      }
+      const cap = Object.entries(e.capital || {});
+      if (!cap.length) return 'capital names each partner and their capital account, in cents';
+      for (const [id, c] of cap) {
+        if (state.participants[id]?.status !== 'active') return `${id} is not an active partner: admit them first`;
+        for (const chk of ctx.registry?.admissionChecks || []) {
+          if (!p.value('entity.modules').includes(chk.module)) continue;
+          const why = chk.check(state, id, p); if (why) return `${id} ${why}`;
+        }
+        if (!cents(c)) return `the capital of ${id} is in cents, above zero`;
+      }
+      const total = cap.reduce((a, [, c]) => a + BigInt(c), 0n);
+      const slack = BigInt(e.holdings.length);
+      if (total - worth > slack || worth - total > slack) return `the capital accounts add up to $${(Number(total) / 100).toFixed(2)}, but the club is worth $${(Number(worth) / 100).toFixed(2)} (cash plus holdings at these prices): they must match`;
+      if (e.note !== undefined && (typeof e.note !== 'string' || e.note.length > 500)) return 'a note is at most 500 characters';
+      return null;
+    },
+  });
+  r.registerRecord('fund.opening', (state, rec) => {
+    const e = rec.payload, f = book(state), uv = BigInt(params(state).value('fund.initial_unit_value'));
+    f.cash = e.cash;
+    for (const h of e.holdings) {
+      f.holdings[h.symbol] = { qty: micro(h.quantity), cost: h.cost };
+      f.prices[h.symbol] = { price: h.price, at: rec.at, source: `opening balances as of ${e.as_of}` };
+    }
+    for (const [id, c] of Object.entries(e.capital)) {
+      f.units[id] = Number(BigInt(c) * M / uv);
+      f.contributed[id] = c;
+    }
+    f.ledger.push({ at: rec.at, kind: 'opening', as_of: e.as_of, cash: e.cash, holdings: e.holdings.map(h => ({ symbol: h.symbol, quantity: micro(h.quantity), cost: h.cost, price: h.price })),
+      capital: e.capital, nav: Number(nav(f)), note: e.note || '', by: originOf(e) });
+  });
+
   // ── the treasurer's bookkeeping (a grant, or a decision) ──────────────────
   eff({
     name: 'fund.contribute',

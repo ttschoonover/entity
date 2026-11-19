@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600" width="900" height="600">
+<title>Flag of the International Co-operative Housing Federation · Drapeau de la Fédération internationale de l’habitat coopératif</title>
+<rect width="900" height="600" fill="#17406B"/>
+<g fill="#F2F4F1">
+  <path d="M170 420 L170 300 L275 210 L380 300 L380 420 Z"/>
+  <path d="M520 420 L520 300 L625 210 L730 300 L730 420 Z"/>
+</g>
+<path d="M345 420 L345 270 L450 170 L555 270 L555 420 Z" fill="#F2F4F1" stroke="#17406B" stroke-width="14" stroke-linejoin="round"/>
+<rect x="420" y="330" width="60" height="90" fill="#C9962A"/>
+<rect x="120" y="420" width="660" height="10" fill="#F2F4F1"/>
+</svg>

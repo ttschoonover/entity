@@ -17,6 +17,7 @@ site/
 *.bundle.json
 *.tmp-*
 record/events.jsonl.before-repair-*
+website.before-*/
 `;
 
 // ── one key for both: a participant's Radicle key can be their entity key ──

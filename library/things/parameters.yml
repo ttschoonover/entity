@@ -1,0 +1,84 @@
+parameters:
+  things.currency:
+    value: USD
+    type: string
+    changed_by: organic
+    group: Library of things
+    describe: The currency deposits are paid in. Deposits are cash handed to the lender; the record keeps the books.
+  things.decimals:
+    value: 2
+    type: integer
+    min: 0
+    max: 4
+    changed_by: organic
+    group: Library of things
+    describe: Decimal places. With 2, amounts are in cents, and 2500 is 25.00.
+  things.default_days:
+    value: 7
+    type: integer
+    min: 1
+    max: 365
+    changed_by: ordinary
+    group: Library of things
+    describe: How long a loan lasts when neither the borrower nor the thing says.
+  things.max_days:
+    value: 30
+    type: integer
+    min: 1
+    max: 365
+    changed_by: ordinary
+    group: Library of things
+    describe: The longest a single loan or extension may be.
+  things.max_out:
+    value: 3
+    type: integer
+    min: 0
+    max: 100
+    changed_by: ordinary
+    group: Library of things
+    describe: How many things one member may have out at once. 0 means no limit.
+  things.max_deposit:
+    value: 20000
+    type: integer
+    min: 0
+    max: 100000000
+    changed_by: ordinary
+    group: Library of things
+    describe: The largest deposit a lender may ask, in the smallest unit (0 for no limit).
+  things.cover:
+    value: true
+    type: boolean
+    changed_by: ordinary
+    group: Library of things
+    describe: Whether a member may ask the solidarity fund to stand behind a deposit instead of paying it in cash.
+  things.cover_limit:
+    value: 10000
+    type: integer
+    min: 0
+    max: 100000000
+    changed_by: ordinary
+    group: Library of things
+    describe: The largest deposit the solidarity fund stands behind, in the smallest unit (0 for no limit).
+  things.cover_max_open:
+    value: 2
+    type: integer
+    min: 0
+    max: 50
+    changed_by: ordinary
+    group: Library of things
+    describe: How many covered loans one member may have out at once.
+  things.dispute_days:
+    value: 14
+    type: integer
+    min: 1
+    max: 365
+    changed_by: ordinary
+    group: Library of things
+    describe: How long after a return a borrower may dispute what was kept from their deposit.
+  things.rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Library of things
+    describe: The rule for the network's own decisions about the library (adding, retiring, losses, disputes, paying claims). Usually granted to a librarian and a solidarity committee instead.

@@ -1,0 +1,38 @@
+parameters:
+  federation.senators_per_state:
+    value: 2
+    type: integer
+    min: 1
+    max: 50
+    changed_by: constitutional
+    group: Federation
+    describe: How many senators each state appoints. Every state appoints the same number, whatever its population.
+  federation.assembly_seats:
+    value: 10
+    type: integer
+    min: 1
+    max: 1000
+    changed_by: constitutional
+    group: Federation
+    describe: Seats in the federal assembly, shared among the states by population (each state's certified citizens). Every state has at least one; the rest go by the method of equal proportions, as in the US House of Representatives.
+  federation.admit_rule:
+    value: entrenched
+    type: string
+    one_of: [organic, constitutional, entrenched]
+    changed_by: entrenched
+    group: Federation
+    describe: The rule under which the federation admits a state.
+  federation.release_rule:
+    value: entrenched
+    type: string
+    one_of: [organic, constitutional, entrenched]
+    changed_by: entrenched
+    group: Federation
+    describe: The rule under which the federation releases a state that asks to leave. Secession is lawful only by such a decision.
+  federation.registrar_rule:
+    value: organic
+    type: string
+    one_of: [ordinary, organic, constitutional, entrenched]
+    changed_by: entrenched
+    group: Federation
+    describe: The rule under which the federation replaces a state's registrar keys without that state's own hand-over.

@@ -1,0 +1,37 @@
+parameters:
+  disputes.arbiter:
+    value: office:arbitrator
+    type: string
+    changed_by: organic
+    group: Disputes
+    describe: Who rules first. office:ID (its holder), committee:ID (a majority of its members) or member:ID.
+  disputes.appeal:
+    value: committee:arbitration-council
+    type: string
+    changed_by: organic
+    group: Disputes
+    describe: Who hears appeals. office:ID, committee:ID, member:ID, assembly (the members decide by proposal), or none.
+  disputes.answer_days:
+    value: 3
+    type: integer
+    min: 1
+    max: 60
+    changed_by: organic
+    group: Disputes
+    describe: Days the other side has to answer a claim before a ruling may be made without them.
+  disputes.appeal_days:
+    value: 7
+    type: integer
+    min: 0
+    max: 90
+    changed_by: organic
+    group: Disputes
+    describe: Days after a first ruling in which either side may appeal. The ruling is carried out only after that.
+  disputes.deposit:
+    value: 0
+    type: integer
+    min: 0
+    max: 1000000000
+    changed_by: organic
+    group: Disputes
+    describe: An amount the claimant puts down to open a dispute, returned if they win and paid to the other side if they lose (0 for none).

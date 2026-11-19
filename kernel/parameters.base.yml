@@ -68,8 +68,7 @@ parameters:
 
   membership.admission_rule:
     value: ordinary
-    type: string
-    one_of: [ordinary, organic, constitutional]
+    type: rule
     changed_by: organic
     group: Membership
     describe: The rule under which applicants are admitted, when admission is by decision.

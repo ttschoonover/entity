@@ -1,0 +1,18 @@
+{
+  "letterhead": "vdr-external",
+  "issuer": "office:external-minister",
+  "name": "Virtual Democratic Republic",
+  "title": "Ministry of External Affairs",
+  "subtitle": "Office of the Minister",
+  "contact": [
+    "vdr.poezine.org"
+  ],
+  "closing": "With the assurance of my highest consideration,",
+  "seal_top": "Virtual Democratic Republic",
+  "seal_bottom": "Ministry of External Affairs",
+  "style": {
+    "accent": "1F3A5F",
+    "emblem": "seal",
+    "emblem_text": "VDR"
+  }
+}

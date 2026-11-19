@@ -1,0 +1,17 @@
+{
+  "letterhead": "vdr-executive",
+  "issuer": "committee:executive",
+  "joint": "majority",
+  "name": "Virtual Democratic Republic",
+  "title": "The Executive Committee",
+  "contact": [
+    "vdr.poezine.org"
+  ],
+  "seal_top": "Virtual Democratic Republic",
+  "seal_bottom": "Executive Committee",
+  "style": {
+    "accent": "5A1A2B",
+    "emblem": "seal",
+    "emblem_text": "VDR"
+  }
+}

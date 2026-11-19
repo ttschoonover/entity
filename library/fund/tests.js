@@ -65,3 +65,29 @@ test('fund: investing is never delegated; stale prices stop payments; the member
   assert.match((await books([{ kind: 'fund.contribute', member: 'p-0002', amount: 1000 }])).refused[0].reason, /value the holdings first/);
   await decide(w, { title: 'One member only', rule: 'constitutional', changes: { 'fund.max_members': 1 } });
 });
+
+test('fund: an existing club brings in its opening balances once, by decision, and they must add up', async () => {
+  const { w, books } = await club();
+  const opening = (extra = {}) => ({ kind: 'fund.opening', as_of: '2026-02-27', cash: 123456,
+    holdings: [{ symbol: 'VTI', quantity: 12.5, cost: 280000, price: 28540 }, { symbol: 'BND', quantity: 20, cost: 150000, price: 7210 }],
+    capital: { 'p-0001': 400000, 'p-0002': 249706, 'p-0003': 0 }, ...extra });
+  // 1234.56 + 12.5 × 285.40 + 20 × 72.10 = 1234.56 + 3567.50 + 1442.00 = 6244.06
+  assert.match((await books([opening({ capital: { 'p-0001': 624406 } })])).refused[0].reason, /does not permit fund.opening/);
+  let r = await decide(w, { title: 'Open', rule: 'ordinary', effects: [opening()] });
+  assert.match(r.refused?.[0]?.reason || r.notEnacted, /capital of p-0003/);
+  r = await decide(w, { title: 'Open', rule: 'ordinary', effects: [opening({ capital: { 'p-0001': 400000, 'p-0002': 200000 } })] });
+  assert.match(r.refused?.[0]?.reason || r.notEnacted, /add up to \$6000\.00, but the club is worth \$6244\.06/);
+  r = await decide(w, { title: 'Open', rule: 'ordinary', effects: [opening({ capital: { 'p-0001': 400000, 'p-0002': 224406 } })] });
+  assert.equal(r.enacted, true, r.refused?.[0]?.reason || r.notEnacted);
+  const f = w.state.m.fund;
+  assert.equal(f.cash, 123456); assert.equal(f.holdings.VTI.qty, 12.5e6); assert.equal(f.holdings.VTI.cost, 280000);
+  assert.equal(Number(fund.nav(f)), 624406);
+  assert.equal(f.units['p-0001'], 400 * 1e6, '$4,000 at $10.00 a unit');
+  assert.equal(fund.position(f, 'p-0002').value, 224406);
+  r = await decide(w, { title: 'Again', rule: 'ordinary', effects: [opening({ capital: { 'p-0001': 624406 } })] });
+  assert.match(r.refused?.[0]?.reason || r.notEnacted, /already open/);
+  // After opening, payments in buy units at the unit value as usual.
+  assert.equal((await books([{ kind: 'fund.contribute', member: 'p-0003', amount: 62441 }])).applied.length, 1);
+  assert.ok(Math.abs(fund.position(w.state.m.fund, 'p-0003').value - 62441) <= 1);
+  assert.equal((await verifyRecords(w.registry, w.records)).ok, true);
+});

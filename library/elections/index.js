@@ -20,6 +20,10 @@
 // Ties are broken by hash(election id : candidate id), lowest first: fixed and
 // public from the moment the election is called, so nobody can steer it after.
 // A candidate needs at least one vote to win.
+//
+// elections.incompatible lists offices one person may not hold together, as
+// pairs ([["treasurer", "audit-committee"]]): a member who holds one, or is
+// standing for it, may not stand for the other.
 
 import { hash } from '../../kernel/hash.js';
 import { Parameters } from '../../kernel/parameters.js';
@@ -116,6 +120,16 @@ function install(r) {
       if (phase(e, act.at) !== 'candidacy') return `candidacy for ${e.id} closed at ${e.standUntil}`;
       if (state.participants[act.by].status !== 'active') return 'only active members may stand';
       if (e.candidates[act.by]) return 'you are already standing';
+      const p = new Parameters(state.doc, state.catalog);
+      for (const pair of (p.has('elections.incompatible') ? p.value('elections.incompatible') : []) || []) {
+        if (!Array.isArray(pair) || !pair.includes(e.office)) continue;
+        for (const other of pair.filter(o => o !== e.office)) {
+          const holds = (state.m.offices?.[other]?.holders || []).some(h => h.id === act.by && (!h.until || h.until > act.at));
+          if (holds) return `you hold the office ${other}, which may not be held together with ${e.office}`;
+          const standing = Object.values(state.m.elections || {}).some(x => x.office === other && !x.counted && x.candidates[act.by]);
+          if (standing) return `you are standing for ${other}, which may not be held together with ${e.office}`;
+        }
+      }
       return act.statement !== undefined && (typeof act.statement !== 'string' || act.statement.length > 2000) ? 'a statement is at most 2000 characters' : null;
     },
     reduce(state, rec) { const a = rec.payload.act; el(state, a.election).candidates[a.by] = { at: rec.at, statement: a.statement || '' }; },
@@ -174,4 +188,4 @@ function install(r) {
 // The entity's parameters, from the state alone (used when the call is recorded).
 function paramsFor(state) { return new Parameters(state.doc, state.catalog); }
 
-export default { name: 'elections', core: '0.4', install, count, phase, tiebreak, parameterKeys: ['elections.call_rule'] };
+export default { name: 'elections', core: '0.4', install, count, phase, tiebreak, parameterKeys: ['elections.call_rule', 'elections.incompatible'] };

@@ -19,6 +19,7 @@ export const RULES = [
   { re: /^node\.json$/,       need: null,             why: 'this copy\'s local configuration, not the entity\'s' },
   { re: /^\.staged\//,        need: null,             why: 'module code fetched for review, not yet installed' },
   { re: /^parent\//,          need: null,             why: 'the parent\'s record up to a fork: evidence, checked by verify' },
+  { re: /^documents\//,       need: null,             why: 'documents: each file is signed by its author and checked against the roles on the record' },
   { re: /^\.entity\//,        need: null,             why: 'this copy\'s working files: histories held for a deliberate merge' },
   { re: /^law\/charter\//,    need: 'constitutional', why: 'the founding text' },
   { re: /^law\//,             need: 'organic',        why: 'law' },

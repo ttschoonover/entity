@@ -4,7 +4,7 @@
 export default {
   body: 'the network',
   about: 'is a cooperative of neighbours who lend each other what they own, hold some things in common, and decide together as equals.',
-  pages: [['index.html', 'Home'], ['library.html', 'Library', 'things'], ['wiki.html', 'Wiki', 'wiki'], ['chat.html', 'Chat', 'chat'], ['hall.html#/proposals', 'Votes'], ['hall.html', 'The network']],
+  pages: [['index.html', 'Home'], ['library.html', 'Library', 'things'], ['wiki.html', 'Wiki', 'wiki'], ['docs.html', 'Documents', 'docs'], ['chat.html', 'Chat', 'chat'], ['hall.html#/proposals', 'Votes'], ['hall.html', 'The network']],
   order: ['things', 'wiki', 'agreements', 'budget', 'meetings', 'threads', 'tasks', 'polls', 'elections', 'offices', 'committees', 'authority'],
   institutions: ({ many }) => ({
     committees: ['Committees', `Groups of ${many} with a job to do, such as the Solidarity Committee.`],

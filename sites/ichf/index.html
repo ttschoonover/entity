@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ICHF · FIHC</title>
+<meta name="description" content="International Co-operative Housing Federation · Fédération internationale de l’habitat coopératif. A federation of national federations of housing co-operatives, officially bilingual.">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml"><link rel="icon" href="icons/favicon-32.png" sizes="32x32"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<script>try{var p=JSON.parse(localStorage.getItem('site:prefs')||'{}');for(var k in p)document.documentElement.dataset[k]=p[k];var l=localStorage.getItem('ichf:lang');if(l)document.documentElement.lang=l}catch(e){}</script>
+<link rel="stylesheet" href="site.css">
+<script type="module" src="home.js"></script>
+</head>
+<body class="ichf">
+<a class="skip" href="#main">Skip to content · Aller au contenu</a>
+<header class="masthead"></header>
+
+<main id="main">
+  <section class="front" id="top">
+    <div class="front-text">
+      <p class="acronyms" id="acronyms">ICHF · FIHC</p>
+      <h1 id="name">International Co-operative Housing Federation</h1>
+      <p class="other-name" id="other-name">Fédération internationale de l’habitat coopératif</p>
+      <p class="motto" id="motto"></p>
+      <p class="intro" data-t="intro"></p>
+      <p class="bilingual" data-t="bilingual"></p>
+      <div class="actions" id="hero-actions"></div>
+      <p class="fine" id="who-note"></p>
+    </div>
+    <figure class="street-fig">
+      <div id="street" class="street" role="img"></div>
+      <figcaption><b data-t="street"></b> <span data-t="streetCap"></span><ul class="street-key" id="street-key"></ul></figcaption>
+    </figure>
+  </section>
+
+  <section class="sect" id="federations" aria-labelledby="feds-h">
+    <header><h2 id="feds-h" data-t="feds"></h2><p data-t="fedsLede"></p></header>
+    <div id="fed-cards" class="feds"><p class="empty">…</p></div>
+  </section>
+
+  <section class="sect credits" id="credits" aria-labelledby="credits-h">
+    <header><h2 id="credits-h" data-t="credits"></h2><p data-t="creditsLede"></p></header>
+    <div class="ledger" id="ledger"></div>
+    <div class="credit-cols">
+      <div><h3 data-t="wanted"></h3><ul id="work" class="rows"></ul></div>
+      <div class="credit-def" id="credit-def"></div>
+    </div>
+  </section>
+
+  <section class="sect" id="votes" aria-labelledby="votes-h">
+    <header><h2 id="votes-h" data-t="votes"></h2><p data-t="votesLede"></p></header>
+    <div id="votes-by" class="votes-by"><p class="empty">…</p></div>
+  </section>
+
+  <section class="sect" id="officers" aria-labelledby="officers-h">
+    <header><h2 id="officers-h" data-t="officers"></h2><p data-t="officersLede"></p></header>
+    <div id="officer-list" class="officer-grid"></div>
+    <div id="elections" class="elections"></div>
+  </section>
+
+  <section class="sect" id="texts" aria-labelledby="texts-h">
+    <header><h2 id="texts-h" data-t="texts"></h2><p data-t="textsLede"></p></header>
+    <div class="texts" id="text-list"></div>
+  </section>
+</main>
+<footer class="footer"></footer>
+</body>
+</html>

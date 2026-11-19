@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Paddock</title>
+<meta name="description" content="A betting club for points, never money: pools, over/unders, challenges and a prediction market, settled by an elected arbiter.">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<script>try{var p=JSON.parse(localStorage.getItem('site:prefs')||'{}');for(var k in p)document.documentElement.dataset[k]=p[k]}catch(e){}</script>
+<link rel="stylesheet" href="site.css">
+<script type="module" src="home.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead"></header>
+
+<main id="main">
+  <section class="turf" id="top">
+    <div class="turf-inner">
+      <div>
+        <h1 data-name="full">The Paddock</h1>
+        <p class="lede">Put your points where your mouth is. Pools, over/unders, head-to-head challenges and a prediction market whose prices are the crowd’s odds. Points only, never money; results from an arbiter you elect.</p>
+        <div class="actions">
+          <button class="primary" id="join" type="button">Join the club</button>
+          <a class="secondary" href="bets.html">See every bet</a>
+        </div>
+        <p class="fine" id="join-note"></p>
+      </div>
+      <div class="tote" aria-labelledby="tote-h">
+        <h2 id="tote-h">The tote</h2>
+        <table class="tote-board"><caption class="visually-hidden">Prices in the busiest open markets</caption><tbody id="tote"><tr><td>Loading…</td></tr></tbody></table>
+        <p class="tote-foot" id="tote-foot"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="kinds-h">
+    <div class="band-head">
+      <h2 id="kinds-h">Four ways to bet</h2>
+      <p>All staked in points, held in escrow on the record until the result is in.</p>
+    </div>
+    <ul class="tickets" id="kinds">
+      <li class="ticket"><h3>Pool</h3><p>Pick an outcome. Everything staked goes into one pot, and the winners share it in proportion to what they put in.</p><p class="ticket-n" data-kind="pool">…</p></li>
+      <li class="ticket"><h3>Over/under</h3><p>A number to beat. Bet over or under; if it lands exactly on the line, everyone gets their stake back.</p><p class="ticket-n" data-kind="line">…</p></li>
+      <li class="ticket"><h3>Challenge</h3><p>Call out one member, or anyone: “my 50 says I’m right, against your 30.” The loser can simply concede.</p><p class="ticket-n" data-kind="duel">…</p></li>
+      <li class="ticket"><h3>Market</h3><p>Buy and sell shares in outcomes. Each winning share pays out; the price at any moment is what the club thinks the odds are.</p><p class="ticket-n" data-kind="market">…</p></li>
+    </ul>
+  </section>
+
+  <section class="band" aria-labelledby="arb-h">
+    <div class="band-head">
+      <h2 id="arb-h">The arbiter</h2>
+      <p>Elected by the members to call results. The arbiter never bets while in office, never judges a bet they hold a stake in, and every result can be appealed to a vote.</p>
+    </div>
+    <div class="arbiter" id="arbiter"><p class="empty">Loading…</p></div>
+  </section>
+
+  <section class="band" aria-labelledby="lead-h">
+    <div class="band-head">
+      <h2 id="lead-h">The leaderboard</h2>
+      <p>Points in hand, not counting what is staked on open bets.</p>
+    </div>
+    <ol class="leaders" id="leaders"></ol>
+  </section>
+
+  <section class="band" id="floor" aria-labelledby="floor-h">
+    <div class="band-head">
+      <h2 id="floor-h">Club votes</h2>
+      <p>Points issued, arbiters elected, results appealed: decided by the members, one vote each.</p>
+    </div>
+    <div id="bills" class="bills"><p class="empty">Loading…</p></div>
+  </section>
+</main>
+
+<footer class="footer"></footer>
+</body>
+</html>

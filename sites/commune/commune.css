@@ -1,0 +1,80 @@
+
+/* ── commune.css · the People's Commune of the Long Table, appended to the kit's
+   site.css so that every page (the hall, the laws, the chat) wears it. Red,
+   cream and gold from the flag; serif headings set like a printed broadsheet. */
+:root {
+  --bg: #FBF6EE; --surface: #F3EADB; --ink: #2A1714; --muted: #6E5A52; --rule: #E6D8C4; --strong-rule: #2A1714;
+  --red: #A3241C; --cream: #F4EAD8; --gold: #C8961F;
+  --accent: var(--red); --on-accent: #FFF8EE;
+  --aye: #3C7A4E; --no: #A3241C; --abstain: #9C8C80;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #160C0A; --surface: #22130F; --ink: #F4EAD8; --muted: #BFA999; --rule: #3A2620; --strong-rule: #F4EAD8; --red: #D2483C; --gold: #E0B347; --accent: var(--red); --aye: #6FB98A; --no: #E07466; --abstain: #8E7F75; }
+}
+:root[data-theme="dark"] { --bg: #160C0A; --surface: #22130F; --ink: #F4EAD8; --muted: #BFA999; --rule: #3A2620; --strong-rule: #F4EAD8; --red: #D2483C; --gold: #E0B347; --accent: var(--red); --aye: #6FB98A; --no: #E07466; --abstain: #8E7F75; }
+
+h1, h2 { font-family: var(--serif); font-weight: 600; letter-spacing: -0.01em; }
+h1 { max-width: 14ch; }
+.masthead { box-shadow: inset 0 -3px 0 var(--red); }
+.primary, .hall-view button:not(.linklike):not(.quiet):not(.danger):not(.secondary) { background: var(--red); color: var(--on-accent); }
+.kicker { font: 600 .78rem/1.2 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--red); margin: 0 0 .9rem; }
+.band-head h2::before { content: "★ "; color: var(--gold); font-size: .8em; vertical-align: .05em; }
+
+/* the table */
+.table-fig { margin: 0; }
+.long-table svg { display: block; width: 100%; max-width: 30rem; margin: 0 auto; height: auto; overflow: visible; }
+.long-table .tabletop { fill: var(--cream); stroke: var(--rule); stroke-width: .012; }
+:root[data-theme="dark"] .long-table .tabletop { fill: #3A2620; }
+.long-table .star { fill: var(--gold); }
+.chair { fill: var(--ink); transition: fill .3s; }
+.chair.yours { fill: none; stroke: var(--gold); stroke-width: .03; }
+.chair.open { fill: none; stroke: var(--muted); stroke-opacity: .45; stroke-width: .02; }
+.chair.ring { fill: none; stroke: var(--abstain); stroke-width: .025; }
+.long-table.drawing .chair { opacity: 0; animation: seat-in .45s ease-out forwards; }
+#table-caption { text-align: center; } #table-caption .legend { justify-content: center; }
+.key { border-radius: 2px; }
+
+/* where power sits: a ladder, bottom up */
+.organs { list-style: none; padding: 0; margin: 0 0 2rem; display: flex; flex-direction: column; gap: .6rem; }
+.organ { border-left: 4px solid var(--red); background: var(--surface); padding: .9rem 1.1rem; }
+.organ h3 { font-family: var(--serif); font-size: 1.15rem; margin-bottom: .25rem; }
+.organ p { margin: 0 0 .35rem; }
+.organ .holders { font-size: .92rem; }
+.organ-congress { border-left-width: 10px; }
+.organ + .organ { position: relative; }
+.organ + .organ::before { content: "▲"; position: absolute; top: -.95rem; left: -.55rem; font-size: .7rem; color: var(--red); }
+.organ-control::before { content: none !important; }
+.organ-control { border-left-color: var(--gold); border-left-style: double; border-left-width: 6px; }
+.organ .commissar { display: block; margin: .15rem 0; }
+.organ .powers { display: block; color: var(--muted); font-size: .82rem; }
+.organ .vacant, .vacant { color: var(--muted); font-style: italic; }
+.lawmaking { margin: 0 0 1.5rem; }
+.steps { padding-left: 1.3rem; } .steps li { margin: 0 0 .45rem; font-family: var(--serif); }
+.steps li::marker { color: var(--red); font-weight: 700; font-family: var(--sans); }
+
+/* labour */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; margin-bottom: 1.5rem; }
+.stat { background: var(--surface); padding: .8rem 1rem; border-top: 3px solid var(--gold); }
+.stat b { display: block; font: 600 1.9rem/1.1 var(--serif); }
+.stat span { color: var(--muted); font-size: .85rem; }
+.labour-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+.plain-list { list-style: none; padding: 0; margin: 0 0 .8rem; }
+.plain-list li { padding: .35rem 0; border-bottom: 1px solid var(--rule); }
+.bar { display: block; height: 4px; background: var(--rule); margin-top: .3rem; }
+.bar > span { display: block; height: 100%; background: var(--red); }
+
+/* symbols */
+.symbols .flag-band { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 2rem; align-items: center; margin-bottom: 2rem; }
+.symbols .flag-band .flag-large { width: 100%; height: auto; box-shadow: 0 0 0 1px var(--rule); }
+.symbols .flag-band > div { grid-column: 2; }
+.symbol-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem 2rem; }
+.symbol { border-top: 2px solid var(--red); padding-top: .8rem; }
+.symbol .big { font-size: 1.35rem; line-height: 1.35; margin-bottom: .4rem; }
+.anthem p { font-size: 1rem; line-height: 1.5; margin: 0 0 .8rem; }
+.anthem .chorus { font-style: italic; padding-left: 1rem; border-left: 2px solid var(--gold); }
+
+@media (max-width: 760px) {
+  .stats { grid-template-columns: 1fr 1fr; }
+  .labour-cols, .symbol-grid, .symbols .flag-band { grid-template-columns: 1fr; }
+  .symbols .flag-band > div { grid-column: 1; }
+}

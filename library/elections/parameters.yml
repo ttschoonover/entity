@@ -6,3 +6,9 @@ parameters:
     changed_by: organic
     group: Elections
     describe: The rule under which an election is called. The election then fills the office by vote.
+  elections.incompatible:
+    value: []
+    type: list
+    changed_by: organic
+    group: Elections
+    describe: Offices one person may not hold together, as pairs of office ids. A member who holds or is standing for one of a pair may not stand for the other.

@@ -1,0 +1,30 @@
+parameters:
+  parties.min_members:
+    value: 3
+    type: integer
+    min: 1
+    max: 1000
+    changed_by: organic
+    group: Parties
+    describe: How many active members a party needs to count as registered. Only registered parties appear on ballots as parties and may be named as an electorate's party.
+  parties.exclusive:
+    value: true
+    type: boolean
+    changed_by: constitutional
+    group: Parties
+    describe: Whether a member may belong to one party at a time. When true, joining another party means leaving the first.
+  parties.cooling_days:
+    value: 0
+    type: integer
+    min: 0
+    max: 365
+    changed_by: organic
+    group: Parties
+    describe: Days a new party member waits before they count in the party's own votes (party:ID), so a party cannot be taken over by people joining just before a vote.
+  parties.dissolve_rule:
+    value: constitutional
+    type: string
+    one_of: [ordinary, organic, constitutional, entrenched]
+    changed_by: entrenched
+    group: Parties
+    describe: The rule under which the members as a whole may dissolve a party against its will. A party's own members can always wind it up by leaving.

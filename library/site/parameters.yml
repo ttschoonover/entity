@@ -1,0 +1,9 @@
+parameters:
+  site.max_length:
+    value: 120000
+    type: integer
+    min: 1000
+    max: 500000
+    changed_by: ordinary
+    group: Site
+    describe: The longest a post, project write-up or résumé may be, in characters. Every version stays in the record forever.

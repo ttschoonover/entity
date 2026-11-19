@@ -1,0 +1,92 @@
+/* themes/board.css · the original Nomic look: a game board on graph paper. To use it, copy it over site.css. The kit stylesheet first,
+   then this table's own look: coloured playing pieces, rules as index cards,
+   chunky buttons with a printed offset shadow, scores as a track of squares. */
+@import url("kit.css");
+
+:root {
+  --bg: #EEF2F7; --surface: #FFFFFF; --ink: #14213D; --muted: #4A5675; --rule: #C9D3E3; --strong-rule: #14213D;
+  --red: #D7263D; --yel: #F4B400; --blu: #1B7FCC; --grn: #1E9E5A; --pnk: #D6418F;
+  --aye: #1E9E5A; --no: #D7263D; --gold: #F4B400;
+  --grid: rgba(20, 33, 61, .07); --card: #FFFFFF; --shadow: #14213D;
+  --sans: "Public Sans", system-ui, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #0E1628; --surface: #16213A; --ink: #E8EDF7; --muted: #9AA8C6; --rule: #2A3858; --strong-rule: #E8EDF7;
+    --grid: rgba(232, 237, 247, .05); --card: #16213A; --shadow: #000; --blu: #4BA3E8; --red: #F05A6E; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #0E1628; --surface: #16213A; --ink: #E8EDF7; --muted: #9AA8C6; --rule: #2A3858; --strong-rule: #E8EDF7;
+  --grid: rgba(232, 237, 247, .05); --card: #16213A; --shadow: #000; --blu: #4BA3E8; --red: #F05A6E; color-scheme: dark; }
+
+/* The board: graph paper behind everything. */
+body {
+  background-color: var(--bg);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.masthead { background: var(--bg); box-shadow: 0 2px 0 var(--ink); }
+.brand img { border-radius: 4px; }
+h1 { font-weight: 800; letter-spacing: -0.04em; }
+h1[data-name="full"] { font-size: clamp(3.5rem, 11vw, 7.5rem); line-height: .9; }
+h2 { letter-spacing: -0.02em; }
+
+/* Pieces: buttons press like tiles. */
+.primary, .secondary, .hall-view button:not(.linklike) {
+  border: 2px solid var(--ink); border-radius: var(--radius); box-shadow: 3px 3px 0 var(--shadow);
+  transition: transform .08s, box-shadow .08s;
+}
+.primary, .hall-view button:not(.linklike):not(.quiet):not(.danger):not(.secondary) { background: var(--yel); color: #14213D; }
+.secondary, .hall-view button.quiet { background: var(--card); }
+.primary:hover, .secondary:hover, .hall-view button:not(.linklike):hover { opacity: 1; transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--shadow); }
+.primary:active, .secondary:active, .hall-view button:not(.linklike):active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--shadow); }
+
+/* Whose move. */
+.board-hero { align-items: start; }
+.turn-card { background: var(--card); border: 2px solid var(--ink); border-radius: 12px; padding: 1.5rem 1.75rem; box-shadow: 6px 6px 0 var(--red); }
+.turn-card h2 { font-size: 1rem; color: var(--muted); font-weight: 600; margin: 0; }
+.turn-token { font: 800 clamp(1.8rem, 4vw, 2.6rem)/1.1 var(--sans); margin: .4rem 0 .3rem; display: flex; align-items: center; gap: .6rem; }
+.turn-token::before { content: ""; width: 1.1em; height: 1.1em; border-radius: 50%; background: var(--red); border: 3px solid var(--ink); flex: none; animation: bob 2.4s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-4px); } }
+.winner { font-weight: 800; color: var(--grn); font-size: 1.2rem; }
+
+/* The track: a row of squares, start to WIN. */
+.track { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(3.4rem, 1fr)); gap: 4px; }
+.sq { aspect-ratio: 1; background: var(--card); border: 2px solid var(--ink); border-radius: 4px; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 3px 4px; }
+.sq:nth-child(4n+1) { background: color-mix(in srgb, var(--blu) 14%, var(--card)); }
+.sq:nth-child(4n+3) { background: color-mix(in srgb, var(--yel) 18%, var(--card)); }
+.sq.start { background: var(--ink); color: var(--bg); }
+.sq.goal { background: var(--grn); color: #fff; }
+.sq-n { font: 600 .7rem/1 var(--mono); }
+.sq-tokens { display: flex; flex-wrap: wrap; gap: 2px; }
+.token { display: inline-block; width: .9rem; height: .9rem; border-radius: 50%; border: 2px solid var(--ink); vertical-align: -2px; }
+.tok-red { background: var(--red); } .tok-yel { background: var(--yel); } .tok-blu { background: var(--blu); }
+.tok-grn { background: var(--grn); } .tok-ink { background: var(--ink); } .tok-pnk { background: var(--pnk); }
+.track-key { list-style: none; padding: 0; margin: 1rem 0 0; display: flex; flex-wrap: wrap; gap: .4rem 1.4rem; font-size: .92rem; }
+
+/* Rules as index cards: number on a tab, coloured top edge. */
+.rule-deck { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 1rem; }
+.rule-card { background: var(--card); border: 2px solid var(--ink); border-top-width: 8px; border-radius: 6px; padding: 1rem 1.1rem 1.1rem; position: relative; }
+.rule-card.immutable { border-top-color: var(--red); }
+.rule-card.mutable { border-top-color: var(--blu); }
+.rule-card:nth-child(odd) { transform: rotate(-.4deg); } .rule-card:nth-child(even) { transform: rotate(.35deg); }
+.rule-n { position: absolute; top: -1.35rem; right: .8rem; background: var(--ink); color: var(--bg); font: 700 .8rem/1 var(--mono); padding: .3rem .5rem; border-radius: 4px 4px 0 0; margin: 0; }
+.rule-text { font-size: .93rem; color: var(--muted); margin: 0; }
+.rule.immutable { border-left: 6px solid var(--red); padding-left: 1rem; }
+.rule.mutable { border-left: 6px solid var(--blu); padding-left: 1rem; }
+.nomic-scores { padding-left: 1.4rem; font-variant-numeric: tabular-nums; }
+.nomic-scores .score { font: 700 1rem var(--mono); margin: 0 .5rem; }
+.nomic-winner { background: var(--grn); color: #fff; padding: .7rem 1rem; border-radius: 6px; font-weight: 600; }
+.nomic-winner a { color: #fff; }
+
+/* Votes and lists sit on cards too. */
+.bill-card, .items > li, .featured { background: var(--card); border: 2px solid var(--ink); border-radius: 8px; }
+.items { border-top: 0; display: grid; gap: .75rem; }
+.items > li { padding: 1rem 1.2rem; }
+.tally { border: 1.5px solid var(--ink); height: .7rem; }
+.verdict { padding: .1rem .45rem; border-radius: 4px; color: #fff; font: 700 .78rem var(--mono); }
+.v-true { background: var(--grn); } .v-false { background: var(--red); } .v-undecided { background: var(--muted); }
+.band { border-top: 2px dashed var(--rule); }
+.tabs { background: var(--bg); }
+.tabs a[aria-current] { box-shadow: inset 0 -4px 0 var(--yel); }
+.footer { border-top: 2px solid var(--ink); }

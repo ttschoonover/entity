@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Federal Bank</title>
+<meta name="description" content="The Federal Bank: the committee that issues the federal currency and destroys it, by the vote of its members.">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32"><link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<script>try{var p=JSON.parse(localStorage.getItem('site:prefs')||'{}');for(var k in p)document.documentElement.dataset[k]=p[k]}catch(e){}</script>
+<link rel="stylesheet" href="site.css">
+<style>
+  .bank-head { max-width: 46rem; }
+  .bank-head h1 { font: 400 clamp(2.4rem, 6vw, 3.6rem)/1.05 var(--serif); letter-spacing: -0.01em; margin: 0 0 .6rem; }
+  .bank-head .lede { margin: 0; }
+  /* The reserve: a note-like panel, with a fine engraved border. */
+  .reserve { margin: 2rem 0 0; padding: 1.6rem 1.8rem; border: 1px solid var(--ink); border-radius: 2px; position: relative;
+    background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--gold) 9%, transparent) 6px 7px); }
+  .reserve::before { content: ""; position: absolute; inset: 5px; border: 1px solid color-mix(in srgb, var(--gold) 70%, transparent); pointer-events: none; }
+  .reserve dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 1.2rem 2rem; margin: 0; position: relative; }
+  .reserve dt { font-size: .85rem; color: var(--muted); letter-spacing: .04em; }
+  .reserve dd { margin: .2rem 0 0; font: 600 2rem/1.1 var(--serif); font-variant-numeric: tabular-nums; }
+  .reserve dd small { font: 400 .95rem var(--sans); color: var(--muted); margin-left: .35rem; }
+  .bank-cols { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: 2.5rem; margin: 2.4rem 0 0; align-items: start; }
+  @media (max-width: 56rem) { .bank-cols { grid-template-columns: minmax(0, 1fr); } }
+  .bank-cols h2 { font-size: 1.1rem; margin: 0 0 .8rem; }
+  .motion { border: 1px solid var(--rule); border-left: 4px solid var(--gold); border-radius: 0 var(--radius) var(--radius) 0; padding: 1rem 1.2rem; margin: 0 0 1rem; }
+  .motion.passed { border-left-color: var(--aye); } .motion.lapsed { border-left-color: var(--abstain); opacity: .8; }
+  .motion h3 { margin: 0 0 .25rem; font: 600 1.15rem/1.3 var(--serif); }
+  .motion .meta { color: var(--muted); font-size: .88rem; margin: 0 0 .6rem; }
+  .motion .why { font-family: var(--serif); margin: 0 0 .7rem; }
+  .ballots { display: flex; flex-wrap: wrap; gap: .4rem; list-style: none; padding: 0; margin: 0 0 .7rem; }
+  .ballots li { font-size: .85rem; padding: .25rem .6rem; border-radius: 999px; border: 1px solid var(--rule); }
+  .ballots li.yes { border-color: var(--aye); color: var(--aye); } .ballots li.yes::before { content: "✓ "; }
+  .ballots li.wait { color: var(--muted); border-style: dashed; }
+  .move { border: 1px solid var(--ink); border-radius: var(--radius); padding: 1.1rem 1.2rem; }
+  .move label { display: block; font-weight: 600; font-size: .9rem; margin: .7rem 0 .25rem; }
+  .move .kinds { display: grid; gap: .4rem; }
+  .move .kinds label { font-weight: 400; margin: 0; display: flex; gap: .5rem; align-items: baseline; }
+  .move input[type=number], .move textarea { width: 100%; }
+  .members { list-style: none; padding: 0; margin: 0 0 1.4rem; border-top: 1px solid var(--rule); }
+  .members li { padding: .55rem 0; border-bottom: 1px solid var(--rule); }
+  .history { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--rule); }
+  .history li { display: flex; flex-wrap: wrap; gap: .2rem 1rem; padding: .6rem 0; border-bottom: 1px solid var(--rule); font-size: .95rem; }
+  .history li span:last-child { color: var(--muted); margin-left: auto; font-size: .85rem; }
+</style>
+<script type="module" src="bank.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead"></header>
+<main id="main" class="page"><p class="empty">Loading the record…</p></main>
+<footer class="footer"></footer>
+</body>
+</html>

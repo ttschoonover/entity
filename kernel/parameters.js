@@ -62,6 +62,7 @@ const TYPES = {
   integer: v => Number.isInteger(v),
   number: v => typeof v === 'number' && Number.isFinite(v),
   fraction: v => typeof v === 'number' && v >= 0 && v <= 1,
+  rule: v => typeof v === 'string',
   boolean: v => typeof v === 'boolean',
   list: v => Array.isArray(v),
   timestamp: v => v === null || (typeof v === 'string' && !isNaN(Date.parse(v))),
@@ -144,7 +145,10 @@ export class Parameters {
   rule(key) {
     const d = this.def(key);
     if (!d) return null;
-    const name = d.changed_by;
+    let name = d.changed_by;
+    // A parameter naming a rule is changed under that rule if it is stronger:
+    // the bar for a thing (amending the agreement, say) is lowered only by clearing it.
+    if (d.type === 'rule' && d.value in this.rules && this.rules[d.value].changeable !== false && this.rank(d.value) > this.rank(name)) name = d.value;
     return { name, ...(this.rules[name] || { changeable: false }) };
   }
 
@@ -158,6 +162,8 @@ export class Parameters {
     if (d.min !== undefined && proposed < d.min) return `${key} must be at least ${d.min}`;
     if (d.max !== undefined && proposed > d.max) return `${key} must be at most ${d.max}`;
     if (d.one_of && !d.one_of.includes(proposed)) return `${key} must be one of ${d.one_of.join(', ')}`;
+    // A parameter of type rule names one of this entity's changeable rules, its own included.
+    if (d.type === 'rule' && (!(proposed in this.rules) || this.rules[proposed].changeable === false)) return `${key} must name one of this entity's rules: ${this.ruleNames().join(', ')}`;
     return null;
   }
 

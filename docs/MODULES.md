@@ -30,6 +30,7 @@ exact code, by digest, and every copy then keeps its own copy of that code.
 | **twofactor** | email codes at sign-in, enforced by the node; addresses never on the record | require it of officers or everyone | turn it on or off (node) |
 | **things** | a library of things members lend each other against cash deposits; a solidarity fund that covers deposits | add, keep or retire a shared thing; declare a loss; settle a dispute; record a claim paid | list, request, lend, renew, return (keeping part of a deposit), dispute |
 | **wiki** | pages any member writes, by category; statutes by decision | enact a version, repeal | edit |
+| **site** | a personal website as a record: posts, projects, photographs, résumé, home page | | post, project, photo, resume, profile |
 | **finality** | checkpoints that decide, signed by validators; penalties for cheating | re-anchor signing | sign a checkpoint, submit evidence |
 | **shares** | share classes, a cap table, dividends, voting by shares | create a class, issue, redeem, pay a dividend | transfer (if the class allows) |
 | **budget** | money approved by the members, and what is spent from it | approve, adjust or close a line; record spending | — |
@@ -39,6 +40,7 @@ exact code, by digest, and every copy then keeps its own copy of that code.
 | **passkeys** | sign in with Face ID, Touch ID, a fingerprint or a security key | — | add, name or remove a passkey |
 | **agreements** | documents members sign, required for admission | require documents; how amendments bind | sign |
 | **fund** | an investment club's books: capital in units, holdings, trades the members voted for | authorize a purchase or sale; record payments in, trades, prices, income, expenses (usually a treasurer's grant); withdrawals | — |
+| **letters** | official letters on standard letterheads, issued only by those authorized, signed by those who agreed | make, amend or retire a letterhead; issue or withdraw a letter on the members' own | issue on an office's or committee's letterhead (through its grant); co-sign a joint letter; deposit a drawn signature |
 
 ## Where modules live
 
@@ -380,6 +382,63 @@ fund pays (`thing.pay`). The network's own things (`thing.add`) are lent by a
 keeper on the same terms. The record keeps the books of every deposit; the
 money itself is cash, handed over in person. `make-solidarity.sh` founds a
 network built on it.
+
+## Letters (letters)
+
+Official letters on letterheads. A **letterhead** belongs to one issuer and is
+made by decision (`letterhead.define`): `issuer` is `entity` (the members),
+`office:ID` or `committee:ID`; a committee's letterhead also says `joint`,
+`majority` (the default) or `all`. It carries the lines printed at the top
+(`name`, `title`, `subtitle`, `motto`, `address`, `contact`, `footer`), the
+default `closing`, the text of its seal (`seal_top`, `seal_bottom`) and a
+`style` that adjusts the house style for it alone. The **house style** is a set
+of settings every letterhead follows unless it says otherwise: `letters.face`
+(palatino, computer-modern, times, garamond, baskerville), `letters.accent`,
+`letters.layout` (centered, with a round seal; or flush), `letters.rule`
+(double, single, none), `letters.paper`, `letters.dates`, `letters.emblem`.
+`letterhead.amend` changes a letterhead from then on; a letter already issued
+keeps the letterhead it was issued on. Its issuer cannot change once it has
+been used.
+
+**Who may issue.** `letter.issue` (`letter`, `letterhead`, `subject`, `body`,
+optional `to`, `salutation`, `closing`, `cc`, `enclosures`, `date`,
+`signatures`) is checked against the letterhead:
+
+- on the members' letterhead, only by a carried decision;
+- on an office's letterhead, only through an authority grant held by that
+  office (`may: [letter.issue]`, `where: { letterhead: … }`);
+- on a committee's letterhead, only through a grant held by that committee, and
+  only if the grant needs at least a majority of its members' signatures, or
+  every member's when the letterhead says `joint: all`.
+
+A grant to some other body is refused even if it names the letterhead, and the
+members cannot issue in an officer's name unless
+`letters.assembly_may_issue_for_any` (constitutional, off) says they may.
+`letter.withdraw` (`letter`, `reason`) needs the same authority.
+
+**Signatures.** A letter shows its signatories unless it says `signatures:
+false` (`letters.signatures`: optional, always, never): the officer who issued
+it, every committee member who signed the grant's use (and the letter says
+whether it was unanimous: "2 of 3"), or the members who voted for a decision.
+A member deposits a drawing of their signature with `letter.specimen`
+(`drawing`: a PNG data URL, or null); each letter keeps the drawing its
+signatories had when it was issued. The signed acts are the signature; the
+footer of every letter names the letter and the fingerprint of its text.
+
+```sh
+entity letter letterhead define --file library/letters/letterheads/vdr-external.json --as ana
+entity letter sample vdr-external --out letters --pdf        # how it looks, before anyone writes on it
+entity letter issue --letterhead vdr-external --subject "Formal relations" \
+       --body-file letter.md --to "The Secretary of State|The Digital Republic Society" --as ana
+entity letter cosign x-…   --as ben                              # a joint letter, by each signatory
+entity letter render VDR-EXT-2026-001 --out letters --pdf       # LaTeX and PDF, from the record
+entity letter specimen --png my-signature.png --as ana
+```
+
+The Letters tab does the same in the browser: write a letter on any letterhead
+you may issue on, sign joint letters waiting for you, draw your signature,
+print a letter or download its LaTeX. Four sample letterheads are in
+`library/letters/letterheads/`.
 
 ## Wiki
 
@@ -734,3 +793,24 @@ federal citizenship with `citizen.enroll`, proved with their state key
 `federation.assembly_seats`, `federation.admit_rule`, `federation.release_rule`,
 `federation.registrar_rule`. Electorates: `senate`, `assembly`, `parliament`.
 
+
+## Nomic (nomic)
+
+The game where changing the rules is a move. Rules are numbered text, mutable or immutable, enacted, amended, repealed and transmuted only by decision (`nomic.enact`, `nomic.amend`, `nomic.repeal`, `nomic.transmute`). With `nomic.turns` on, only the player whose turn it is may lay a proposal that changes the game, one per turn; `nomic.pass` ends a turn, and anyone may end one that has run past `nomic.turn_days`. A passing proposal scores its proposer `nomic.points_adopted` (and dissenters `nomic.points_dissent`); the first to `nomic.win_points` wins, and `nomic.new_game` starts again with the rules as they stand. Calls for judgment (`nomic.cfj`) are answered by the judge (`nomic.judge`, named by decision), never on their own call. Website: `sites/nomic`, founded by `make-nomic.sh`.
+
+## Lexicon (lexicon)
+
+A constructed language: a dictionary and a grammar. Members coin words (`word.coin`), second them (`word.second`) and withdraw their own; a decision adopts, revises or retires them (`lexicon.adopt`, `lexicon.revise`, `lexicon.retire`). The sound system is settings the record enforces: every word must be spelled with `lexicon.consonants` and `lexicon.vowels` (letters may be several characters) and split into syllables of the shape `lexicon.syllable`, such as `(C)V(n)`. Grammar sections are drafted by anyone (`grammar.draft`) and become the grammar in force when ratified (`grammar.ratify`), chapter by chapter (`lexicon.chapters`). Website: `sites/conlang`, founded by `make-conlang.sh`.
+
+## Wagers (wagers)
+
+Bets in the entity's points (the value module), never money. Pools split the pot among the winners in proportion to their stakes; over/under lines refund everyone on a push; challenges (`wager.duel`) set one member's stake against another's, and the loser may concede; prediction markets price outcomes with a logarithmic market maker funded up front by their opener, and pay `wagers.share_value` per winning share. Stakes are held in the value ledger's escrow. Results come from the holder of the office `wagers.arbiter_office`, who may not bet while in office or resolve a bet they hold a stake in; anyone with a stake may appeal within `wagers.appeal_days`, and a decision (`wager.decide`, `wager.void`) settles any bet, overruling or standing in for the arbiter. Website: `sites/wagers`, founded by `make-wagers.sh`.
+
+## Mahjong (mahjong)
+
+Hong Kong mahjong with faan, on one deterministic engine (`library/mahjong/engine`: tiles, rules, the game as a state machine, and an AI of strength 1 to 5). Nothing in it is random but a seed, so a match is fully determined by its hand seeds and the human decisions, and the module replays every game before it counts.
+
+- **Solo for a profile:** `mahjong.deal { opponents: [l, l, l], rules? }` starts a game whose shuffle is the hash of its own record, which nobody knew before signing; `mahjong.finish { game, moves }` carries the player's decisions, which the record replays against the same AIs to compute the result.
+- **Tables:** played live through the node (`cli/mahjong.js`): anyone opens a table; friends sit with a name and a key their browser makes (no account), or as members; empty seats are AIs. Each hand's seed is committed (its hash published) before the deal and revealed after; every browser checks the commitment and replays the hand. A finished match is recorded as `mahjong.result`, signed by the keeper (`mahjong.keeper`, else the founder), and replayed by the record.
+- **Offline:** `node tools/build-mahjong-solo.mjs` bundles the engine, table and AI into one HTML file (`sites/mahjong/mahjong-solo.html`) that plays with no network.
+- Website: `sites/mahjong`; a world is founded by `make-mahjong-world.sh`, once per world, published to Radicle when it is set up.

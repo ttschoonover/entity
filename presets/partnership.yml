@@ -1,0 +1,42 @@
+_: A general partnership run by its partners, such as an investment club. Most
+   matters are decided one partner one vote; the weightier ones need a majority
+   of the partners and of the units at once (concurrent rules). Officers are
+   elected separately, and the audit committee alone validates checkpoints.
+   The partnership agreement is enacted and amended by two thirds of the
+   partners and two thirds of the units; every vote is a single reading.
+
+modules: [deliberation, titles, vocabulary, passwords, offices, elections, authority,
+          shares, wiki, agreements, finality, partnership, meetings, polls, docs, chat, fund]
+
+rules:
+  joint:       { quorum: 0.5, threshold: 0.5, readings: 1, concurrent: "shares:units" }
+  associate:   { quorum: 0.5, threshold: 0.6, readings: 1, concurrent: "shares:units" }
+  joint-super: { quorum: 0.5, threshold: 0.6666, readings: 1, concurrent: "shares:units" }
+order: [ordinary, joint, associate, organic, joint-super, constitutional, entrenched]
+
+set:
+  entity.name: The Investment Club
+  vocabulary.participant: partner
+  vocabulary.participants: partners
+  vocabulary.assembly: Partners' Meeting
+  vocabulary.proposal: resolution
+  membership.admission: decision
+  membership.admission_rule: joint
+  deliberation.period: 7
+  partnership.join_rule: associate
+  partnership.profits_rule: joint
+  partnership.assets_rule: joint-super
+  finality.signers: "office:audit-committee"
+  elections.incompatible: [[treasurer, audit-committee], [secretary, audit-committee], [treasurer, secretary]]
+  agreements.required: [partnership-agreement]
+  docs.public_allowed: false
+  wiki.enact_rule: joint-super
+  amendment.rules.constitutional.readings: 1
+  amendment.rules.constitutional.apart: 0
+  amendment.rules.entrenched.readings: 1
+  amendment.rules.entrenched.apart: 0
+
+note: >
+  Keeps the partners' decisions verifiable. It does not register the
+  partnership or replace legal advice: see the partnership agreement and the
+  compliance checklist that make-club.sh writes.

@@ -175,7 +175,7 @@ function buildFooter() {
       h('button', { class: 'linklike', type: 'button', onclick: () => preferencesDialog() }, 'Display and accessibility'),
       h('button', { class: 'linklike', type: 'button', onclick: () => browserCheckDialog() }, 'Check this browser'),
       h('a', { href: 'record/events.jsonl' }, 'Download the record')),
-    h('p', { class: 'fine' }, h('span', { 'data-name': 'Running' }, cap(SITE.body)), ` ${SITE.about ? `${SITE.about} ` : ''}Everything on these pages is worked out in your own browser from the public record, which anyone can download and check.`));
+    h('p', { class: 'fine' }, h('span', { 'data-name': 'Running' }, cap(SITE.body)), ` ${SITE.about ? `${SITE.about} ` : ''}${SITE.private ? 'Everything on these pages is worked out in your own browser from the record, which every member holds and can check.' : 'Everything on these pages is worked out in your own browser from the public record, which anyone can download and check.'}`));
 }
 
 function drawWho() {
@@ -305,7 +305,7 @@ export function joinDialog() {
       h('label', { for: 'jn-pw2' }, 'Password again'), h('input', { id: 'jn-pw2', type: 'password', autocomplete: 'new-password', required: true }),
       h('p', { class: 'fine' }, 'No one can recover a lost password, including us. Keep it somewhere safe.'),
       h('label', { class: 'check' }, h('input', { type: 'checkbox', id: 'jn-age', required: true }), `I am ${age} or older.`),
-      docs.map((x, i) => [h('div', { class: 'pledge' }, h('h3', {}, x.title), h('div', { class: 'pledge-text serif', html: true }, renderText(x.body).html)),
+      docs.map((x, i) => [h('div', { class: 'pledge' }, h('h3', {}, x.title), (() => { const d = h('div', { class: 'pledge-text serif' }); d.innerHTML = renderText(x.body).html; return d; })()),
         h('label', { class: 'check' }, h('input', { type: 'checkbox', id: `jn-doc-${i}`, required: true }), `I sign ${x.title}.`)]),
       h('label', { class: 'check' }, h('input', { type: 'checkbox', id: 'jn-public', required: true }), h('span', {}, `I understand that my id, my name and everything I sign are published on ${w.body}’s public record, which cannot be edited or deleted. `, h('a', { href: 'privacy.html', target: '_blank' }, 'How your data is handled'), '.')),
       out,
@@ -466,24 +466,110 @@ export async function propose(title, effects, text) {
   return sign('proposal.lay', { title, ...(text ? { text } : {}), rule, effects }, `Your bill "${title}" (${rule} rule)`);
 }
 
-// ── text: the entity's texts are written in a small markdown ─────────────
-const inline = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>');
+// ── text: the entity's texts are written in Markdown ─────────────────────
+// Headings (# to ####), paragraphs, **bold**, *italics*, ~~struck~~, `code`,
+// links, images and figures, lists, > quotations, ``` code blocks, tables with
+// | pipes |, and --- rules. Nothing else passes through: every character is
+// escaped first, and a link or image keeps only an http(s) address, a page
+// of this site (#/…), or a picture in the entity's media folder (media/…).
+const MEDIA = /^media\/[a-f0-9]{16,64}\.(?:jpe?g|png|webp|gif)$/;
+const safeUrl = (u, base) => {
+  const raw = String(u).replace(/&amp;/g, '&');
+  if (/^https?:\/\//i.test(raw)) return esc(raw);
+  if (/^#\//.test(raw)) return esc(raw);
+  if (MEDIA.test(raw)) return esc(base ? new URL(raw, base).href : raw);
+  return null;
+};
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-export function renderText(md, { anchors = '' } = {}) {
-  const out = [], heads = []; let para = [], list = null;
+function inlineMd(s, base) {
+  const codes = [];
+  let t = esc(s).replace(/`([^`]+)`/g, (_, c) => `\u0000${codes.push(c) - 1}\u0000`);
+  t = t.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;([^"]*?)&quot;)?\)/g, (all, alt, u, title) => {
+    const src = safeUrl(u, base); if (!src) return alt;
+    return `<img src="${src}" alt="${alt}"${title ? ` title="${title}"` : ''} loading="lazy">`;
+  });
+  t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (all, text, u) => {
+    const href = safeUrl(u, base); if (!href) return text;
+    return /^#\//.test(href) ? `<a href="${href}">${text}</a>` : `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+  });
+  t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^\w/*])\*(?!\s)(.+?)\*/g, '$1<em>$2</em>')
+    .replace(/~~(.+?)~~/g, '<del>$1</del>');
+  return t.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${codes[Number(i)]}</code>`);
+}
+const cells = (row) => row.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+export function renderText(md, { anchors = '', base = '' } = {}) {
+  const inline = (s) => inlineMd(s, base);
+  const out = [], heads = []; let para = [], list = null, quote = null, table = null, code = null;
   const flushP = () => { if (para.length) out.push(`<p>${inline(para.join(' '))}</p>`); para = []; };
   const flushL = () => { if (list) out.push(`<${list.tag}>${list.items.map(i => `<li>${inline(i)}</li>`).join('')}</${list.tag}>`); list = null; };
-  for (const raw of String(md).split('\n')) {
-    const l = raw.trim();
-    if (!l) { flushP(); flushL(); continue; }
-    const hd = l.match(/^#{1,3}\s+(.*)/), n = l.match(/^\d+\.\s+(.*)/), u = l.match(/^[-*]\s+(.*)/);
-    if (hd) { flushP(); flushL(); const id = anchors ? `${anchors}-${slug(hd[1])}` : ''; heads.push({ id, text: hd[1] }); out.push(`<h3${id ? ` id="${id}"` : ''}>${inline(hd[1])}</h3>`); continue; }
+  const flushQ = () => { if (quote) out.push(`<blockquote>${renderText(quote.join('\n'), { base }).html}</blockquote>`); quote = null; };
+  const flushT = () => {
+    if (!table) return;
+    const [head, ...rows] = table, align = table.align || [];
+    const td = (tag, c, i) => `<${tag}${align[i] ? ` style="text-align:${align[i]}"` : ''}>${inline(c)}</${tag}>`;
+    out.push(`<div class="table-wrap"><table><thead><tr>${head.map((c, i) => td('th', c, i)).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map((c, i) => td('td', c, i)).join('')}</tr>`).join('')}</tbody></table></div>`);
+    table = null;
+  };
+  const flushAll = () => { flushP(); flushL(); flushQ(); flushT(); };
+  const lines = String(md).replace(/\r/g, '').split('\n');
+  for (let k = 0; k < lines.length; k++) {
+    const raw = lines[k], l = raw.trim();
+    if (code) { if (/^```/.test(l)) { out.push(`<pre><code>${esc(code.join('\n'))}</code></pre>`); code = null; } else code.push(raw); continue; }
+    if (/^```/.test(l)) { flushAll(); code = []; continue; }
+    if (!l) { flushAll(); continue; }
+    if (/^>/.test(l)) { flushP(); flushL(); flushT(); (quote ||= []).push(l.replace(/^>\s?/, '')); continue; }
+    if (quote) flushQ();
+    if (/^\|.*\|$/.test(l)) {
+      flushP(); flushL();
+      if (!table) {
+        const sep = (lines[k + 1] || '').trim();
+        if (/^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?$/.test(sep)) {
+          table = [cells(l)]; table.align = cells(sep).map(c => (/^:-+:$/.test(c) ? 'center' : /-:$/.test(c) ? 'right' : '')); k++; continue;
+        }
+      } else { table.push(cells(l)); continue; }
+    }
+    if (table) flushT();
+    const fig = l.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$/);
+    if (fig) {
+      flushAll(); const src = safeUrl(fig[2], base);
+      if (src) out.push(`<figure><img src="${src}" alt="${esc(fig[1])}" loading="lazy">${fig[3] ? `<figcaption>${inline(fig[3])}</figcaption>` : ''}</figure>`);
+      continue;
+    }
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(l)) { flushAll(); out.push('<hr>'); continue; }
+    const hd = l.match(/^(#{1,4})\s+(.*)/), n = l.match(/^\d+[.)]\s+(.*)/), u = l.match(/^[-*+]\s+(.*)/);
+    if (hd) {
+      flushAll(); const lvl = Math.min(hd[1].length + 1, 5), id = anchors ? `${anchors}-${slug(hd[2])}` : '';
+      heads.push({ id, text: hd[2], level: hd[1].length }); out.push(`<h${lvl}${id ? ` id="${id}"` : ''}>${inline(hd[2])}</h${lvl}>`); continue;
+    }
     if (n || u) { flushP(); const tag = n ? 'ol' : 'ul'; if (list?.tag !== tag) { flushL(); list = { tag, items: [] }; } list.items.push((n || u)[1]); continue; }
+    if (list && /^\s{2,}/.test(raw)) { list.items[list.items.length - 1] += ' ' + l; continue; }
     if (list) flushL();
     para.push(l);
   }
-  flushP(); flushL();
+  if (code) out.push(`<pre><code>${esc(code.join('\n'))}</code></pre>`);
+  flushAll();
   return { html: out.join(''), heads };
+}
+
+// A picture for a text: checked, hashed, signed for and sent to the node,
+// which keeps it in the entity's media folder under its own hash, so a page
+// that shows it names exactly that picture. Returns the Markdown to insert.
+export async function uploadImage(file, { alt = '', caption = '' } = {}) {
+  if (!me() && !(await signInDialog())) return null;
+  if (file.size > 8 * 1024 * 1024) throw new Error('a picture is at most 8 MB; make it smaller first');
+  if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) throw new Error('a picture must be a JPEG, PNG, WebP or GIF');
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(b => b.toString(16).padStart(2, '0')).join('');
+  const seed = ctx.ident.locked ? await unlockSeed(ctx.ident.locked, prompt('Your password, to sign for this picture') || '') : ctx.ident.seed;
+  const sig = await E.keys.sign(`entity.media\n${ctx.r.state.entity.id}\n${hash}`, { seed, publicKey: ctx.ident.publicKey }, 'entity.media');
+  let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  const res = await fetch(new URL('media', ctx.r.base), { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ by: ctx.ident.id, signature: sig, data: btoa(bin) }) });
+  const b = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(b.why || `the node answered ${res.status}`);
+  const a = (alt || file.name.replace(/\.[^.]+$/, '')).replace(/[[\]]/g, '');
+  return `![${a}](${b.path}${caption ? ` "${caption.replace(/"/g, "'")}"` : ''})`;
 }
 
 // ── the module host: what a module's ui.js is given to draw itself ─────────
@@ -496,6 +582,10 @@ export function moduleApi({ link, go, refresh }) {
     h, $, state: r.state, params: r.params, registry: ctx.registry, me: me(), ident: ctx.ident, E,
     words: (({ one, many, assembly, proposal }) => ({ one, many, assembly, proposal }))(W()),
     day, when, link, go, who, refresh, nameOf: displayName, grantsFor, editForm,
+    // Markdown, rendered the way the site renders its texts (headings, lists, emphasis).
+    markdown: (text) => { const d = h('div', {}); d.innerHTML = renderText(text, { base: ctx.r.base }).html; return d; },
+    // A picture for a text (wiki pages, say): returns the Markdown that shows it.
+    uploadImage,
     sign: (kind, fields, label, then = []) => signAll([[kind, fields, label], ...then.map(([k, f]) => [k, f, k])], label),
     propose,
     section: (title, ...kids) => h('section', {}, title ? h('h2', {}, title) : null, ...kids),

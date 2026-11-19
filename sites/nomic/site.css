@@ -1,0 +1,161 @@
+/* site.css · Nomic, Swiss. Built on Pico CSS 2.1.1 (MIT, vendor/pico/LICENSE.md):
+   Pico sets the type scale, form controls, tables, disclosure widgets and the
+   colour system; the kit adds the site's structure; this file is the Swiss
+   layer: one grotesk face, black, white and Swiss red, flush-left text on a
+   twelve-column grid, hairline rules, no rounded corners, no shadows.
+   The earlier graph-paper look is themes/board.css. */
+@import url("kit.css");
+@import url("vendor/pico/pico.red.min.css");
+
+/* ── one set of tokens, read by Pico and by the kit ─────────────────────── */
+:root {
+  --swiss-red: #DA291C; --paper: #FFFFFF; --ink: #000000; --grey: #6B6B6B; --hair: var(--ink); --fog: #EDEDED;
+  --bg: var(--paper); --surface: var(--fog); --muted: var(--grey); --rule: #D4D4D4; --strong-rule: var(--ink);
+  --accent: var(--ink); --aye: #000000; --no: var(--swiss-red); --gold: var(--swiss-red);
+  --sans: "Public Sans", "Helvetica Neue", Helvetica, Arial, sans-serif; --serif: var(--sans);
+  --mono: var(--sans); --radius: 0;
+
+  --pico-font-family: var(--sans); --pico-font-family-sans-serif: var(--sans);
+  --pico-font-size: 100%; --pico-line-height: 1.45; --pico-font-weight: 400;
+  --pico-border-radius: 0; --pico-border-width: 1px; --pico-outline-width: 2px;
+  --pico-spacing: 1rem; --pico-typography-spacing-vertical: 1.25rem;
+  --pico-form-element-spacing-vertical: .7rem; --pico-form-element-spacing-horizontal: .9rem;
+  --pico-transition: 0s;
+}
+:root:not([data-theme="dark"]) {
+  --pico-background-color: var(--paper); --pico-color: var(--ink); --pico-muted-color: var(--grey);
+  --pico-muted-border-color: #D4D4D4; --pico-h1-color: var(--ink); --pico-h2-color: var(--ink); --pico-h3-color: var(--ink);
+  --pico-primary: var(--swiss-red); --pico-primary-hover: #000; --pico-primary-underline: rgba(218, 41, 28, .5);
+  --pico-primary-background: var(--ink); --pico-primary-hover-background: var(--swiss-red); --pico-primary-border: var(--ink); --pico-primary-hover-border: var(--swiss-red);
+  --pico-primary-inverse: #fff; --pico-primary-focus: rgba(218, 41, 28, .35);
+  --pico-secondary: var(--ink); --pico-secondary-background: transparent; --pico-secondary-border: var(--ink); --pico-secondary-inverse: var(--ink);
+  --pico-form-element-background-color: #fff; --pico-form-element-border-color: var(--ink); --pico-form-element-focus-color: var(--swiss-red);
+  --pico-card-background-color: var(--paper); --pico-code-background-color: var(--fog);
+  --pico-modal-overlay-background-color: rgba(0, 0, 0, .55);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --swiss-red: #FF4433; --paper: #000000; --ink: #FFFFFF; --grey: #A3A3A3; --fog: #161616; --rule: #333333; --aye: #FFFFFF;
+    --pico-background-color: #000; --pico-color: #fff; --pico-muted-color: #A3A3A3; --pico-muted-border-color: #333;
+    --pico-h1-color: #fff; --pico-h2-color: #fff; --pico-h3-color: #fff;
+    --pico-primary: var(--swiss-red); --pico-primary-background: #fff; --pico-primary-inverse: #000; --pico-primary-hover-background: var(--swiss-red); --pico-primary-border: #fff;
+    --pico-secondary: #fff; --pico-secondary-border: #fff; --pico-secondary-inverse: #fff;
+    --pico-form-element-background-color: #000; --pico-form-element-border-color: #fff; --pico-card-background-color: #000;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --swiss-red: #FF4433; --paper: #000000; --ink: #FFFFFF; --grey: #A3A3A3; --fog: #161616; --rule: #333333; --aye: #FFFFFF;
+  --pico-background-color: #000; --pico-color: #fff; --pico-muted-color: #A3A3A3; --pico-muted-border-color: #333;
+  --pico-h1-color: #fff; --pico-h2-color: #fff; --pico-h3-color: #fff;
+  --pico-primary: var(--swiss-red); --pico-primary-background: #fff; --pico-primary-inverse: #000; --pico-primary-hover-background: var(--swiss-red); --pico-primary-border: #fff;
+  --pico-secondary: #fff; --pico-secondary-border: #fff; --pico-secondary-inverse: #fff;
+  --pico-form-element-background-color: #000; --pico-form-element-border-color: #fff; --pico-card-background-color: #000;
+}
+
+/* ── where Pico and the kit disagree, the kit's structure stands ─────────── */
+body > header, body > main, body > footer { padding-block: 0; }
+.band, .hero, section.band, .hall-view section { margin-bottom: 0; }
+.masthead nav, .masthead nav a { margin: 0; }
+dialog.site-dialog { position: fixed; inset: 0; margin: auto; display: block; width: min(34rem, calc(100% - 2rem)); min-width: 0; height: fit-content; min-height: 0;
+  max-height: calc(100vh - 2rem); overflow: auto; padding: 0; border: 2px solid var(--ink); background: var(--paper); backdrop-filter: none; }
+dialog.site-dialog:not([open]) { display: none; }
+dialog.site-dialog::backdrop { background: var(--pico-modal-overlay-background-color); }
+.inline-form input, .inline-form select, .inline-form textarea { margin-bottom: .25rem; }
+/* Pico turns every <button> into a filled block and numbers every list; the kit's link-buttons and lists stay as the kit drew them. */
+button.linklike, .linklike { width: auto; background: none; border: 0; padding: 0; margin: 0; color: var(--ink); font: inherit; text-decoration: underline; text-underline-offset: .2em; box-shadow: none; }
+button.linklike:hover { color: var(--swiss-red); background: none; }
+ul[class] > li, ol[class] > li { list-style: none; }
+.track, .track-key, .rule-deck, .items, .bills { padding: 0; margin-left: 0; }
+.nomic-scores > li { list-style: decimal; }
+.site-dialog button, .site-dialog [type=submit] { width: auto; margin-bottom: 0; }
+.site-dialog .buttons, .site-dialog .actions { margin-top: 1rem; }
+.row > :is(input, select) { width: auto; margin: 0; }
+
+/* ── type: one face, tight display, flush left ──────────────────────────── */
+body { background: var(--paper); color: var(--ink); font: 400 1rem/1.45 var(--sans); }
+h1, h2, h3, h4 { font-family: var(--sans); color: var(--ink); text-align: left; }
+h1 { font-weight: 800; letter-spacing: -0.045em; line-height: .92; max-width: none; }
+h1[data-name="full"] { font-size: clamp(4.5rem, 15vw, 11rem); margin-bottom: 1.5rem; }
+h2 { font-size: 1.05rem; font-weight: 800; letter-spacing: 0; }
+.lede { font: 400 clamp(1.15rem, 1.8vw, 1.4rem)/1.4 var(--sans); max-width: 30em; }
+.fine, .meta, .hint { font-size: .85rem; }
+a { color: var(--ink); text-decoration-thickness: 1px; }
+a:hover { color: var(--swiss-red); }
+
+/* ── the masthead: a hairline, nothing else ─────────────────────────────── */
+.masthead { background: var(--paper); box-shadow: none; border-bottom: 1px solid var(--hair); }
+.brand img { border-radius: 0; }
+.masthead nav a { color: var(--ink); }
+.masthead nav a[aria-current="page"] { border-bottom-color: var(--swiss-red); color: var(--ink); }
+
+/* ── the grid: four columns of label, eight of content, hairline above ───── */
+.band { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 1rem 1.5rem; border-top: 1px solid var(--hair); padding-block: 2.5rem 3.5rem; }
+.band > .band-head { grid-column: 1 / span 4; }
+.band > :not(.band-head) { grid-column: 5 / -1; }
+@media (max-width: 52rem) { .band > .band-head, .band > :not(.band-head) { grid-column: 1 / -1; } }
+.band-head p { color: var(--muted); font-size: .92rem; max-width: 24em; }
+.hero { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 1.5rem; padding-block: 3.5rem 4rem; align-items: end; }
+.hero > :first-child { grid-column: 1 / span 8; }
+.hero > :last-child { grid-column: 9 / -1; }
+@media (max-width: 52rem) { .hero > :first-child, .hero > :last-child { grid-column: 1 / -1; } }
+
+/* ── controls: rectangles; Pico's tokens, the kit's classes ─────────────── */
+.primary, .secondary, .hall-view button:not(.linklike) { border-radius: 0; box-shadow: none; font: 600 .9rem/1 var(--sans); padding: .8rem 1.2rem; transform: none; }
+.primary, .hall-view button:not(.linklike):not(.quiet):not(.danger):not(.secondary) {
+  background: var(--pico-primary-background); color: var(--pico-primary-inverse); border: 1px solid var(--pico-primary-border); }
+.primary:hover, .hall-view button:not(.linklike):not(.quiet):not(.danger):not(.secondary):hover { background: var(--pico-primary-hover-background); border-color: var(--pico-primary-hover-border, var(--swiss-red)); opacity: 1; }
+.secondary, .hall-view button.quiet { background: transparent; color: var(--ink); border: 1px solid var(--ink); }
+.secondary:hover, .hall-view button.quiet:hover { background: var(--ink); color: var(--paper); }
+.hall-view button.danger { border-radius: 0; }
+:focus-visible { outline: 2px solid var(--swiss-red); outline-offset: 2px; border-radius: 0; box-shadow: none; }
+
+/* ── whose move: a statement, not a box ─────────────────────────────────── */
+.turn-card { border: 0; border-top: 6px solid var(--swiss-red); border-radius: 0; box-shadow: none; padding: .9rem 0 0; background: none; }
+.turn-card h2 { font-size: .85rem; font-weight: 600; color: var(--muted); margin: 0; }
+.turn-token { font: 800 clamp(2.2rem, 4.5vw, 3.4rem)/1 var(--sans); letter-spacing: -0.03em; margin: .5rem 0 .6rem; display: block; }
+.turn-token::before { content: none; }
+.winner { color: var(--swiss-red); font-weight: 800; }
+
+/* ── the track: twenty-one cells in a strict row ────────────────────────── */
+.track { display: grid; grid-template-columns: repeat(21, minmax(0, 1fr)); gap: 0; border: 1px solid var(--hair); }
+@media (max-width: 52rem) { .track { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
+.sq, .sq:nth-child(4n+1), .sq:nth-child(4n+3) { aspect-ratio: auto; min-height: 4.2rem; background: var(--paper); border: 0; border-right: 1px solid var(--rule); border-radius: 0; padding: .35rem .3rem; }
+.sq:last-child { border-right: 0; }
+.sq.start { background: var(--paper); color: var(--ink); }
+.sq.goal { background: var(--swiss-red); color: #fff; }
+.sq-n { font: 600 .68rem/1 var(--sans); font-variant-numeric: tabular-nums; }
+.token { width: .8rem; height: .8rem; border-radius: 0; border: 1px solid var(--ink); }
+.tok-red { background: var(--swiss-red); border-color: var(--swiss-red); } .tok-ink { background: var(--ink); }
+.tok-yel { background: var(--grey); border-color: var(--grey); } .tok-blu { background: var(--paper); }
+.tok-grn { background: #CFCFCF; border-color: #CFCFCF; } .tok-pnk { background: var(--paper); border: 2px solid var(--swiss-red); }
+.track-key { gap: .3rem 1.6rem; font-size: .88rem; }
+
+/* ── the rules: a numbered column, then the text; immutable numbers in red ─ */
+.rule-deck { display: block; border-top: 1px solid var(--hair); }
+.rule-card, .rule-card:nth-child(odd), .rule-card:nth-child(even) {
+  transform: none; border: 0; border-bottom: 1px solid var(--rule); border-radius: 0; background: none; padding: 1rem 0 1.1rem;
+  display: grid; grid-template-columns: 6rem minmax(0, 1fr); column-gap: 1.5rem; }
+.rule-n { position: static; grid-row: 1 / span 2; background: none; color: var(--ink); font: 800 2.6rem/1 var(--sans); letter-spacing: -0.04em; padding: 0; border-radius: 0; font-variant-numeric: tabular-nums; }
+.rule-card.immutable .rule-n { color: var(--swiss-red); }
+.rule-card h3 { font-size: 1rem; margin: .1rem 0 .3rem; }
+.rule-text { color: var(--muted); font-size: .92rem; max-width: 38em; }
+.rule.immutable, .rule.mutable { border-left: 0; padding-left: 0; }
+.rule.immutable h3::before { content: ""; display: inline-block; width: .6rem; height: .6rem; background: var(--swiss-red); margin-right: .5rem; }
+
+/* ── lists, votes and judgments: hairlines, no cards ────────────────────── */
+.items { display: block; border-top: 1px solid var(--hair); }
+.items > li, .bill-card, .featured { background: none; border: 0; border-bottom: 1px solid var(--rule); border-radius: 0; padding: 1rem 0; box-shadow: none; }
+.bills { gap: 0; border-top: 1px solid var(--hair); }
+.tally { border: 0; height: 4px; border-radius: 0; }
+.verdict { border-radius: 0; font: 700 .72rem var(--sans); letter-spacing: .02em; }
+.v-true { background: var(--ink); color: var(--paper); } .v-false { background: var(--swiss-red); } .v-undecided { background: var(--grey); }
+.nomic-scores .score { font: 800 1.1rem var(--sans); font-variant-numeric: tabular-nums; }
+.nomic-winner { background: var(--swiss-red); color: #fff; border-radius: 0; }
+.tabs { background: var(--paper); box-shadow: inset 0 -1px 0 var(--hair); }
+.tabs a[aria-current] { box-shadow: inset 0 -3px 0 var(--swiss-red); }
+.footer { border-top: 1px solid var(--hair); }
+.token { display: inline-block; flex: none; min-width: .8rem; min-height: .8rem; }
+nav.pager, nav.footer-links, .footer-links { justify-content: flex-start; }
+.pager a, .pager button { border-radius: 0; }
+.tabs { justify-content: flex-start; gap: 1.6rem; }

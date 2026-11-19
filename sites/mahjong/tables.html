@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tables · Mahjong</title>
+<meta name="description" content="Open a mahjong table for you and your friends, with AIs in the empty seats. No account needed.">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<script>try{var p=JSON.parse(localStorage.getItem('site:prefs')||'{}');for(var k in p)document.documentElement.dataset[k]=p[k]}catch(e){}</script>
+<script>try{var m=document.cookie.match(/(?:^|;\s*)mj_theme=([a-z]+)/),t=m?m[1]:localStorage.getItem('mj:theme');t={rosewood:'traditional',jade:'traditional',paper:'minimal',neon:'arcade'}[t]||t;if(t&&t!=='traditional')document.documentElement.dataset.mjTheme=t}catch(e){}</script>
+<link rel="stylesheet" href="site.css">
+<script type="module" src="theme.js"></script>
+<script type="module" src="tables.js"></script>
+</head>
+<body class="mj-page">
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead"></header>
+<main id="main" class="page">
+  <div class="page-head">
+    <h1>Tables</h1>
+    <div data-mj-themes></div>
+    <p class="lede">Open a table, send its link to friends, and start when you are ready. Seats nobody takes are filled by AIs. Nobody needs an account; sign in only if you want the result on your profile.</p>
+  </div>
+  <div class="mj-lobby">
+    <section aria-labelledby="list-h"><h2 id="list-h">Open now</h2><div id="list"><p class="empty">Loading…</p></div></section>
+    <section aria-labelledby="mk-h" class="mj-open">
+      <h2 id="mk-h">Open a table</h2>
+      <form id="mk" class="mj-form">
+        <label for="mk-title">Name</label><input id="mk-title" maxlength="60" placeholder="Friday night">
+        <fieldset><legend>Seats</legend>
+          <div class="mj-mix">
+            <label>東 East <select id="mk-s0"><option value="open" selected>a person</option><option value="1">AI 1</option><option value="2">AI 2</option><option value="3">AI 3</option><option value="4">AI 4</option><option value="5">AI 5</option></select></label>
+            <label>南 South <select id="mk-s1"><option value="open" selected>a person</option><option value="1">AI 1</option><option value="2">AI 2</option><option value="3">AI 3</option><option value="4">AI 4</option><option value="5">AI 5</option></select></label>
+            <label>西 West <select id="mk-s2"><option value="open">a person</option><option value="1">AI 1</option><option value="2">AI 2</option><option value="3" selected>AI 3</option><option value="4">AI 4</option><option value="5">AI 5</option></select></label>
+            <label>北 North <select id="mk-s3"><option value="open">a person</option><option value="1">AI 1</option><option value="2">AI 2</option><option value="3" selected>AI 3</option><option value="4">AI 4</option><option value="5">AI 5</option></select></label>
+          </div>
+        </fieldset>
+        <label for="mk-level">Strength of AIs that fill seats left empty</label>
+        <select id="mk-level"><option value="2">2 · casual</option><option value="3" selected>3 · solid</option><option value="4">4 · plays for value</option><option value="5">5 · sharp</option></select>
+        <label for="mk-rounds">Length</label>
+        <select id="mk-rounds"><option value="1" selected>East round</option><option value="2">East and South</option><option value="4">Full game</option></select>
+        <label for="mk-min">Smallest winning hand</label>
+        <select id="mk-min"><option value="0" selected>Any hand</option><option value="1">1 faan</option><option value="3">3 faan</option></select>
+        <label class="check"><input type="checkbox" id="mk-flowers" checked> Flowers and seasons</label>
+        <div class="actions"><button class="primary" type="submit">Open the table</button></div>
+        <p class="fine" id="mk-note"></p>
+      </form>
+    </section>
+  </div>
+</main>
+<footer class="footer"></footer>
+</body>
+</html>

@@ -1,0 +1,15 @@
+parameters:
+  mahjong.keeper:
+    value: ""
+    type: string
+    changed_by: organic
+    group: Mahjong
+    describe: The member whose node runs the world's live tables and records their results. Empty means the founder.
+  mahjong.max_moves:
+    value: 1500
+    type: integer
+    min: 100
+    max: 20000
+    changed_by: ordinary
+    group: Mahjong
+    describe: The most decisions one player's game may carry, so no record grows without bound.

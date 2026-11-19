@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The language society</title>
+<meta name="description" content="A language built together: coin words, draft the grammar, vote on what becomes the language.">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<script>try{var p=JSON.parse(localStorage.getItem('site:prefs')||'{}');for(var k in p)document.documentElement.dataset[k]=p[k]}catch(e){}</script>
+<link rel="stylesheet" href="site.css">
+<script type="module" src="home.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead"></header>
+
+<main id="main">
+  <section class="hero lex-hero" id="top">
+    <div>
+      <p class="lang-name" id="lang-name"></p>
+      <h1 data-name="full">The language society</h1>
+      <p class="lede">A language that belongs to everyone who speaks it, built one word at a time. Coin a word, draft a rule of grammar, and the society votes. What it adopts is the language.</p>
+      <div class="actions">
+        <button class="primary" id="join" type="button">Join the society</button>
+        <a class="secondary" href="dictionary.html">Open the dictionary</a>
+      </div>
+      <p class="fine" id="join-note"></p>
+    </div>
+    <article class="wotd" id="wotd" aria-labelledby="wotd-h">
+      <h2 id="wotd-h">Today’s word</h2>
+      <div id="wotd-body"><p class="empty">Loading the record…</p></div>
+    </article>
+  </section>
+
+  <section class="band" aria-labelledby="sounds-h">
+    <div class="band-head">
+      <h2 id="sounds-h">The sounds</h2>
+      <p>Every word must be spelled with these letters and split into syllables of this shape. The record refuses anything else.</p>
+    </div>
+    <div class="type-case">
+      <div><h3>Consonants</h3><p class="sorts" id="cons"></p></div>
+      <div><h3>Vowels</h3><p class="sorts" id="vows"></p></div>
+      <div><h3>A syllable</h3><p class="syll" id="syll"></p><p class="fine">C a consonant, V a vowel; what is in brackets may be left out.</p></div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="state-h">
+    <div class="band-head">
+      <h2 id="state-h">The language today</h2>
+      <p id="state-meta"></p>
+    </div>
+    <div class="lex-columns">
+      <div><h3>Newly adopted</h3><ul class="word-list" id="recent"></ul></div>
+      <div><h3>Most wanted coinages</h3><ul class="word-list" id="wanted"></ul><p class="more"><a href="dictionary.html">Second a coinage, or coin your own</a></p></div>
+    </div>
+  </section>
+
+  <section class="band" id="floor" aria-labelledby="floor-h">
+    <div class="band-head">
+      <h2 id="floor-h">Before the society</h2>
+      <p>Words and grammar being voted on now. One vote each.</p>
+    </div>
+    <div id="bills" class="bills"><p class="empty">Loading…</p></div>
+  </section>
+
+  <section class="band" aria-labelledby="gram-h">
+    <div class="band-head">
+      <h2 id="gram-h">The grammar</h2>
+      <p>Sections ratified by the society, chapter by chapter.</p>
+      <p class="more"><a href="grammar.html">Read it all, and the drafts</a></p>
+    </div>
+    <ol class="gram-toc" id="gram"></ol>
+  </section>
+</main>
+
+<footer class="footer"></footer>
+</body>
+</html>

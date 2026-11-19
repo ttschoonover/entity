@@ -1,5 +1,252 @@
 # Changes
 
+## 0.9.34 · Repairs
+
+- athenes.sh repairs an entity an older installer left half-updated (a newer command line on older code): it adds the missing files when that is enough, and otherwise installs the new core, checks that it replays the record exactly, and puts the old code back if not.
+- Radicle publishing at founding gives up after a minute instead of holding the installer; the website's record is not put on Radicle at all.
+- Founding no longer writes DNS records outside poezine.org with the wrong certificate (`athenes.sh dns` writes them).
+
+## 0.9.33 · A plainer website
+
+- The published site no longer shows the count of signed acts in its footer, nor a page listing the record; the footer is only your own line.
+- No square beside the name in the masthead.
+- Empty folders left after a page is taken down are removed.
+
+## 0.9.32 · A personal website kept as a record
+
+- New module **site**: posts, projects, photographs, a résumé and a home page, every version signed and kept. `site.post`, `site.project`, `site.photo`, `site.resume`, `site.profile`; each edit names the version it starts from, so nothing overwrites a change its author has not seen.
+- `make-site.sh` founds a site entity (the founder decides; co-authors by decision).
+- `tools/site.mjs` signs what changed in a folder of Markdown (`sync`), watches it (`watch`), starts posts and projects (`new`). Pictures go into `media/`; a hosted project's folder is packed so the same files always give the same hash.
+- `tools/publish-site.mjs` turns the record into the public site: pages, an Atom feed, a sitemap, thumbnails, a versions page for anything edited, a page listing the record, and a LaTeX PDF (Pandoc and XeLaTeX, Latin Modern) of every post and of the résumé. Hosted projects are unpacked where tsite serves them as SLUG.domain.
+- `tools/import-tsite.mjs` starts the Markdown folder from a tsite site's content.json.
+
+## 0.9.31 · One command to update everything
+
+- `bash athenes.sh`, run from a freshly unzipped athenes.zip, now does everything: installs the new code (keeping the two previous copies), updates every hosted entity, refreshes their websites, writes Lothlórien's pages with their photographs, points DNS at the tunnel and starts it all. Run again with nothing new, it only checks DNS and starts everything, so it is also the command to use after the Pi restarts. `bash athenes.sh update` forces the update step; `bash athenes.sh up` only starts.
+- Entities are updated by their own decisions: `update-republics.sh` proposes each core upgrade and each newer module, preferring the module code in this copy of the library, and votes for them as you. Where you are the only voter they install at once; elsewhere they wait for the other members, and the next run finishes. The installer no longer copies command-line files into entities.
+- `tools/refresh-website.mjs` refreshes a kit website from the new code, file by file: files still as they were built are replaced, files you edited are kept, with the new version beside them as `.new`.
+- `update-lothlorien.sh` takes `PAGES_ONLY=1` to write only the photographs and pages.
+
+## 0.9.30 · Pictures and fuller Markdown
+
+- Texts on kit websites (wiki pages, pledges, anything rendered with Markdown) now support pictures and figures with captions, tables with column alignment, quotations, code spans and blocks, struck text, rules, four levels of heading, and links to other pages of the site (`#/page`). Everything is escaped first; a link or picture keeps only an http(s) address, a page of the site, or a picture in `media/`.
+- Pictures live in each entity's `media/` folder, named by the first 32 hex digits of their SHA-256, so a signed page names exactly one picture and any copy can check it. The folder is committed with the entity and travels over Radicle. Only JPEG, PNG, WebP and GIF are kept, read from the file's first bytes, at most 8 MB.
+- `entity media add <file>`, `media fetch <url>`, `media list` and `media check`. The node accepts `POST /media` from an active member who signs for the picture's hash, and serves `/media/` (members only in a private republic).
+- The wiki editor has an "Add a photo" button that uploads, signs and inserts the Markdown, and a reminder of the Markdown a page may use. Existing entities adopt it by upgrading the wiki module.
+- Wiki pages set as PDF letters print their pictures (from `media/`, or downloaded once from an http(s) address), their tables and their code. Pictures pdflatex cannot set print as their description.
+- Lothlórien: the researched pages gain the 1895 photograph of the North House and an early one of the South House (both public domain, from Wikimedia Commons), a timeline, the room-count comparison, the managers and the workshift limits as tables, and the constitution's description as a quotation. `make-lothlorien.sh` downloads the photographs into the house's `media/`. `update-lothlorien.sh your-id [folder]` brings an existing house up to date: the command line and website, a proposal to upgrade the wiki module, the photographs, and new versions of the pages you wrote.
+
+## 0.9.29 · Researched pages for Lothlórien's wiki
+
+- Five starter pages for the Lothlórien wiki in `presets/lothlorien-wiki/`, each with numbered citations and a sources list: the history of the house (from the 1880s North House to the 2026 constitution), the houses and grounds, council and consensus, workshift, and food and the kitchen. Where sources disagree (the North House's year, the room count, how the One World Family handed the houses over) the page gives both.
+- `make-lothlorien.sh` writes them when it founds the house (`LOTH_SAMPLE_PAGES=0` skips them). `add-lothlorien-pages.sh your-id [folder]` writes them into a house that already exists and leaves any page that is already there alone.
+- The kit's Markdown now makes links: `[text](https://…)` opens in a new tab. The "How to write here" page already promised this.
+- `athenes.sh start` now also starts tsite (tschoonover.com, its project subdomains and poezine.org) on port 8080, the old PHP apps if PHP is installed, and a Radicle sync loop for each entity, so it replaces `~/tsite/deploy/start-all.sh`. It adds tsite's names to the tunnel when they are missing. `status` shows tsite and whether the tunnel runs.
+- `athenes.sh dns` writes the DNS record for every poezine.org name in the tunnel and prints the CNAME records to add by hand for tschoonover.com, since `cloudflared tunnel route dns` only writes in the zone chosen at login.
+- Wiki pages set as letters print a link as its text with the address after it in small type, broken after slashes; a link whose text is the site's name prints the address alone. Entities already holding the letters module keep their installed copy until they adopt the new one.
+
+## 0.9.28 · The International Co-operative Housing Federation
+
+- **make-ichf.sh, sites/ichf:** the ICHF (International Co-operative Housing
+  Federation · Fédération internationale de l'habitat coopératif) and two
+  national federations, the NACHF (English, French, Spanish) and the FFHC
+  (French), each its own entity, on one website with its own stylesheet. The
+  ICHF is officially bilingual: its names, mottos, founding texts, chat
+  channels, letterheads and website exist in English and French, with a switch
+  in the masthead. A Council of Federations (three delegates each) and a General
+  Assembly (fifteen seats by membership) decide together; Co-Presidents, a
+  Secretary-General and a Treasurer are elected by all members; Executive,
+  Clearing and Translation Committees; labor credits (1.00 = one hour of
+  co-operative work), paid for verified work and sent between members of any
+  federation; wiki, chat, letters and voting.
+- **republic:** `republic.acronym`, `republic.languages` and `republic.names`
+  (a name, acronym and motto in each official language).
+
+## 0.9.27 · Lothlórien, the Society's board, and opening balances
+
+- **make-lothlorien.sh, sites/lothlorien:** a members-only house wiki, private
+  from the first request, in its own quiet paper-and-moss stylesheet.
+- **upgrade-society.sh:** turns an existing Digital Republic Society into the
+  planning society for new cooperatives in place, by four motions of the
+  Conclave: the letters module; five planning rooms on the board, moderated by
+  the Warden; the Conclave's letterhead; the Manifesto (presets/drs-manifesto.md)
+  adopted on the wiki and issued as a signed letter. Safe to re-run.
+- **The wiki as letters:** `entity letter wiki [PAGE…] [--pdf]` sets each page
+  on a letterhead (the version in force, or the latest) in letters/wiki/. With
+  node.json `"wikiLetters": { "letterhead": … }` the node re-renders whenever a
+  page changes. The node serves letters/ at /letters/, to signed-in members
+  only on a private site. The Letters tab lists them.
+- **fund.opening:** a club that already holds money and securities brings them
+  into its books once, by decision: cash, each holding with its cost basis and
+  price, and every partner's capital account, which must add up.
+  **import-holdings.sh** reads presets/holdings-template.csv, sets partnership
+  units to capital, and lays the resolution. The club (make-club.sh) now keeps
+  books with the fund module, kept by the Treasurer under a published grant.
+- **kit:** wiki pages render their Markdown; a private site's footer no longer
+  calls its record public.
+
+## 0.9.26 · The Commune
+
+- **make-commune.sh, sites/commune:** the People's Commune of the Long Table, a
+  council-communist micronation on windows. A Congress of all comrades; a
+  Council of seven delegates elected by season (90 days) and recallable by any
+  ordinary motion, making laws that wait fourteen days for a petition of one
+  comrade in ten; a Presidium of three that acts only unanimously and issues
+  decrees within a grant (`where: { type: decree }`); five People's Commissars
+  each within a published grant; a Control Commission that hears disputes.
+  Laws are typed fundamental, organic, law, decree, plan and parametric. Work is
+  paid one labour voucher per verified hour (tasks, value), and vouchers cannot
+  be transferred. A flag, motto, anthem, calendar of seasons, holidays, honours
+  and two letterheads. The website shows the comrades as chairs around a round
+  table, the organs of power from the Congress down, labour and the Plan, the
+  Fundamental Law and the symbols.
+- **letters:** title cards (`#`), passages in smaller type (`>`), a star in
+  seals, three-column signatures kept together on one page.
+
+## 0.9.25 · Letters
+
+- **letters (new module):** official letters on standard letterheads. A
+  letterhead belongs to the members, an office or a committee; a letter on it
+  is issued only by that issuer: the members by decision, an office or
+  committee through a grant it holds. A committee issues jointly, by a majority
+  or (`joint: all`) unanimously, and the letter names who signed and whether it
+  was unanimous. Letters show their signatories, each with a drawn signature if
+  they have deposited one (`letter.specimen`). A house style (`letters.face`,
+  `letters.accent`, `letters.layout`, …) that each letterhead may adjust; a
+  round seal set in small capitals. Letters are withdrawn under the same
+  authority, with a published reason; an amended letterhead never changes a
+  letter already issued.
+- **cli:** `entity letter` lists, shows, issues, co-signs and withdraws letters,
+  and renders any letter, or a specimen of a letterhead, as LaTeX and PDF.
+- Sample letterheads: Lothlórien's Finance Manager; the VDR's Ministry of
+  External Affairs and Executive Committee (by majority, and unanimous).
+
+## 0.9.24 · Amending the partnership agreement
+
+- **The partnership agreement is amended by a supermajority:** a joint-super
+  resolution, two thirds of the partners and two thirds of the units
+  (section 5.4). Amendments that add contributions or liability, or take away
+  withdrawal or inspection, still need each affected partner's consent (5.5).
+- **Single readings:** the partnership preset sets every rule to one vote;
+  make-club.sh no longer moves the constitution to two readings a month apart.
+- **A rule-typed parameter is changed under the rule it names, if stronger**
+  (core): lowering the bar for amending the agreement takes clearing it.
+  `wiki.enact_rule` is now of type `rule`, so it may name a preset's own rules.
+
+## 0.9.23 · The investment club
+
+- **Concurrent rules (core):** a rule may name a second electorate
+  (`concurrent: "shares:units"`): the same ballots are counted again, by units,
+  and the proposal carries only if both counts carry. Presets may add rules of
+  their own (`rules:` and `order:`). A parameter may be of type `rule`.
+- **partnership:** associations joined by decision, claims on profits and on
+  assets granted and ended under their own rules, and partnership certificates
+  read from the record: issued on admission and reissued whenever units change.
+- **elections.incompatible:** offices one person may not hold together.
+- **make-club.sh, presets/partnership.yml, sites/club:** an investment club as a
+  California general partnership: joint, associate (60%) and joint-super rules;
+  Treasurer, Secretary and Audit Committee, each elected on its own; the Audit
+  Committee alone signs checkpoints; a private website with the register,
+  resolutions counted by partners and by units, associations, and printable
+  certificates; a draft partnership agreement and a compliance checklist.
+- **cli:** `entity propose` accepts `--admit` alone.
+
+## 0.9.22 · The Federal Bank
+
+- **value:** a committee may hold units, in an account named `committee:ID`.
+  Units are issued into it (`value.issue`), destroyed from it (`value.revoke`) and
+  paid out of it (`value.pay`, new) only by decision or through a grant of power;
+  members may send units to it. Committee accounts have no vote under the
+  `value` electorate.
+- **sites/federation/bank.html:** the Federal Bank's page: the reserve, the money
+  in circulation and the total; motions to issue or destroy, each member's vote,
+  and what was decided.
+- **make-federal-bank.sh:** sets it up in a federation that exists: upgrades the
+  code and the value module, installs committees and authority, creates the
+  committee federal-bank with powers bank-issue and bank-destroy, and adds the
+  page. It votes for every member whose key (or password) it is given.
+
+## 0.9.21 · Documents
+
+- **docs:** documents written together. Your own: encrypted in your browser,
+  shared by role (viewer, commenter, editor, owner) with a person, every member,
+  an office or a committee; archived or left. The entity's: created by decision,
+  drafted by whoever it names, and changed only when a decision (or a committee
+  or office granted `docs.adopt`) adopts a draft, from the version in force. A
+  document may ask for a stricter rule than `docs.adopt_rule`.
+- **The text never goes on the record.** Versions, comments and key wraps are
+  content-addressed files in `documents/`, each signed by its author and checked
+  against the record by the node and again by every page. Encrypted documents
+  are sealed per epoch (X25519 → HKDF → AES-GCM); removing someone starts a new
+  epoch at the next opening. Radicle carries `documents/` with the repository,
+  and `entity sync` takes peers' files that match their names.
+- **docs.html** in the site kit, linked from every site's masthead when the
+  module is on: library, Markdown editor with preview, three-way merge when two
+  people save at once, comments on passages, history with redlines, drafts,
+  votes, sharing. `make-docs.sh` founds a writing room with it as the home page;
+  `add-docs.sh` adds it to republics that exist.
+- **gate:** `documents/` needs no decision to change (the record decides who may write it).
+- **cli:** `entity propose --admit id[,id]` admits applicants by decision.
+
+## 0.9.20 · Own websites come first
+
+- **serve:** a republic with its own website (`"site"` in node.json, as every
+  `make-*.sh` with a `sites/` folder sets) now serves that website at `/` even
+  when the page module is installed. Before, installing the page module (which
+  `update-republics.sh` does) silently replaced a window site with the standard page.
+- **update-republics.sh:** no longer installs the page module in a republic that
+  has its own website.
+- **Mahjong looks:** Traditional, Minimal, Swiss, Art Deco, Arcade and High
+  contrast, each its own design, kept in a cookie. `setup-games.sh` sets up Nomic
+  and a mahjong world on the Pi, Radicle and the tunnel, picking free ports.
+
+## 0.9.19 · Mahjong
+
+- **mahjong:** Hong Kong mahjong on a deterministic engine with an AI of
+  strength 1–5. Solo games for a member's profile (the deal's own record hash
+  is the shuffle; the finished game is replayed by the record before it counts)
+  and the results of multiplayer tables, replayed with seeds that must match
+  their commitments.
+- **Live tables (`cli/mahjong.js`):** friends sit with a name and a browser-made
+  key, no account; AIs fill empty seats; commit-and-reveal walls checked in every
+  browser; timers for claims and turns; finished matches recorded by the keeper.
+- **`sites/mahjong`:** a rosewood table with ivory tiles; solo play, tables,
+  standings; and `mahjong-solo.html`, the whole game in one offline file.
+- **`make-mahjong-world.sh`:** one world per run, each its own entity and Radicle repository.
+
+## 0.9.18 · Nomic, a conlang society, and a betting club
+
+- **nomic:** the game where changing the rules is a move. Mutable and immutable
+  rules, turns, points for passing proposals, winning and new games, and calls
+  for judgment answered by an appointed judge.
+- **lexicon:** a constructed language made by vote. A dictionary whose every
+  word must fit the language's own sound system (letters and syllable shape are
+  settings the record enforces), seconding, adoption in batches, and a grammar
+  ratified section by section.
+- **wagers:** bets in points, never money: pools, over/under lines, head-to-head
+  challenges and an LMSR prediction market, held in escrow and resolved by an
+  elected arbiter who may not bet, with appeals to a vote.
+- **Three websites on the kit, each with its own look:** `sites/nomic` (a game
+  board on graph paper), `sites/conlang` (a field linguist's lexicon),
+  `sites/wagers` (a racecourse tote board). A site's `site.css` now imports the
+  kit's stylesheet as `kit.css`, so its look reaches every page, the kit's own
+  pages too.
+- **`make-nomic.sh`, `make-conlang.sh`, `make-wagers.sh`**, sharing
+  `found-common.sh`.
+
+## 0.9.17 · Digital state symbols
+
+- **Favicons for the VDR and the Federation**, drawn to the pixel at 16 and 32
+  px, with dark and one-colour versions, an SVG favicon that switches to the dark
+  field in dark mode, PNGs, and an app icon cropped from each flag
+  (`sites/<state>/icons`). Every site page now links them.
+- **The founding seal** (`interface/js/seal.js`): an emblem drawn only from the
+  hash of an entity's first record. `entity symbols seal` draws it;
+  `entity symbols fingerprint` gives the SHA-256 of files.
+- **`adopt-symbols.sh`** installs the icons and seal on a state's website and
+  lays the Symbols Act, with every fingerprint and the genesis hash written in:
+  a statutory law in the VDR, a motion in the Federation.
+
 ## 0.9.16 · Rooms and direct messages
 
 - **Direct messages.** Members write to each other directly. Each message is

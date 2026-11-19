@@ -1,0 +1,52 @@
+parameters:
+  loans.currency:
+    value: USD
+    type: string
+    changed_by: organic
+    group: Loans
+    describe: The currency loans are made in. The record keeps the books; the money itself is held by the treasurer.
+  loans.decimals:
+    value: 2
+    type: integer
+    min: 0
+    max: 4
+    changed_by: organic
+    group: Loans
+    describe: Decimal places. With 2, amounts are in cents, and 25000 is 250.00.
+  loans.max_amount:
+    value: 50000
+    type: integer
+    min: 0
+    max: 1000000000
+    changed_by: organic
+    group: Loans
+    describe: The most a single loan may be, in the smallest unit (0 for no limit).
+  loans.max_open:
+    value: 1
+    type: integer
+    min: 1
+    max: 20
+    changed_by: organic
+    group: Loans
+    describe: How many loans one member may have outstanding at once.
+  loans.fund_rule:
+    value: organic
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Loans
+    describe: The rule under which capital is added to the loan fund by decision.
+  loans.lend_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Loans
+    describe: The rule under which loans are made and repayments recorded by decision. A lending committee or the treasurer can be granted these instead.
+  loans.forgive_rule:
+    value: organic
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Loans
+    describe: The rule under which what is left of a loan is forgiven.

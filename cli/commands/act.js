@@ -31,7 +31,8 @@ export async function propose({ opt }) {
   if (opt.text) fields.text = String(opt.text);
   if (opt.effects) fields.effects = value(opt.effects);
   if (opt.changes) fields.changes = value(opt.changes);
-  if (!fields.effects && !fields.changes) refuse('give --effects \'[{"kind":…}]\' and/or --changes \'{"key":value}\'');
+  if (opt.admit) fields.admit = String(opt.admit).split(',').map(s => s.trim()).filter(Boolean);
+  if (!fields.effects && !fields.changes && !fields.admit) refuse('give --effects \'[{"kind":…}]\', --changes \'{"key":value}\' and/or --admit id[,id]');
   fields.rule = opt.rule || required(e.params, fields, e.registry).name;
   const a = await signed(e, 'proposal.lay', fields, opt);
   store.writePending(e.dir, a);

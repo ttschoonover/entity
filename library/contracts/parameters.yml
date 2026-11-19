@@ -1,0 +1,17 @@
+parameters:
+  contracts.release_days:
+    value: 3
+    type: integer
+    min: 0
+    max: 60
+    changed_by: organic
+    group: Contracts
+    describe: Days the payer has, after the provider marks a contract done, to confirm or dispute it. After that the provider may collect the payment.
+  contracts.max_amount:
+    value: 0
+    type: integer
+    min: 0
+    max: 1000000000
+    changed_by: organic
+    group: Contracts
+    describe: The most a single contract may be for, in the smallest unit (0 for no limit).

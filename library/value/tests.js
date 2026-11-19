@@ -34,3 +34,41 @@ test('value: revocation and the supply cap', async () => {
   assert.equal(back.enacted, true);
   assert.equal(w.state.m.value.balances['p-0002'], 15);
 });
+
+test('value: a committee keeps a reserve, issued into and destroyed from it only by the committee\'s vote', async () => {
+  const w = await worldWith(['value', 'committees', 'authority'], { people: 3 });
+  const [a, b, c] = w.ids;
+  const bank = 'committee:federal-bank';
+  const r = await decide(w, { title: 'A federal bank', rule: 'organic', effects: [
+    { kind: 'committee.create', committee: 'federal-bank', title: 'Federal Bank', needs: 'majority' },
+    { kind: 'committee.appoint', committee: 'federal-bank', member: a },
+    { kind: 'committee.appoint', committee: 'federal-bank', member: b },
+    { kind: 'authority.grant', grant: 'bank-issue', title: 'Issuing currency', to: { committee: 'federal-bank' }, may: ['value.issue'], where: { to: bank } },
+    { kind: 'authority.grant', grant: 'bank-destroy', title: 'Destroying currency', to: { committee: 'federal-bank' }, may: ['value.revoke'], where: { from: bank } },
+  ] });
+  assert.ok(r.enacted, r.notEnacted || r.refused?.[0]?.reason);
+  const act = async (kind, by, f) => w.settle(await w.sign(kind, by, f));
+  // One member moves to issue; nothing happens until the other votes for it (a majority of two is two).
+  const m = await act('authority.exercise', a, { grant: 'bank-issue', effects: [{ kind: 'value.issue', to: bank, amount: 1000, memo: 'first issue' }] });
+  assert.equal(m.refused.length, 0, m.refused[0]?.reason);
+  assert.equal(w.state.m.value?.supply || 0, 0);
+  const id = Object.keys(w.state.m.authority.exercises)[0];
+  assert.match((await act('authority.cosign', c, { exercise: id })).refused[0].reason, /only members/);
+  assert.equal((await act('authority.cosign', b, { exercise: id })).refused.length, 0);
+  assert.equal(w.state.m.value.balances[bank], 1000);
+  assert.equal(w.state.m.value.supply, 1000);
+  // The grant reaches only the bank's own account.
+  assert.match((await act('authority.exercise', a, { grant: 'bank-issue', effects: [{ kind: 'value.issue', to: a, amount: 5 }] })).refused[0].reason, /outside this grant/);
+  // Destroying: moved and seconded; never more than the reserve holds.
+  assert.match((await act('authority.exercise', b, { grant: 'bank-destroy', effects: [{ kind: 'value.revoke', from: bank, amount: 1001 }] })).refused[0].reason, /holds only 1000/);
+  await act('authority.exercise', b, { grant: 'bank-destroy', effects: [{ kind: 'value.revoke', from: bank, amount: 400 }] });
+  const d = Object.keys(w.state.m.authority.exercises).at(-1);
+  await act('authority.cosign', a, { exercise: d });
+  assert.equal(w.state.m.value.balances[bank], 600);
+  assert.equal(w.state.m.value.supply, 600);
+  // Paid out by decision; members may deposit; the reserve has no vote.
+  assert.ok((await decide(w, { title: 'A grant', rule: 'organic', effects: [{ kind: 'value.pay', from: bank, to: c, amount: 100 }] })).enacted);
+  assert.equal((await act('value.transfer', c, { to: bank, amount: 40 })).refused.length, 0);
+  assert.equal(w.state.m.value.balances[bank], 540);
+  assert.match((await decide(w, { title: 'Bad', rule: 'organic', effects: [{ kind: 'value.issue', to: 'committee:nobody', amount: 1 }] })).refused[0].reason, /no committee/);
+});

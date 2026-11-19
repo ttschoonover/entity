@@ -4,4 +4,4 @@
 //   republic.short_name       the name in running text ("the Virtual Democratic Republic")
 //   republic.privacy_contact  who answers questions and requests about personal data
 //   republic.min_age          the youngest age at which a person may become a citizen
-export default { name: 'republic', core: '0.7.7', install() {}, parameterKeys: ['republic.motto', 'republic.short_name', 'republic.privacy_contact', 'republic.min_age'] };
+export default { name: 'republic', core: '0.7.7', install() {}, parameterKeys: ['republic.motto', 'republic.short_name', 'republic.privacy_contact', 'republic.min_age', 'republic.acronym', 'republic.languages', 'republic.names'] };

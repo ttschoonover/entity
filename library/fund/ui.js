@@ -122,11 +122,11 @@ export default function render(api) {
   // The ledger, and a copy for the accountant.
   sec.append(h('h3', {}, 'Ledger'), api.list({
     key: 'fund-ledger', items: f.ledger, noun: 'entries', head: ['When', 'What', 'Amount', 'By'],
-    row: (x) => h('tr', {}, h('td', {}, day(x.at)), h('td', {}, x.kind === 'contribution' ? `paid in by ${x.member}` : x.kind === 'withdrawal' ? `paid out to ${x.member}` : x.kind === 'buy' || x.kind === 'sell' ? `${x.kind} ${shares(x.quantity)} ${x.symbol} at ${$$(x.price)}` : x.kind === 'valuation' ? `prices recorded; value ${$$(x.nav)}` : `${x.kind}: ${x.memo}`),
+    row: (x) => h('tr', {}, h('td', {}, day(x.at)), h('td', {}, x.kind === 'contribution' ? `paid in by ${x.member}` : x.kind === 'withdrawal' ? `paid out to ${x.member}` : x.kind === 'buy' || x.kind === 'sell' ? `${x.kind} ${shares(x.quantity)} ${x.symbol} at ${$$(x.price)}` : x.kind === 'valuation' ? `prices recorded; value ${$$(x.nav)}` : x.kind === 'opening' ? `opening balances as of ${x.as_of}: ${$$(x.cash)} cash, ${x.holdings.length} holding(s); value ${$$(x.nav)}` : `${x.kind}: ${x.memo}`),
       h('td', {}, x.amount !== undefined ? $$(x.amount) : ''), h('td', {}, x.by)),
     text: (x) => `${x.kind} ${x.member || ''} ${x.symbol || ''} ${x.memo || ''}`,
     sorts: [['Newest first', api.sorts.newest()], ['Oldest first', api.sorts.oldest()]],
-    filters: [{ label: 'Kind', options: [['Everything', () => true], ...['contribution', 'withdrawal', 'buy', 'sell', 'income', 'expense', 'valuation'].map(k => [k, (x) => x.kind === k])] }],
+    filters: [{ label: 'Kind', options: [['Everything', () => true], ...['opening', 'contribution', 'withdrawal', 'buy', 'sell', 'income', 'expense', 'valuation'].map(k => [k, (x) => x.kind === k])] }],
   }), h('div', { class: 'buttons' }, h('button', { class: 'quiet', onclick: () => {
     const rows = [['date', 'kind', 'member', 'symbol', 'quantity', 'price', 'fees', 'amount', 'units', 'realized', 'memo', 'by']].concat(f.ledger.map(x => [x.at, x.kind, x.member || '', x.symbol || '', x.quantity ? x.quantity / 1e6 : '', x.price ? x.price / 100 : '', x.fees ? x.fees / 100 : '', x.amount !== undefined ? x.amount / 100 : '', x.units ? x.units / 1e6 : '', x.realized ? x.realized / 100 : '', x.memo || '', x.by]));
     const csv = rows.map(r => r.map(v => /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v).join(',')).join('\n') + '\n';

@@ -4,8 +4,8 @@
 export default {
   body: 'the federation',
   about: 'is a federation of states, each with its own citizens and government, sharing a senate, an assembly and one currency.',
-  pages: [['index.html', 'Home'], ['hall.html#/proposals', 'Votes'], ['hall.html', 'Institutions'], ['chat.html', 'Chat', 'chat']],
-  order: ['federation', 'value', 'parties', 'offices', 'elections', 'wiki', 'authority'],
+  pages: [['index.html', 'Home'], ['hall.html#/proposals', 'Votes'], ['hall.html', 'Institutions'], ['bank.html', 'Federal Bank', 'committees'], ['docs.html', 'Documents', 'docs'], ['chat.html', 'Chat', 'chat']],
+  order: ['federation', 'value', 'committees', 'authority', 'parties', 'offices', 'elections', 'wiki'],
   institutions: ({ many }) => ({
     federation: ['The states', 'Every state, its citizens, and whom it sends to the senate and the assembly.'],
     value: ['Currency', `The federal currency, held and sent by ${many} of every state.`],

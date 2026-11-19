@@ -18,6 +18,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { parseLines } from '../kernel/record.js';
+import { hash } from '../kernel/hash.js';
+import { canonical } from '../kernel/canonical.js';
 import { nodeId } from '../kernel/keys.js';
 import { BUNDLE_FORMAT } from '../kernel/transport.js';
 
@@ -33,7 +35,9 @@ export function runner(dir, dest = {}) {
     try {
       return execFileSync(cmd, args, { cwd: dir, env, input, encoding: buffer ? 'buffer' : 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout: timeout || dest.timeout || 60000, maxBuffer: 256e6 });
     } catch (e) {
-      const why = (e.stderr?.toString() || e.message).replace(/\x1b\[[0-9;]*m/g, '').trim().split('\n').filter(Boolean).pop();
+      // rad often prints its error on stdout, so look at both before falling back to the bare "Command failed".
+      const said = [e.stderr, e.stdout].map(x => (x ? x.toString() : '').replace(/\x1b\[[0-9;]*m/g, '').trim()).filter(Boolean).join('\n');
+      const why = e.code === 'ETIMEDOUT' ? `timed out after ${(timeout || dest.timeout || 60000) / 1000}s` : (said.split('\n').filter(l => /error|✗|fail|denied|passphrase|agent/i.test(l)).pop() || said.split('\n').filter(Boolean).pop() || e.message);
       const err = new Error(`${cmd} ${args[0]}: ${why}`); err.code = e.code; throw err;
     }
   };
@@ -94,6 +98,28 @@ export function bundleFromRef(run, ref) {
   };
 }
 
+// Document files (the docs module) a peer holds and this copy does not. They
+// are content-addressed, so a file is taken only if it matches its name; the
+// node and every page check it against the record before using it.
+export function importDocuments(run, ref, dir) {
+  let list = '';
+  try { list = run('git', ['ls-tree', '-r', '--name-only', ref, '--', 'documents']); } catch { return 0; }
+  let n = 0;
+  for (const p of list.split('\n')) {
+    const m = p.match(/^documents\/([a-z0-9_][a-z0-9-]{0,39})\/([0-9a-f]{64})\.json$/);
+    if (!m) continue;
+    const f = path.join(dir, p);
+    if (fs.existsSync(f)) continue;
+    let b; try { b = JSON.parse(run('git', ['show', `${ref}:${p}`])); } catch { continue; }
+    const { sig, id, ...rest } = b || {};
+    if (!sig || id !== m[2] || hash(canonical(rest)) !== m[2]) continue;
+    fs.mkdirSync(path.dirname(f), { recursive: true });
+    fs.writeFileSync(f, JSON.stringify(b) + '\n');
+    n++;
+  }
+  return n;
+}
+
 export default function radicle(dest, { dir }) {
   const run = runner(dir, dest);
   const branch = dest.branch || 'main';
@@ -151,6 +177,8 @@ export default function radicle(dest, { dir }) {
         catch (e) { notes.push(`${name}: ${e.message}`); continue; }
         const bundle = bundleFromRef(run, `${name}/${branch}`);
         if (bundle) out.push({ source: `${name} (${nid.slice(0, 12)}…)`, bundle });
+        try { const n = importDocuments(run, `${name}/${branch}`, dir); if (n) notes.push(`${name}: ${n} document file${n === 1 ? '' : 's'}`); }
+        catch (e) { notes.push(`${name} documents: ${e.message}`); }
       }
       out.notes = notes;
       return out;

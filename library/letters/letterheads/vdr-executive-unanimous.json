@@ -1,0 +1,18 @@
+{
+  "letterhead": "vdr-executive-unanimous",
+  "issuer": "committee:executive",
+  "joint": "all",
+  "name": "Virtual Democratic Republic",
+  "title": "The Executive Committee",
+  "subtitle": "By unanimous resolution",
+  "contact": [
+    "vdr.poezine.org"
+  ],
+  "seal_top": "Virtual Democratic Republic",
+  "seal_bottom": "Executive Committee",
+  "style": {
+    "accent": "5A1A2B",
+    "emblem": "seal",
+    "emblem_text": "VDR"
+  }
+}

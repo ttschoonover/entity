@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>People’s Commune of the Long Table</title>
+<meta name="description" content="A council commune run online. Comrades make laws in a Congress and a Council of recallable delegates, work for labour vouchers, and hold their things in common, all on a public record.">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32"><link rel="icon" href="icons/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<script>try{var p=JSON.parse(localStorage.getItem('site:prefs')||'{}');for(var k in p)document.documentElement.dataset[k]=p[k]}catch(e){}</script>
+<link rel="stylesheet" href="site.css">
+<script type="module" src="commune.js"></script>
+</head>
+<body class="commune">
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead"></header>
+
+<main id="main">
+  <section class="hero" id="top">
+    <div>
+      <p class="kicker" id="calendar">The Commune</p>
+      <h1 data-name="full">People’s Commune of the Long Table</h1>
+      <p class="motto-line" data-motto hidden></p>
+      <p class="lede">A commune run online. Every comrade sits in the Congress; a Council of seven delegates makes the laws and can be recalled at any moment; work is paid one voucher an hour, whatever the work; and everything is kept on a public record that anyone can check.</p>
+      <div class="actions">
+        <button class="primary" id="join" type="button">Become a comrade</button>
+        <a class="secondary" href="laws.html#law/fundamental-law">Read the Fundamental Law</a>
+      </div>
+      <p class="fine" id="join-note"></p>
+    </div>
+    <figure class="table-fig" aria-describedby="table-caption">
+      <div id="table" class="long-table" role="img" aria-label="The table: each chair is a comrade"></div>
+      <figcaption id="table-caption">
+        <p id="table-title">Loading the record…</p>
+        <ul class="legend" id="legend" hidden>
+          <li data-when="idle"><span class="key citizen"></span>Comrade</li>
+          <li data-when="bill"><span class="key aye"></span>For</li>
+          <li data-when="bill"><span class="key no"></span>Against</li>
+          <li data-when="bill"><span class="key abstain"></span>Abstaining</li>
+          <li data-when="bill"><span class="key pending"></span>Not yet voted</li>
+          <li data-when="open"><span class="key open"></span>Empty chair</li>
+          <li><span class="key yours"></span>Kept for whoever comes next</li>
+        </ul>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section class="band" id="floor" aria-labelledby="floor-h">
+    <div class="band-head">
+      <h2 id="floor-h">Before the Congress</h2>
+      <p>The motions every comrade is voting on now. You can change your vote until a motion closes.</p>
+    </div>
+    <div id="bills" class="bills"><p class="empty">Loading…</p></div>
+    <details class="propose" id="propose" hidden>
+      <summary>Move a motion</summary>
+      <form id="propose-form">
+        <label for="p-title">Title</label>
+        <input id="p-title" required maxlength="200" placeholder="Move the bicycle pump to the lending list">
+        <label for="p-text">Text</label>
+        <textarea id="p-text" rows="4" placeholder="The Congress resolves that…"></textarea>
+        <button class="primary" type="submit">Move it</button>
+        <p class="fine">Voting opens as soon as you sign it. Laws, recalls and changes to the Fundamental Law are drafted on the <a href="laws.html">Laws</a> page.</p>
+      </form>
+    </details>
+  </section>
+
+  <section class="band" id="power" aria-labelledby="power-h">
+    <div class="band-head">
+      <h2 id="power-h">Where power sits</h2>
+      <p>The Congress of every comrade sits at the top. Each organ below answers to the ones above it, and every officer can be recalled by the Congress at any moment.</p>
+    </div>
+    <ol class="organs" id="organs"></ol>
+    <div class="lawmaking">
+      <h3>How a law is made</h3>
+      <ol class="steps">
+        <li><b>A delegate lays a bill</b> in the Council, stating the law's type, its tags, who enforces it and on whom.</li>
+        <li><b>The Council votes</b> for seven days, in public. A law needs a simple majority of delegates; an organic law, two thirds.</li>
+        <li><b>The Congress may intervene.</b> For fourteen days after it passes, one comrade in ten can petition to send the bill to every comrade, who then decide it.</li>
+        <li><b>It comes into force,</b> unless petitioned, and goes into the statute book with who made it and how.</li>
+        <li><b>Or the Congress acts alone.</b> Any comrade may put a law, a repeal or a recall straight to the Congress. Only the Congress amends the Fundamental Law.</li>
+        <li><b>Decrees.</b> The Presidium may issue decrees, all three members signing, at most ten a season. The Council or the Congress can repeal any of them.</li>
+      </ol>
+    </div>
+    <div id="elections" class="elections"></div>
+    <p class="more"><a href="hall.html#/elections">Elections</a> · <a href="hall.html#/offices">Delegates and Commissars</a> · <a href="hall.html#/authority">Published grants</a> · <a href="hall.html#/parliament">The Council</a></p>
+  </section>
+
+  <section class="band" id="labour" aria-labelledby="labour-h">
+    <div class="band-head">
+      <h2 id="labour-h">Labour and the Plan</h2>
+      <p>One verified hour of work pays one labour voucher, whatever the work and whoever does it. Vouchers cannot be sold or given away, only spent.</p>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="labour-cols">
+      <div><h3>Work wanted</h3><ul id="work" class="plain-list"></ul><p class="more"><a href="hall.html#/tasks">The whole list of work</a></p></div>
+      <div><h3>The Plan this season</h3><ul id="plan" class="plain-list"></ul><p class="more"><a href="hall.html#/budget">The Plan</a> · <a href="hall.html#/lending">Borrow something</a></p></div>
+    </div>
+  </section>
+
+  <section class="band" id="law" aria-labelledby="law-h">
+    <div class="band-head">
+      <h2 id="law-h">The Fundamental Law</h2>
+      <p id="law-meta"></p>
+    </div>
+    <div class="const-teaser">
+      <div id="law-text" class="statute"><p class="empty">Loading…</p></div>
+      <ol id="law-toc" class="const-toc"></ol>
+      <p class="actions"><a class="primary" href="laws.html#law/fundamental-law">Read the Fundamental Law</a><a class="secondary" href="laws.html">All laws and decrees</a></p>
+    </div>
+  </section>
+
+  <section class="band" id="decided" aria-labelledby="decided-h">
+    <div class="band-head"><h2 id="decided-h">Recent decisions</h2><p>The last motions to close.</p></div>
+    <ol id="decisions" class="decisions"></ol>
+  </section>
+
+  <section class="band symbols" id="symbols" aria-labelledby="symbols-h">
+    <div class="band-head"><h2 id="symbols-h">The symbols of the Commune</h2><p>Article 12 of the Fundamental Law.</p></div>
+    <div class="flag-band">
+      <img class="flag-large" src="flag.svg" alt="The flag: a cream round table seen from above on a red field, with twelve cream chairs around it, one of them empty and outlined in gold, and a gold star at the centre of the table." width="900" height="600">
+      <div>
+        <h3>The flag</h3>
+        <p>A round table seen from above, so that no seat is at its head. Each cream chair is a comrade; every chair is the same size. The gold star at the centre is what the comrades hold in common.</p>
+        <p>The chair at the top is empty and outlined in gold. It is kept for whoever comes next.</p>
+        <p class="fine">Proportions 3:2. Red #A3241C, cream #F4EAD8, gold #D9A62E.</p>
+      </div>
+    </div>
+    <div class="symbol-grid">
+      <div class="symbol"><h3>The motto</h3><p class="serif big">From each according to ability, to each according to need.</p><p class="fine"><i>De chacun selon ses capacités, à chacun selon ses besoins.</i> Karl Marx, 1875.</p></div>
+      <div class="symbol"><h3>The anthem</h3><p class="fine">The Long Table. Sung slowly, standing, in any key the room can manage.</p>
+        <div class="anthem serif">
+          <p>Come down when the kettle is singing,<br>there’s a chair with your name on the wall;<br>what we carry, we carry together,<br>and the table is long enough for all.</p>
+          <p class="chorus">Pull up a chair, comrade, pull up a chair,<br>the bread is still warm and the reckoning’s fair;<br>from each what they can, and to each what they lack,<br>and one chair kept empty, with no name on its back.</p>
+          <p>We counted the hours by lamplight,<br>every hour the same as the rest:<br>the drafting of laws and the washing of pots,<br>and the grease trap, which nobody likes best.</p>
+          <p>And if ever we part on a question,<br>we will part as we sat, side by side,<br>with a copy of all that we did in our pockets,<br>and the door of the kitchen left wide.</p>
+        </div></div>
+      <div class="symbol"><h3>The calendar and holidays</h3><p id="cal-long" class="serif">…</p>
+        <ul class="plain-list" id="holidays"></ul>
+        <p class="fine">The Commune counts its years from its founding and divides each into four seasons of ninety days, which are also the terms of its delegates and commissars. The odd days left over at the end of a year belong to nobody and are spent on the washing up.</p></div>
+      <div class="symbol"><h3>Honours</h3><ul class="plain-list" id="honours"></ul><p class="fine">Conferred by the Presidium, all three signing, at most twelve a season.</p></div>
+      <div class="symbol"><h3>Forms and customs</h3><ul class="plain-list">
+        <li><b>Address.</b> “Comrade”, or a person's name, as they prefer.</li>
+        <li><b>Currency.</b> The labour voucher, counted in tenths of an hour. Written <i>3.5 v.</i></li>
+        <li><b>The paper of record.</b> The Gazette, kept by the Commissar of Enlightenment, in the Gazette channel.</li>
+        <li><b>The seal.</b> A round seal with the gold star, on the letterheads of the Presidium and of the Commissariat of External Affairs.</li>
+        <li><b>Criticism and self-criticism.</b> A channel where anything may be said about anyone, oneself included, and nobody is punished for it.</li>
+        <li><b>Leaving.</b> Any comrade may leave; any minority may leave together, taking the whole record with them (Article 2.2).</li>
+      </ul></div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer"></footer>
+</body>
+</html>

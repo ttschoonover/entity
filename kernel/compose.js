@@ -10,7 +10,8 @@ import { loadDocument, rewriteValues, validateDocument, Parameters } from './par
 
 export function parsePreset(text) {
   const p = parse(text);
-  return { describe: p._ || '', modules: p.modules || ['deliberation'], set: p.set || {}, note: p.note || '', awaiting: p.awaiting || [] };
+  return { describe: p._ || '', modules: p.modules || ['deliberation'], set: p.set || {}, note: p.note || '', awaiting: p.awaiting || [],
+    rules: p.rules || null, order: p.order || null };
 }
 
 // base: kernel/parameters.base.yml text; moduleTexts: { name: parameters.yml text | null }
@@ -27,6 +28,20 @@ export function compose({ base, moduleTexts, preset, presetName }) {
   const core = moduleTexts.deliberation;
   if (core) text += `\n  # — the core: deliberation\n${core.split('\n').filter(l => !/^parameters:\s*$/.test(l)).join('\n').replace(/\s+$/, '')}\n`;
   text = rewriteValues(text, { 'entity.modules': preset.modules });
+  // A preset may add rules of its own (amendment.rules), and must then say where
+  // each stands among the rest (amendment.order, weakest first).
+  if (preset.rules && Object.keys(preset.rules).length) {
+    if (!Array.isArray(preset.order)) throw new Error('a preset that adds rules gives order: every changeable rule, weakest first');
+    const FIELDS = ['quorum', 'threshold', 'readings', 'apart', 'concurrent'];
+    const lines = Object.entries(preset.rules).map(([name, r]) => {
+      if (!/^[a-z][a-z0-9-]{0,30}$/.test(name)) throw new Error(`rule names are lowercase letters, digits and -: ${name}`);
+      const bad = Object.keys(r || {}).filter(k => !FIELDS.includes(k));
+      if (bad.length) throw new Error(`rule ${name}: unknown field(s) ${bad.join(', ')}`);
+      return `    ${name}: { ${Object.entries(r).map(([k, v]) => `${k}: ${emitScalar(v)}`).join(', ')} }`;
+    });
+    text = text.replace(/^(\s+immutable:\s*\{[^}]*\}\s*)$/m, `${lines.join('\n')}\n$1`);
+    text = text.replace(/^(\s+order:\s*)\[[^\]]*\]/m, `$1[${preset.order.join(', ')}]`);
+  }
   const doc = loadDocument(text);
   const params = new Parameters(doc, catalog);
   const unknown = Object.keys(preset.set).filter(k => !params.has(k));

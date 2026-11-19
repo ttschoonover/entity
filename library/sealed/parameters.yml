@@ -1,0 +1,8 @@
+parameters:
+  sealed.history:
+    value: all
+    type: string
+    one_of: [all, current]
+    changed_by: organic
+    group: Sealed
+    describe: What a newcomer may be given. "all" lets members give newcomers every earlier period's key, so they can read the whole sealed history; "current" gives only the current period, so newcomers read only what is sealed from their arrival.

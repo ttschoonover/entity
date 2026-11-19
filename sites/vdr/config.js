@@ -7,7 +7,7 @@ export default {
   // After the name, in the footer.
   about: 'is a democratic experiment that exists online. It claims no territory and no authority over anyone, and has no connection to any government.',
   // The masthead: [href, label, module it needs]. The first is the home page.
-  pages: [['index.html', 'Home'], ['index.html#floor', 'The floor'], ['hall.html#/parliament', 'Parliament', 'laws'], ['laws.html', 'Laws'], ['chat.html', 'Chat', 'chat'], ['hall.html', 'Institutions']],
+  pages: [['index.html', 'Home'], ['index.html#floor', 'The floor'], ['hall.html#/parliament', 'Parliament', 'laws'], ['laws.html', 'Laws'], ['docs.html', 'Documents', 'docs'], ['chat.html', 'Chat', 'chat'], ['hall.html', 'Institutions']],
   // The order of module tabs on the Institutions page.
   order: ['elections', 'offices', 'committees', 'polls', 'meetings', 'wiki', 'badges', 'authority'],
   institutions: ({ many }) => ({

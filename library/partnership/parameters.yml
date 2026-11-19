@@ -1,0 +1,25 @@
+parameters:
+  partnership.join_rule:
+    value: organic
+    type: rule
+    changed_by: constitutional
+    group: Partnership
+    describe: The rule under which the partnership joins or leaves an association. The partnership preset sets a concurrent rule, 60% of the partners and 60% of the units.
+  partnership.profits_rule:
+    value: organic
+    type: rule
+    changed_by: constitutional
+    group: Partnership
+    describe: The rule under which an association is granted, or loses, a claim to the partnership's profits. The partnership preset sets a majority of the partners and a majority of the units.
+  partnership.assets_rule:
+    value: constitutional
+    type: rule
+    changed_by: constitutional
+    group: Partnership
+    describe: The rule under which an association is granted, or loses, a claim to the partnership's assets. The partnership preset sets two thirds of the partners and two thirds of the units.
+  partnership.unit_class:
+    value: units
+    type: string
+    changed_by: constitutional
+    group: Partnership
+    describe: The share class whose units measure each partner's interest, shown on partnership certificates.

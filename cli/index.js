@@ -20,6 +20,9 @@ import * as sl from './commands/seal.js';
 import * as app from './commands/app.js';
 import * as tfa from './commands/twofactor.js';
 import * as fd from './commands/federation.js';
+import * as sy from './commands/symbols.js';
+import * as lt from './commands/letter.js';
+import * as md from './commands/media.js';
 
 const COMMANDS = {
   found: [f.found, 'bring it into being            [--preset name] [--id p-0001] [--name "…"]'],
@@ -28,7 +31,7 @@ const COMMANDS = {
   verify: [i.verify, 'check it, offline, needing nobody [--json]'],
   sync: [t.sync, 'push and pull everywhere at once [--to name] [--settle]'],
   '': null,
-  propose: [a.propose, 'lay a proposal, rule chosen for you --title "…" [--effects json] [--changes json]'],
+  propose: [a.propose, 'lay a proposal, rule chosen for you --title "…" [--effects json] [--changes json] [--admit id,id]'],
   join: [a.join, 'make a key and sign an application --id <id> [--name "…"]'],
   key: [a.key, 'show or rotate your key          show | rotate'],
   seal: [sl.seal, 'sealed content only members read   status | key | epoch | grant M | post | read'],
@@ -51,6 +54,9 @@ const COMMANDS = {
   upgrade: [up.upgrade, 'the core, by decision           check [source] | propose [source] | apply | status'],
   fork: [fk.fork, 'a new entity naming this one as its parent --name "…" --out <dir> --as <id> [--at n] [--carry value,deeds] [--electorate spec]'],
   federation: [fd.federation, 'between a state and its federation certify | enroll | status --from <state dir> --state ID --as id'],
+  letter: [lt.letter, 'official letters on letterheads   list | heads | show | render | sample | issue | cosign | withdraw | specimen | letterhead'],
+  media: [md.mediaCmd, 'pictures for the entity\'s texts  add <file> | fetch <url> | list | check  [--alt …] [--caption …]'],
+  symbols: [sy.symbols, 'the state\'s digital symbols     seal [--out file] [--colors f,a,l] | fingerprint <files…>'],
   radicle: [r.radicle, 'publish and replicate on Radicle  init | status'],
   adopt: [r.adopt, 'bring in approved code or law     <git ref> [--decision <id>] [--dry]'],
   gate: [g.gate, 'may these files change?         <paths…> --decision <id> | --against <dir> | digest <paths…>'],

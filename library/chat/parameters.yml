@@ -1,0 +1,54 @@
+parameters:
+  chat.channels:
+    value:
+      - id: general
+        title: General
+        about: Anything at all.
+        read: members
+        post: members
+    type: list
+    changed_by: organic
+    group: Chat
+    describe: The channels. Each has an id (lowercase letters, digits and -), a title, what it is about, who can read it (public or members), who can write in it (members, office:ID or committee:ID), and optionally encrypt: false. Members-only channels are end-to-end encrypted unless encrypt is false: the server keeps only ciphertext.
+  chat.moderators:
+    value: ""
+    type: string
+    changed_by: organic
+    group: Chat
+    describe: Who may delete any message, as office:ID or committee:ID. Empty means no one but each message's author. Every deletion by a moderator is kept in the node's log.
+  chat.retention_days:
+    value: 90
+    type: integer
+    min: 1
+    max: 3650
+    changed_by: organic
+    group: Chat
+    describe: How many days the node keeps a chat message before deleting it. Chat is never part of the public record.
+  chat.max_length:
+    value: 2000
+    type: integer
+    min: 100
+    max: 10000
+    changed_by: ordinary
+    group: Chat
+    describe: The longest chat message, in characters.
+  chat.room_creators:
+    value: members
+    type: string
+    changed_by: organic
+    group: Chat
+    describe: Who may open a room of their own, beside the channels the law names - members, office:ID or committee:ID. Empty means rooms are opened only by law. A room is closed by whoever opened it or by a moderator, and its messages go with it.
+  chat.max_rooms:
+    value: 50
+    type: integer
+    min: 0
+    max: 1000
+    changed_by: organic
+    group: Chat
+    describe: The most rooms members may have open at once.
+  chat.direct_messages:
+    value: true
+    type: boolean
+    changed_by: organic
+    group: Chat
+    describe: Whether members may send each other direct messages. They are sealed in the sender's browser for the two people only; the server passes them on and cannot read them.

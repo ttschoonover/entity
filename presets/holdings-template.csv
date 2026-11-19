@@ -1,0 +1,17 @@
+# holdings.csv · what the club already holds, as of one date, for import-holdings.sh.
+# One line per item; lines starting with # are ignored. Dollars, not cents.
+#
+#   cash,LABEL,,,AMOUNT                  cash in each account (several lines are added up)
+#   holding,TICKER,SHARES,COST,PRICE     shares held; COST is the total paid for them
+#                                        (the cost basis, for gains and taxes); PRICE is
+#                                        today's price per share, from the brokerage statement
+#   capital,PARTNER-ID,,,AMOUNT          each partner's capital account: what their share of
+#                                        the club is worth today. These must add up to the
+#                                        cash plus every holding at these prices.
+#
+# kind,id,quantity,cost,price
+cash,brokerage,,,1234.56
+holding,VTI,12.5,2800.00,285.40
+holding,BND,20,1500.00,72.10
+capital,tim,,,4000.00
+capital,ana,,,2244.06

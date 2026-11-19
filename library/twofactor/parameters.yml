@@ -1,0 +1,16 @@
+parameters:
+  twofactor.require:
+    value: optional
+    type: string
+    one_of: [optional, officers, everyone]
+    changed_by: organic
+    group: Two-factor
+    describe: Who must sign in with a code emailed to them as well as their password or key. optional means each member chooses; officers means everyone holding an office or a committee seat; everyone means every member.
+  twofactor.code_minutes:
+    value: 10
+    type: integer
+    min: 2
+    max: 60
+    changed_by: ordinary
+    group: Two-factor
+    describe: How many minutes an emailed code works.
