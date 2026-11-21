@@ -50,7 +50,11 @@ export function build(dir, out, state) {
   // same way in both, and the page runs exactly the files the engine runs.
   fs.mkdirSync(path.join(out, 'interface'), { recursive: true });
   fs.copyFileSync(path.join(dir, 'interface', 'style.css'), path.join(out, 'interface', 'style.css'));
+  fs.copyFileSync(path.join(dir, 'interface', 'athens.css'), path.join(out, 'interface', 'athens.css'));
+  copyDir(path.join(dir, 'interface', 'fonts'), path.join(out, 'interface', 'fonts'));
   copyDir(path.join(dir, 'interface', 'js'), path.join(out, 'interface', 'js'));
+  fs.copyFileSync(path.join(dir, 'interface', 'sw.js'), path.join(out, 'sw.js'));
+  fs.copyFileSync(path.join(dir, 'interface', 'sw-basic.js'), path.join(out, 'sw-basic.js'));
   copyDir(path.join(dir, 'kernel'), path.join(out, 'kernel'), BROWSER_SAFE);
   copyDir(path.join(dir, 'modules'), path.join(out, 'modules'), BROWSER_SAFE);
   copyDir(path.join(dir, 'record'), path.join(out, 'record'), (f) => !/before-repair|\.tmp-/.test(f));

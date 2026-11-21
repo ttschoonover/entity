@@ -15,9 +15,9 @@ import * as cc from '../interface/js/chatcrypto.js';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const freePort = () => new Promise((ok) => { const s = net.createServer().listen(0, () => { const p = s.address().port; s.close(() => ok(p)); }); });
 
-test('chat: X25519 matches RFC 7748', () => {
+test('chat: X25519 matches RFC 7748', async () => {
   const h = (x) => Uint8Array.from(x.match(/../g).map(y => parseInt(y, 16)));
-  assert.equal(Buffer.from(cc.x25519(h('a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4'), h('e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c'))).toString('hex'), 'c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552');
+  assert.equal(Buffer.from(await cc.x25519(h('a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4'), h('e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c'))).toString('hex'), 'c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552');
 });
 
 test('chat: members write and read in channels, signed and off the record; tokens, deletion and limits', async () => {

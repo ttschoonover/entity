@@ -68,7 +68,10 @@ function install(r) {
         if (typeof act.drawing !== 'string' || !/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(act.drawing)) return 'the drawn signature must be a PNG image';
         if (act.drawing.length > 80000) return 'the drawn signature image is too large (at most about 60 KB)';
       } else if (drawn === 'required') return 'draw your signature before signing';
-      return signaturesOf(state, act.by, act.page).some(s => s.version === v.n) ? 'you have already signed this version' : null;
+      // Signed already: only to add a handwritten signature to one made without it.
+      const before = signaturesOf(state, act.by, act.page).filter(s => s.version === v.n);
+      if (before.length && (!act.drawing || before.some(s => s.drawing))) return 'you have already signed this version';
+      return null;
     },
     reduce(state, rec) {
       const a = rec.payload.act;

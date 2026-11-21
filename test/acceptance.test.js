@@ -389,7 +389,8 @@ test('22 · no page contains generated code', async () => {
   const map = { 'interface/js/': 'interface/js/', 'kernel/': 'kernel/', 'modules/': 'modules/' };
   for (const f of files.filter(f => f.endsWith('.js'))) {
     const pre = Object.keys(map).find(p => f.startsWith(p));
-    assert.ok(fs.readFileSync(path.join(out, f)).equals(fs.readFileSync(path.join(dir, map[pre] + f.slice(pre.length)))), `${f} differs from its source`);
+    const src = f === 'sw.js' || f === 'sw-basic.js' ? `interface/${f}` : map[pre] + f.slice(pre.length);   // the service worker sits at the root, for its scope
+    assert.ok(fs.readFileSync(path.join(out, f)).equals(fs.readFileSync(path.join(dir, src))), `${f} differs from its source`);
   }
 });
 

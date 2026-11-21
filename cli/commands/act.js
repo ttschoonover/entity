@@ -89,7 +89,44 @@ export async function key({ pos, opt }) {
     out(`rotation signed with the old key; the new key is saved. It takes effect when settled.`);
     return;
   }
-  refuse(`unknown key command "${sub}"; use show or rotate`);
+  // Lock or unlock the key file with a passphrase (cli/keyfile.js).
+  if (['status', 'lock', 'unlock'].includes(sub)) {
+    const K = await import('../keyfile.js');
+    const dir = (await import('../context.js')).keyDir(e.state.entity.id);
+    if (sub === 'status') {
+      const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter(n => !n.includes('.') && fs.statSync(`${dir}/${n}`).isFile()) : [];
+      if (!files.length) return out(`no keys for this entity in ${dir}`);
+      for (const n of files.sort()) {
+        const f = `${dir}/${n}`, link = fs.lstatSync(f).isSymbolicLink();
+        out(`${n.padEnd(16)} ${link ? 'linked to your Radicle key (protect it with Radicle)' : K.isLocked(fs.readFileSync(f, 'utf8')) ? 'locked' : 'NOT locked: entity key lock --as ' + n}`);
+      }
+      return;
+    }
+    const f = opt.key || `${dir}/${id}`;
+    if (!fs.existsSync(f)) refuse(`no key for ${id} at ${f}`);
+    if (fs.lstatSync(f).isSymbolicLink()) refuse(`${f} is your Radicle key, shared through a link: locking it here would change Radicle's key. Protect it with Radicle's own passphrase instead.`);
+    const text = fs.readFileSync(f, 'utf8');
+    if (sub === 'lock') {
+      if (K.isLocked(text)) return out(`${id}'s key is already locked`);
+      let pass = process.env.ENTITY_PASSPHRASE || (process.env.ENTITY_PASSPHRASE_FILE && K.passphrase());
+      if (!pass) {
+        pass = K.prompt(`New passphrase for ${id}'s key: `);
+        if (!pass) refuse('no passphrase: run this from a terminal, or set ENTITY_PASSPHRASE');
+        if (pass !== K.prompt('The same again: ')) refuse('the two passphrases differ; nothing changed');
+      }
+      if (pass.length < 8) refuse('use a passphrase of at least 8 characters');
+      const locked = K.lockText(text, pass);
+      K.rewriteKeyFile(f, locked, (t) => { if (K.unlockText(t, pass) !== text) throw new Error('the locked key did not open again; nothing changed'); });
+      out(`${id}'s key is locked. Commands that sign will ask for the passphrase, or read ENTITY_PASSPHRASE.`);
+      return;
+    }
+    if (!K.isLocked(text)) return out(`${id}'s key is not locked`);
+    let plain; try { plain = K.readKeyFile(f); } catch (x) { refuse(x.message); }
+    K.rewriteKeyFile(f, plain, (t) => keys.importPrivateKey(t));
+    out(`${id}'s key is unlocked: it is stored without a passphrase again.`);
+    return;
+  }
+  refuse(`unknown key command "${sub}"; use show, rotate, status, lock or unlock`);
 }
 
 export async function settle({ opt }) {

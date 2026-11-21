@@ -21,9 +21,12 @@ export * from './fork.js';
 export { KERNEL_DEFAULTS } from './defaults.js';
 export * from './gate.js';
 export * from './transport.js';
+export * as sealing from './sealing.js';
+export * as cryptoBox from './crypto.js';
 
 import { Registry } from './kinds.js';
 import { install as installParticipants } from './participants.js';
+import { installSealing } from './sealing.js';
 import { CORE_VERSION, versionAtLeast } from './version.js';
 
 // A registry holding the kernel's kinds and every module passed in.
@@ -36,6 +39,7 @@ import { CORE_VERSION, versionAtLeast } from './version.js';
 export function createRegistry(modules = []) {
   const r = new Registry();
   installParticipants(r);
+  installSealing(r);
   for (const m of modules) {
     if (m.core && !versionAtLeast(CORE_VERSION, m.core)) { r.incompatible.set(m.name, m.core); continue; }
     r.modules.set(m.name, m);

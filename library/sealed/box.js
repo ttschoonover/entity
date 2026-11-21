@@ -1,74 +1,45 @@
-// The cryptography of sealed content, with no dependencies: X25519 (RFC 7748)
-// written out with BigInt, and AES-256-GCM and HKDF-SHA-256 from the platform's
-// own Web Crypto (in every browser and in Node). Used by the page and the
+// The cryptography of sealed content. X25519, HKDF-SHA-256 and AES-256-GCM
+// come from kernel/crypto.js (native Web Crypto, in every browser and in Node).
+// The derivations and labels here are unchanged since sealed began, so every
+// key period and post sealed before still opens. Used by the page and the
 // command line to seal and open; never by settlement, which only checks shapes.
+import { x25519, x25519Public, clamp, random, b64, unb64, hkdf as hkdfRaw, aeadSeal, aeadOpen, utf8, concat } from '../../kernel/crypto.js';
 
-const P = 2n ** 255n - 19n, A24 = 121665n;
-const mod = (a) => ((a % P) + P) % P;
-function pow(b, e) { let r = 1n; b = mod(b); while (e > 0n) { if (e & 1n) r = mod(r * b); b = mod(b * b); e >>= 1n; } return r; }
-const le2n = (b) => b.reduceRight((a, x) => (a << 8n) | BigInt(x), 0n);
-const n2le = (n) => { const o = new Uint8Array(32); for (let i = 0; i < 32; i++) { o[i] = Number(n & 255n); n >>= 8n; } return o; };
-const clamp = (k) => { const c = Uint8Array.from(k); c[0] &= 248; c[31] &= 127; c[31] |= 64; return c; };
+export { b64, unb64, x25519 };
+export const publicFrom = (priv) => x25519Public(priv);
+const dec = new TextDecoder();
+const ZERO_SALT = new Uint8Array(32);
+const hkdf = (ikm, info, len = 32) => hkdfRaw(ikm, { salt: ZERO_SALT, info: utf8(info), length: len });
 
-// RFC 7748 §5: the Montgomery ladder.
-export function x25519(scalar, u) {
-  const k = le2n(clamp(scalar)), uu = Uint8Array.from(u); uu[31] &= 127;
-  const x1 = le2n(uu); let x2 = 1n, z2 = 0n, x3 = x1, z3 = 1n, swap = 0n;
-  for (let t = 254n; t >= 0n; t--) {
-    const kt = (k >> t) & 1n; swap ^= kt;
-    if (swap) { [x2, x3] = [x3, x2]; [z2, z3] = [z3, z2]; } swap = kt;
-    const a = mod(x2 + z2), aa = mod(a * a), b = mod(x2 - z2), bb = mod(b * b), e = mod(aa - bb);
-    const c = mod(x3 + z3), d = mod(x3 - z3), da = mod(d * a), cb = mod(c * b);
-    x3 = mod((da + cb) ** 2n); z3 = mod(x1 * mod((da - cb) ** 2n)); x2 = mod(aa * bb); z2 = mod(e * mod(aa + A24 * e));
-  }
-  if (swap) { [x2, x3] = [x3, x2]; [z2, z3] = [z3, z2]; }
-  return n2le(mod(x2 * pow(z2, P - 2n)));
-}
-const BASE = (() => { const b = new Uint8Array(32); b[0] = 9; return b; })();
-export const publicFrom = (priv) => x25519(priv, BASE);
-
-const subtle = () => globalThis.crypto.subtle;
-const rand = (n) => globalThis.crypto.getRandomValues(new Uint8Array(n));
-export const b64 = (u) => { let s = ''; for (const x of u) s += String.fromCharCode(x); return btoa(s); };
-export const unb64 = (s) => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-const enc = new TextEncoder(), dec = new TextDecoder();
-
-async function hkdf(ikm, info, len = 32) {
-  const k = await subtle().importKey('raw', ikm, 'HKDF', false, ['deriveBits']);
-  return new Uint8Array(await subtle().deriveBits({ name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(32), info: enc.encode(info) }, k, len * 8));
-}
-const aes = (key, usage) => subtle().importKey('raw', key, 'AES-GCM', false, [usage]);
-
-// A member's encryption key, from the seed of their signing key: nothing new to keep.
+// A member's encryption key, from the seed of their signing key: nothing new to
+// keep, and the same on every device. The label separates it from every other use.
 export async function memberKeys(seed) {
   const priv = clamp(await hkdf(seed, 'git-republic/sealed/member-key/v1'));
-  return { priv, pub: publicFrom(priv) };
+  return { priv, pub: await x25519Public(priv) };
 }
 
 // Seal 32 bytes (a group key) to one member's public key: an ephemeral X25519
 // key, a shared secret, and AES-GCM.
 export async function sealTo(pubB64, bytes) {
-  const eph = rand(32), epk = publicFrom(eph), shared = x25519(eph, unb64(pubB64));
-  const key = await hkdf(new Uint8Array([...shared, ...epk, ...unb64(pubB64)]), 'git-republic/sealed/wrap/v1');
-  const nonce = rand(12);
-  const ct = new Uint8Array(await subtle().encrypt({ name: 'AES-GCM', iv: nonce }, await aes(key, 'encrypt'), bytes));
-  return { epk: b64(epk), nonce: b64(nonce), ct: b64(ct) };
+  const pub = unb64(pubB64), eph = clamp(random(32)), epk = await x25519Public(eph), shared = await x25519(eph, pub);
+  const key = await hkdf(concat(shared, epk, pub), 'git-republic/sealed/wrap/v1');
+  const nonce = random(12);
+  return { epk: b64(epk), nonce: b64(nonce), ct: b64(await aeadSeal(key, nonce, bytes)) };
 }
 export async function openWith(priv, pub, box) {
-  const shared = x25519(priv, unb64(box.epk));
-  const key = await hkdf(new Uint8Array([...shared, ...unb64(box.epk), ...pub]), 'git-republic/sealed/wrap/v1');
-  return new Uint8Array(await subtle().decrypt({ name: 'AES-GCM', iv: unb64(box.nonce) }, await aes(key, 'decrypt'), unb64(box.ct)));
+  const epk = unb64(box.epk), shared = await x25519(priv, epk);
+  const key = await hkdf(concat(shared, epk, pub), 'git-republic/sealed/wrap/v1');
+  return aeadOpen(key, unb64(box.nonce), unb64(box.ct));
 }
 
 // Content under a group key.
-export const newGroupKey = () => rand(32);
+export const newGroupKey = () => random(32);
 export async function encrypt(groupKey, text) {
-  const nonce = rand(12);
-  const ct = new Uint8Array(await subtle().encrypt({ name: 'AES-GCM', iv: nonce }, await aes(groupKey, 'encrypt'), enc.encode(text)));
-  return { nonce: b64(nonce), ct: b64(ct) };
+  const nonce = random(12);
+  return { nonce: b64(nonce), ct: b64(await aeadSeal(groupKey, nonce, utf8(text))) };
 }
 export async function decrypt(groupKey, sealed) {
-  return dec.decode(await subtle().decrypt({ name: 'AES-GCM', iv: unb64(sealed.nonce) }, await aes(groupKey, 'decrypt'), unb64(sealed.ct)));
+  return dec.decode(await aeadOpen(groupKey, unb64(sealed.nonce), unb64(sealed.ct)));
 }
 
 // Every group key a member can open: { epoch: key }.

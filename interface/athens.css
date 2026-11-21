@@ -1,0 +1,163 @@
+/* athens.css · the page in the house style of tschoonover.com, and the shell
+   and components every look shares.
+
+   The Athens look takes tschoonover.com's tokens as they are (tools/site-theme/
+   site.css): paper and ink, Helvetica for the frame, Latin Modern (the face
+   LaTeX sets) for reading, a single accent, § numbers, pill controls. It is the
+   default; the other looks remain a viewer's choice. Everything below the look
+   is written against the page's own variables, so every look draws it. */
+
+@font-face { font-family: 'Latin Modern Roman'; src: url(fonts/lmroman10-regular.woff2) format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Latin Modern Roman'; src: url(fonts/lmroman10-italic.woff2) format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Latin Modern Roman'; src: url(fonts/lmroman10-bold.woff2) format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Latin Modern Mono'; src: url(fonts/lmmono10-regular.woff2) format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+
+:root { --frame: 'Helvetica Neue', Helvetica, Arial, sans-serif; --read: var(--serif); --fs: 16px; --radius: 10px; --wash: color-mix(in srgb, var(--ink) 4%, transparent); }
+
+/* ── the Athens look ─────────────────────────────────────────────────────── */
+:root[data-look="athens"] {
+  --paper: #F7F5F0; --sheet: #FFFFFF; --ink: #111110; --ink-soft: #5E5D58; --dim: #6B6A64; /* 5:1 on paper (WCAG AA); tschoonover.com uses #85847E */
+  --rule: rgba(17,17,16,0.10); --wash: rgba(17,17,16,0.035);
+  --seal: #9b3833; --ok: #4a7a4a; --alarm: #9b3833; --alarm-wash: #F6E6E3; --ok-wash: #E6EEE4;
+  --serif: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --read: 'Latin Modern Roman', 'Computer Modern Serif', 'CMU Serif', Georgia, serif;
+  --mono: 'Latin Modern Mono', 'CMU Typewriter Text', ui-monospace, Menlo, monospace;
+  --measure: 700px; color-scheme: light;
+}
+:root[data-look="athens"][data-theme="dark"] {
+  --paper: #131310; --sheet: #1B1B18; --ink: #E8E5DC; --ink-soft: #ADAAA1; --dim: #8A877F;
+  --rule: rgba(232,229,220,0.10); --wash: rgba(232,229,220,0.04);
+  --seal: #d9806f; --ok: #7fb27f; --alarm: #e08a7c; --alarm-wash: #3a221e; --ok-wash: #1e2b1e; color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-look="athens"]:not([data-theme="light"]) {
+    --paper: #131310; --sheet: #1B1B18; --ink: #E8E5DC; --ink-soft: #ADAAA1; --dim: #8A877F;
+    --rule: rgba(232,229,220,0.10); --wash: rgba(232,229,220,0.04);
+    --seal: #d9806f; --ok: #7fb27f; --alarm: #e08a7c; --alarm-wash: #3a221e; --ok-wash: #1e2b1e; color-scheme: dark;
+  }
+}
+:root[data-look="athens"] body { font: 400 var(--fs)/1.55 var(--frame); font-variant-numeric: normal; -webkit-font-smoothing: antialiased; }
+:root[data-look="athens"] h1 { font-family: var(--read); font-weight: 400; letter-spacing: 0; }
+:root[data-look="athens"] h2 { font-family: var(--frame); font-size: .82rem; font-weight: 400; color: var(--dim); display: flex; align-items: baseline; gap: 10px; text-transform: none; }
+:root[data-look="athens"] h2::after { content: ""; flex: 1; height: 1px; background: var(--rule); transform: translateY(-3px); }
+:root[data-look="athens"] h3 { font-weight: 500; }
+:root[data-look="athens"] section { border-top: 0; padding: 1.6rem 0; }
+:root[data-look="athens"] a { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: var(--dim); }
+:root[data-look="athens"] a:hover { text-decoration-color: var(--seal); }
+:root[data-look="athens"] button { border-radius: 999px; font-family: var(--frame); }
+:root[data-look="athens"] input, :root[data-look="athens"] select, :root[data-look="athens"] textarea { border-radius: 8px; font-family: var(--frame); }
+:root[data-look="athens"] .post-body, :root[data-look="athens"] .read { font-family: var(--read); font-size: 1.12rem; line-height: 1.55; }
+:root[data-look="athens"] .seal .statement { font-family: var(--read); }
+
+/* § numbers before section headings, in every look that wants them */
+:root[data-look="athens"] h2[data-n]::before { content: "§" attr(data-n); font-family: var(--mono); color: var(--seal); }
+
+/* ── text size ───────────────────────────────────────────────────────────── */
+:root[data-size="s"] { --fs: 14px; } :root[data-size="m"] { --fs: 16px; } :root[data-size="l"] { --fs: 19px; }
+:root[data-size] body { font-size: var(--fs); }
+
+/* ── the shell: masthead, controls, sections nav ─────────────────────────── */
+.skip { position: absolute; left: -999px; }
+.skip:focus { left: 12px; top: 12px; background: var(--sheet); padding: 6px 10px; z-index: 20; }
+.masthead .mast-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.controls.shell { display: flex; gap: 6px; flex-wrap: wrap; margin: 0; }
+.pill { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; }
+.pill button { font: inherit; font-size: .8rem; color: var(--ink-soft); background: none; border: 0; padding: 4px 10px; cursor: pointer; border-radius: 0; margin: 0; min-height: 0; }
+.pill button:hover { color: var(--ink); }
+.pill button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+nav#tabs { display: flex; gap: 20px; flex-wrap: wrap; margin: 1.2rem 0 .4rem; font-size: .93rem; }
+nav#tabs a { color: var(--ink-soft); text-decoration: none; padding-bottom: 3px; border-bottom: 1px solid transparent; }
+nav#tabs a:hover { color: var(--ink); }
+nav#tabs a[aria-current] { color: var(--ink); border-bottom-color: var(--seal); }
+nav#tabs .count { font-size: .72rem; background: var(--seal); color: var(--paper); border-radius: 999px; padding: 0 6px; margin-left: 4px; vertical-align: 1px; }
+:root:not([data-look="athens"]) .controls.shell .pill button[aria-pressed="true"] { background: var(--seal); }
+
+/* On a phone the sections sit at the bottom, within thumb's reach. */
+@media (max-width: 640px) {
+  nav#tabs { position: fixed; top: auto; left: 0; right: 0; bottom: 0; height: auto; z-index: 10; margin: 0; padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: var(--sheet); border-top: 1px solid var(--rule); flex-wrap: nowrap; overflow-x: auto; gap: 16px; scrollbar-width: none; }
+  nav#tabs a { white-space: nowrap; }
+  main { padding-bottom: 4.5rem; }
+  .masthead { padding-top: 1.6rem; }
+}
+
+/* ── components (interface/js/kit.js) ────────────────────────────────────── */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px; margin: .6rem 0 0; }
+.card { background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.card h3 { font-size: 1rem; line-height: 1.3; margin: 0; }
+.card h3 a { text-decoration: none; }
+.card .meta { margin: 0; font-size: .82rem; }
+.card .buttons { margin-top: 4px; }
+.card.urgent { border-color: color-mix(in srgb, var(--seal) 45%, var(--rule)); }
+.card.good { border-left: 3px solid var(--ok); }
+.card.bad { border-left: 3px solid var(--alarm); }
+.stat { display: flex; flex-direction: column; }
+.stat b { font-family: var(--read); font-size: 1.9rem; font-weight: 400; line-height: 1.1; }
+.stat span { font-size: .8rem; color: var(--ink-soft); }
+.stats { display: flex; gap: 28px; flex-wrap: wrap; margin: .4rem 0 .8rem; }
+
+.meter { display: grid; grid-template-columns: 6.5rem 1fr auto; align-items: center; gap: 10px; font-size: .82rem; color: var(--ink-soft); margin: 2px 0; }
+.meter .track { position: relative; height: 6px; border-radius: 999px; background: var(--wash); border: 1px solid var(--rule); overflow: hidden; }
+.meter .fill { position: absolute; inset: 0 auto 0 0; background: var(--ink-soft); border-radius: 999px; }
+.meter.met .fill { background: var(--ok); }
+.meter .mark { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); opacity: .55; }
+.meter b { font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.badge { font-family: var(--frame); display: inline-block; font-size: .72rem; line-height: 1.6; padding: 0 8px; border-radius: 999px; border: 1px solid var(--rule); color: var(--ink-soft); white-space: nowrap; vertical-align: 1px; }
+.badge.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+.badge.warn { color: var(--seal); border-color: color-mix(in srgb, var(--seal) 40%, transparent); }
+.badge.lock::before { content: "🔒 "; }
+
+.timeline { list-style: none; margin: .4rem 0; padding: 0 0 0 16px; border-left: 1px solid var(--rule); }
+.timeline li { position: relative; padding: 0 0 12px 10px; font-size: .9rem; }
+.timeline li::before { content: ""; position: absolute; left: -21px; top: .45em; width: 9px; height: 9px; border-radius: 50%; background: var(--paper); border: 1px solid var(--ink-soft); }
+.timeline li.done::before { background: var(--ink-soft); }
+.timeline li.now::before { background: var(--seal); border-color: var(--seal); }
+.timeline li.future { color: var(--ink-soft); }
+.timeline time { display: block; font-size: .78rem; color: var(--ink-soft); }
+
+.feed { list-style: none; margin: 0; padding: 0; }
+.feed li { display: grid; grid-template-columns: 5.2rem 1fr; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--rule); font-size: .92rem; }
+.feed li:last-child { border-bottom: 0; }
+.feed time { color: var(--ink-soft); font-size: .8rem; padding-top: 2px; }
+
+.empty { color: var(--ink-soft); font-size: .92rem; padding: 10px 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips code { background: var(--wash); border: 1px solid var(--rule); border-radius: 999px; padding: 0 8px; }
+
+/* settings, as cards with a change button */
+.setting { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; padding: 12px 0; border-bottom: 1px solid var(--rule); }
+.setting:last-child { border-bottom: 0; }
+.setting .key { font-family: var(--mono); font-size: .82rem; color: var(--ink-soft); }
+.setting .what { font-size: .92rem; }
+.setting .value { grid-row: span 2; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.setting .value .now { font-weight: 500; }
+.setting button { margin: 0; font-size: .8rem; padding: 3px 10px; min-height: 0; }
+
+/* the composer */
+.compose { display: grid; gap: 14px; }
+.compose .preview { background: var(--wash); border: 1px solid var(--rule); border-radius: var(--radius); padding: 12px 14px; font-size: .92rem; }
+.compose .preview .arrow { color: var(--ink-soft); margin: 0 .4em; }
+.compose .rule-box { border-left: 3px solid var(--seal); padding: 6px 12px; font-size: .9rem; }
+.picker { display: grid; gap: 6px; max-height: 18rem; overflow: auto; border: 1px solid var(--rule); border-radius: var(--radius); padding: 6px; background: var(--sheet); }
+.picker button { text-align: left; border-radius: 6px; background: transparent; color: var(--ink); border: 0; margin: 0; padding: 6px 8px; font-weight: 400; min-height: 0; }
+.picker button:hover, .picker button[aria-pressed="true"] { background: var(--wash); }
+.picker button small { display: block; color: var(--ink-soft); font-size: .78rem; }
+
+/* a link that acts as the page's main button */
+:root a.button-link { display: inline-block; text-decoration: none; border: 1px solid var(--ink); color: var(--ink); border-radius: 999px; padding: 4px 14px; font-size: .9rem; }
+:root a.button-link:hover { background: var(--ink); color: var(--paper); }
+.buttons a { align-self: center; }
+
+/* the law, set to be read */
+.law-text { white-space: pre-wrap; margin: .6rem 0 1rem; max-width: 66ch; }
+:root:not([data-look="athens"]) .law-text { font-family: var(--serif); }
+.card.warn { border-color: color-mix(in srgb, #b8860b 45%, var(--rule)); }
+
+/* partnership certificates on the page */
+.certificate .cert-sigs { display: flex; flex-wrap: wrap; gap: 24px; margin: 10px 0; }
+.certificate figure { margin: 0; text-align: center; min-width: 9rem; }
+.certificate figure img { height: 3rem; max-width: 11rem; object-fit: contain; display: block; margin: 0 auto; border-bottom: 1px solid var(--ink); }
+.certificate figcaption { font-size: .85rem; margin-top: 4px; }
+a.button { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--rule); text-decoration: none; color: var(--ink); font-size: .9rem; }
+.agreements .pdf-link { margin-left: 8px; }

@@ -52,7 +52,7 @@ echo "== The first key period"
 E seal epoch --as "$ME" --settle | tail -1
 E seal status
 
-node -e "const fs=require('fs');const n=JSON.parse(fs.readFileSync('node.json'));Object.assign(n,{settleAfter:0,port:Number(process.argv[1]),look:'minimal',colour:'dark'});fs.writeFileSync('node.json',JSON.stringify(n,null,2)+'\n')" "$PORT"
+node -e "const fs=require('fs');const n=JSON.parse(fs.readFileSync('node.json'));Object.assign(n,{settleAfter:0,port:Number(process.argv[1]),look:'minimal',colour:'dark',private:true});fs.writeFileSync('node.json',JSON.stringify(n,null,2)+'\n')" "$PORT"
 E verify | tail -1
 
 echo "== Private copies"

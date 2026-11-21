@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import http from 'node:http';
 import path from 'node:path';
 import * as store from '../../kernel/store.js';
-import { verifyAct, actHash, keys as K } from '../../kernel/index.js';
+import { verifyAct, actHash, keys as K, sealing } from '../../kernel/index.js';
 import { build as buildSite, renderIndex, island, lawIndex } from '../../interface/build.js';
 import { openEntity, out, settlePending } from '../context.js';
 import { bundleOf, absorbInto, pull } from '../net.js';
@@ -15,6 +15,10 @@ import { chatNode } from '../chat.js';
 import { mahjongNode } from '../mahjong.js';
 import { docsNode } from '../docs.js';
 import * as media from '../media.js';
+import { guard } from '../security.js';
+import * as notify from '../notify.js';
+import * as details from '../details.js';
+import * as documents from '../documents.js';
 
 export async function build({ opt }) {
   const e = await openEntity(opt);
@@ -30,12 +34,13 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 // checks it again. With --settle, it settles on receipt; that is automation of
 // something any participant can reproduce exactly, so it holds no authority.
 export async function serve({ opt }) {
+  opt.relay = true;   // a node may hold a sealed record it cannot open: it serves and relays it
   let e;
   try { e = await openEntity(opt); }
   catch (x) { console.error(`warning: ${x.message}\nServing anyway, so participants can see the problem for themselves.`); e = await store.open((await import('../context.js')).entityDir(opt)); e.params = null; }
   const port = Number(opt.port || store.readNode(e.dir).port || 7780);
   const auto = !!opt.settle;
-  const map = [['/interface/js/', 'interface/js/'], ['/kernel/', 'kernel/'], ['/modules/', 'modules/'], ['/record/', 'record/'], ['/law/', 'law/'], ['/letters/', 'letters/'], ['/media/', 'media/']];
+  const map = [['/interface/js/', 'interface/js/'], ['/interface/fonts/', 'interface/fonts/'], ['/kernel/', 'kernel/'], ['/modules/', 'modules/'], ['/record/', 'record/'], ['/law/', 'law/'], ['/letters/', 'letters/'], ['/media/', 'media/']];
   const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type, x-chat-token',
     'access-control-allow-methods': 'GET, POST, OPTIONS', 'access-control-allow-private-network': 'true' };
   const send = (res, code, body, type = 'application/json') => {
@@ -45,7 +50,10 @@ export async function serve({ opt }) {
   const body = (req) => (req._body !== undefined ? Promise.resolve(req._body) : new Promise((ok, bad) => { let d = ''; req.on('data', c => { d += c; if (d.length > 32e6) req.destroy(); }); req.on('end', () => { req._body = d; ok(d); }); req.on('error', bad); }));
   // The republic's own website, for headless republics: node.json "site": "site".
   const siteFolder = () => { const s = store.readNode(e.dir).site; return s ? path.resolve(e.dir, s) : null; };
-  const SITE_TYPES = { '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.png': 'image/png', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json', '.txt': 'text/plain; charset=utf-8' };
+  // Every response says nosniff (cli/security.js), so a file is used only as the type named here.
+  const SITE_TYPES = { '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.otf': 'font/otf', '.png': 'image/png', '.ico': 'image/x-icon',
+    '.webmanifest': 'application/manifest+json', '.txt': 'text/plain; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.xml': 'application/xml; charset=utf-8',
+    '.pdf': 'application/pdf', '.wasm': 'application/wasm', '.map': 'application/json' };
   let live = 0;
   let queue = Promise.resolve();
   const serial = (fn) => (queue = queue.then(fn, fn));
@@ -61,7 +69,10 @@ export async function serve({ opt }) {
   const cookieOf = (req) => (String(req.headers.cookie || '').match(/(?:^|;\s*)gr_session=([a-f0-9]{64})/) || [])[1];
   const sessionOf = (req) => { const t = cookieOf(req), s = t && sessions.get(t); if (!s || s.until < Date.now()) { if (t) sessions.delete(t); return null; } return s; };
   const signinMessage = (entityId, challenge) => `entity.signin\n${entityId}\n${challenge}`;
-  const OPEN_PREFIXES = ['/interface/js/', '/kernel/', '/modules/'];
+  const OPEN_PREFIXES = ['/interface/js/', '/interface/fonts/', '/kernel/', '/modules/'];
+  // What an applicant may send before admission: the application, signing what
+  // it requires, their particulars (details), and accepting an invitation.
+  const APPLY_KINDS = ['participant.apply', 'agreement.sign', 'details.filed', 'invite.accept', 'member.recordkey'];
   const sendPlain = (res, code, body, type, extra = {}) => { res.writeHead(code, { 'content-type': type, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer', ...extra }); res.end(body); };
   // Email two-factor (the twofactor module): see cli/twofactor.js.
   const tf = twoFactor(e.dir);
@@ -130,13 +141,37 @@ export async function serve({ opt }) {
     return json(res, 404, { why: 'no such address' });
   }
   async function gate(req, res, p) {
-    if (OPEN_PREFIXES.some(x => p.startsWith(x)) && req.method === 'GET') return false;
+    // Code is open, since the sign-in page needs it. Asking the node to list or
+    // fetch from its module source is not (docs/PRIVACY-AUDIT.md, F9).
+    if (OPEN_PREFIXES.some(x => p.startsWith(x)) && req.method === 'GET' && p !== '/modules/available') return false;
+    if ((p === '/sw.js' || p === '/sw-basic.js' || p === '/manifest.webmanifest') && req.method === 'GET') return false;   // the service workers and the manifest: needed before sign-in, nothing private
     if (p === '/signin' || p === '/signin.html') return sendPlain(res, 200, fs.readFileSync(path.join(e.dir, 'interface/signin.html')), TYPES['.html']), true;
-    if (p === '/interface/style.css') return false;
+    if (p === '/interface/style.css' || p === '/interface/athens.css') return false;
     const fresh = async () => (await openEntity(opt)).state;
     if (p === '/auth/info' && req.method === 'GET') {
       const st = await fresh();
       return sendPlain(res, 200, JSON.stringify({ entity: st.entity.id }), TYPES['.json']), true;
+    }
+    // Partners' particulars (the details module): signed requests, for applicants and members alike.
+    if (p === '/auth/details' && req.method === 'POST') {
+      let b; try { b = JSON.parse(await body(req)); } catch { return sendPlain(res, 400, '{"why":"send { body, signature }"}', TYPES['.json']), true; }
+      await serial(async () => {
+        const ee = await openEntity(opt);
+        if (!details.enabled(ee)) return sendPlain(res, 404, '{"why":"the details module is not enabled here"}', TYPES['.json']);
+        const r = await details.handle(ee, b);
+        sendPlain(res, r.ok ? 200 : 403, JSON.stringify(r.ok ? r : { why: r.error }), TYPES['.json']);
+      });
+      return true;
+    }
+    // An invitation link: who it is for, told only to whoever holds its secret.
+    if (p === '/auth/invite' && req.method === 'POST') {
+      let b; try { b = JSON.parse(await body(req)); } catch { b = {}; }
+      const ee = await openEntity(opt);
+      const i = ee.state.m.invites?.[b.invite];
+      const { hash } = await import('../../kernel/hash.js');
+      const ok = i && typeof b.secret === 'string' && hash(b.secret) === i.hash;
+      const state = !ok ? 'unknown' : i.used ? 'used' : i.revoked ? 'withdrawn' : new Date().toISOString() > i.expires ? 'expired' : 'open';
+      return sendPlain(res, ok ? 200 : 404, JSON.stringify(ok ? { name: i.name, state, expires: i.expires, details: !!(ee.params.has('details.required') && ee.params.value('details.required')) } : { why: 'that invitation link is not valid' }), TYPES['.json']), true;
     }
     if (p === '/auth/required' && req.method === 'GET') {
       // What a candidate must sign before admission: the texts in force.
@@ -144,7 +179,11 @@ export async function serve({ opt }) {
       const f = path.join(e.dir, 'modules', 'agreements', 'index.js');
       if (!ee.params.value('entity.modules').includes('agreements') || !fs.existsSync(f)) return sendPlain(res, 200, JSON.stringify({ documents: [] }), TYPES['.json']), true;
       const ag = await import(new URL(`file://${f}`).href);
-      const who = new URL(req.url, 'http://x').searchParams.get('for');
+      // Whether someone has signed is told only for a pending applicant (who is
+      // finishing their application), never for members, so this cannot be used
+      // to find out who belongs (docs/PRIVACY-AUDIT.md, F7).
+      const asked = new URL(req.url, 'http://x').searchParams.get('for');
+      const who = asked && st.participants[asked]?.status === 'applicant' ? asked : null;
       const drawn = ee.params.value('agreements.drawn_signature');
       const documents = (ee.params.value('agreements.required') || []).map(id => {
         const v = ag.current(st, id, ee.params);
@@ -166,11 +205,13 @@ export async function serve({ opt }) {
       const no = (why) => (sendPlain(res, 401, JSON.stringify({ why }), TYPES['.json']), true);
       if (!exp || exp < Date.now()) return no('that sign-in expired: try again');
       const st = await fresh(), m = st.participants[b.id];
-      if (!m) return no('no member by that id, or not that password');
-      if (m.status === 'applicant') return no('your application has not been admitted yet');
-      if (m.status !== 'active') return no('no member by that id, or not that password');
+      // One answer for every failure, so sign-in cannot be used to find out who
+      // belongs; only someone who proves they hold an applicant's key hears that
+      // the application is still pending (docs/PRIVACY-AUDIT.md, F8).
+      if (!m || (m.status !== 'active' && m.status !== 'applicant')) return no('no member by that id, or not that password');
       const v = await K.verify(signinMessage(st.entity.id, b.challenge), String(b.signature || ''), m.keys, 'entity.signin');
       if (!v.ok) return no('no member by that id, or not that password');
+      if (m.status === 'applicant') return no('your application has not been admitted yet');
       const ee = await openEntity(opt);
       if (tf.required(ee.state, ee.params, b.id)) {
         const email = tf.email(b.id);
@@ -184,10 +225,18 @@ export async function serve({ opt }) {
       const t = cookieOf(req); if (t) sessions.delete(t);
       return sendPlain(res, 200, '{"ok":true}', TYPES['.json'], { 'set-cookie': 'gr_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0' }), true;
     }
+    // The latest key period's public key, for sealing an application: public
+    // in the record already (kernel/sealing.js latestPeriod), so no secret.
+    if (p === '/auth/period' && req.method === 'GET') {
+      const rec = store.read(e.dir).records;
+      return sendPlain(res, 200, JSON.stringify({ period: sealing.latestPeriod(rec) }), TYPES['.json']), true;
+    }
     if (p === '/auth/apply' && req.method === 'POST') {
       // An application, and nothing else, from someone not yet a member.
       let a; try { a = JSON.parse(await body(req)); } catch { a = null; }
-      if (!a || !['participant.apply', 'agreement.sign'].includes(a.kind)) return sendPlain(res, 400, '{"why":"only an application to join, and signing what it requires, are accepted here"}', TYPES['.json']), true;
+      // Sealed in transit: its kind is checked once a member's node opens it.
+      if (a && a.sealedAct && !Array.isArray(a)) { req._applyOnly = true; return 'apply'; }
+      if (!a || !APPLY_KINDS.includes(a.kind)) return sendPlain(res, 400, '{"why":"only an application to join, and signing what it requires, are accepted here"}', TYPES['.json']), true;
       if (a.kind === 'agreement.sign' && (await openEntity(opt)).state.participants[a.by]?.status !== 'applicant') return sendPlain(res, 400, '{"why":"members sign from the page, once signed in"}', TYPES['.json']), true;
       const pending = fs.existsSync(path.join(e.dir, 'pending')) ? fs.readdirSync(path.join(e.dir, 'pending')).length : 0;
       if (pending > 200) return sendPlain(res, 429, '{"why":"too many acts waiting; try later"}', TYPES['.json']), true;
@@ -201,6 +250,8 @@ export async function serve({ opt }) {
   }
 
   const server = http.createServer(async (req, res) => {
+    // Every response carries the security headers (cli/security.js), whatever handler writes it.
+    guard(req, res, () => { const n = store.readNode(e.dir); return { privateMode: n.private === true, csp: n.csp || {} }; });
     try {
       const url = new URL(req.url, 'http://x');
       let p = decodeURIComponent(url.pathname);
@@ -220,6 +271,64 @@ export async function serve({ opt }) {
       if (p.startsWith('/mahjong/')) { try { if (await mahjong.handle(req, res, p, { body, send, cors })) return; } catch (x) { return send(res, 500, { why: x.message }); } }
       // Documents (the docs module): signed files in documents/, checked against the record. See cli/docs.js.
       if (p.startsWith('/docs/')) { try { if (await docs.handle(req, res, p, { body, send, cors })) return; } catch (x) { return send(res, 500, { why: x.message }); } }
+      // Notifications (the notify module): subscriptions and inboxes, off the
+      // record; every request is proved with the member's record key. See cli/notify.js.
+      if ((p === '/sw.js' || p === '/sw-basic.js') && req.method === 'GET') return sendPlain(res, 200, fs.readFileSync(path.join(e.dir, 'interface', p.slice(1))), TYPES['.js']);
+      // The web app manifest: added to a phone's Home Screen, the page opens as an
+      // app, which is what lets an iPhone receive its notifications (iOS 16.4+).
+      // A Home Screen label: whole words up to 12 characters ("The Orchard General Partnership" → "Orchard").
+      const shortName = (n) => { if (n.length <= 12) return n; let out = ''; for (const w of n.replace(/^The /, '').split(/\s+/)) { if ((out ? `${out} ${w}` : w).length > 12) break; out = out ? `${out} ${w}` : w; } return out || n.slice(0, 12); };
+      if (p === '/manifest.webmanifest' && req.method === 'GET') {
+        let name = 'Athènes';
+        try { const x = await openEntity({ ...opt, relay: true }, { readable: false }); name = x.params?.value('entity.name') || x.records?.[0]?.payload?.act?.document?.parameters?.['entity.name']?.value || name; } catch { /* the default */ }
+        return sendPlain(res, 200, JSON.stringify({ name, short_name: shortName(name), start_url: '/', scope: '/', display: 'standalone',
+          background_color: '#F7F5F0', theme_color: '#111110' }), 'application/manifest+json');
+      }
+      if (p === '/notify/keys' && req.method === 'GET') {
+        e = await openEntity(opt);
+        if (!notify.enabled(e) && !e.unreadable) return send(res, 404, { why: 'the notify module is not enabled here' });
+        return send(res, 200, await notify.publicKeys(e.dir));
+      }
+      if (p === '/notify/request' && req.method === 'POST') {
+        let b; try { b = JSON.parse(await body(req)); } catch { return send(res, 400, { why: 'send a signed request' }); }
+        return serial(async () => {
+          e = await openEntity(opt);
+          if (!notify.enabled(e) && !e.unreadable) return send(res, 404, { why: 'the notify module is not enabled here' });
+          const r = await notify.handle(e, b);
+          send(res, r.ok ? 200 : 403, r.ok ? r : { why: r.error });
+        });
+      }
+      // Certificates and signed agreements as PDFs (cli/documents.js), for signed-in members:
+      // a partner sees their own certificates, the officers every one.
+      let dm;
+      if (req.method === 'GET' && (dm = p.match(/^\/documents\/(certificate|agreement)\/([a-z0-9-]+)\.pdf$/))) {
+        const who = sessionOf(req)?.id;
+        if (!who) return send(res, 401, { why: 'sign in first' });
+        return serial(async () => {
+          try {
+            e = await openEntity(opt);
+            const st = e.state, on = (m) => e.params.value('entity.modules').includes(m);
+            if (st.participants[who]?.status !== 'active') return send(res, 403, { why: 'only partners' });
+            let doc;
+            if (dm[1] === 'certificate') {
+              if (!on('partnership')) return send(res, 404, { why: 'no partnership module here' });
+              const { certificates } = await import(new URL(`file://${path.join(e.dir, 'modules', 'partnership', 'index.js')}`).href);
+              const certs = certificates(e.views || e.records, e.params.value('partnership.unit_class'));
+              const c = certs.find(x => String(x.number) === dm[2]);
+              if (!c) return send(res, 404, { why: 'no such certificate' });
+              if (c.partner !== who && !documents.officers(st).some(o => o.id === who)) return send(res, 403, { why: 'a partner sees their own certificates; the officers see all' });
+              doc = documents.certificateTex(e, c.number, certs);
+            } else {
+              if (!on('agreements')) return send(res, 404, { why: 'no agreements module here' });
+              const ag = await import(new URL(`file://${path.join(e.dir, 'modules', 'agreements', 'index.js')}`).href);
+              doc = documents.agreementTex(e, dm[2], ag);
+            }
+            const out = documents.pdf(e, doc);
+            res.writeHead(200, { 'content-type': 'application/pdf', 'content-disposition': `inline; filename="${doc.name}.pdf"`, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
+            res.end(out);
+          } catch (x) { send(res, 500, { why: x.message }); }
+        });
+      }
       // Pictures for texts (cli/media.js): a member signs for the picture's hash,
       // and the node keeps it in media/ under that hash. In a private republic
       // the gate above has already required a member's session as well.
@@ -264,7 +373,17 @@ export async function serve({ opt }) {
         return serial(async () => {
           e = await openEntity(opt);
           const accepted = [], refused = [];
-          for (const a of acts) {
+          for (let a of acts) {
+            // An act sealed in transit (kernel/sealing.js): checked here if this
+            // node holds a reader's key, and kept sealed on disk either way.
+            let box = null;
+            if (a && a.sealedAct) {
+              box = a;
+              let opened = null; if (e.ring) { try { opened = await sealing.openAct(a.sealedAct, e.ring); } catch { /* not ours */ } }
+              if (!opened) { store.writePending(e.dir, box); accepted.push(`sealed:${a.sealedAct.ct.slice(0, 16)}`); continue; }
+              a = opened;
+              if (req._applyOnly && !APPLY_KINDS.includes(a.kind)) { refused.push({ hash: actHash(a), why: 'only an application to join, and signing what it requires, are accepted here' }); continue; }
+            }
             const def = e.registry.get(a && a.kind);
             const keys = def?.selfSigned ? [a.key] : e.state.participants[a?.by]?.keys;
             if (!def) { refused.push({ hash: null, why: `unknown kind ${a && a.kind}` }); continue; }
@@ -275,14 +394,16 @@ export async function serve({ opt }) {
               const s = sessionOf(req);
               if (!s || s.id !== a.by || !s.twofactor) { refused.push({ hash: actHash(a), twofactor: true, why: `${a.by} uses email two-factor: confirm this browser with the code emailed to you, then send it again` }); continue; }
             }
-            store.writePending(e.dir, a); accepted.push(actHash(a));
-            emit(e.dir, 'act', { kind: a.kind, by: a.by });
+            store.writePending(e.dir, box || a); accepted.push(actHash(a));
+            emit(e.dir, 'act', box ? { kind: 'sealed', by: null } : { kind: a.kind, by: a.by });
           }
           let settled = false;
+          // A zero-knowledge node cannot say what arrived: a sealed "something new" to subscribers.
+          if (e.unreadable && accepted.length) { try { await notify.nudge(e); } catch { /* notices are a convenience */ } }
           if (auto && accepted.length) {
             const r = await settlePending(e, { publish: 'background' });
             for (const x of r.refused) if (accepted.includes(x.hash)) refused.push({ hash: x.hash, why: x.reason });
-            settled = true;
+            settled = !e.unreadable;   // a zero-knowledge node stores; a member's copy settles
           }
           send(res, refused.length && !accepted.length ? (refused.every(x => x.twofactor) ? 403 : 422) : 200, { accepted, refused, settled, ...(refused.some(x => x.twofactor) ? { twofactor: true } : {}) });
         });
@@ -354,7 +475,7 @@ export async function serve({ opt }) {
         req.on('close', () => { clearInterval(beat); live--; emit(e.dir, 'leave', { live }); });
         return;
       }
-      if (p === '/bundle') { e = await openEntity(opt); return send(res, 200, bundleOf(e)); }
+      if (p === '/bundle') { e = await openEntity(opt); return send(res, 200, await bundleOf(e)); }
       if (p === '/' || p === '/index.html') {
         // A republic with its own website (node.json "site": a folder, built on
         // windows) serves it, whether or not the page module is installed: the
@@ -407,10 +528,10 @@ export async function serve({ opt }) {
       if (p.startsWith('/window/')) {
         const f = path.resolve(e.dir, 'interface/window', p.slice('/window/'.length));
         if (!f.startsWith(path.resolve(e.dir, 'interface/window')) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) return send(res, 404, { why: 'not found' });
-        return send(res, 200, fs.readFileSync(f), TYPES[path.extname(f)] || 'application/octet-stream');
+        return send(res, 200, fs.readFileSync(f), TYPES[path.extname(f)] || SITE_TYPES[path.extname(f)] || 'application/octet-stream');
       }
       if (p === '/law/index.json') return send(res, 200, JSON.stringify(lawIndex(e.dir)));
-      if (p === '/interface/style.css') return send(res, 200, fs.readFileSync(path.join(e.dir, 'interface/style.css')), TYPES['.css']);
+      if (p === '/interface/style.css' || p === '/interface/athens.css') return send(res, 200, fs.readFileSync(path.join(e.dir, p.slice(1))), TYPES['.css']);
       for (const [pre, real] of map) {
         if (!p.startsWith(pre)) continue;
         const f = path.resolve(e.dir, real, p.slice(pre.length));
@@ -429,6 +550,14 @@ export async function serve({ opt }) {
     } catch (x) { send(res, 400, { why: x.message }); }
   });
   await new Promise(r => server.listen(port, opt.host || '127.0.0.1', r));
+  // Notices waiting in .entity/notify/outbox.jsonl: delivered every few seconds.
+  setInterval(() => { notify.deliver(e.dir).catch(() => {}); }, Number(process.env.ENTITY_NOTIFY_EVERY || 5000)).unref();
+  // Reminders before votes close (notify.remind_hours), checked every five minutes.
+  setInterval(() => serial(async () => { try { const x = await openEntity(opt); if (!x.unreadable) await notify.remind(x); } catch { /* notices are a convenience */ } }), 300000).unref();
+  if (e.unreadable) {
+    out(`zero-knowledge: this node holds no member's key, so it cannot open ${e.unreadable} sealed record(s). It stores and relays them and accepts sealed acts; members' browsers and copies open and settle them.`);
+    if (isPrivate()) out('note: the sign-in wall checks members against the register, which this node cannot read; only members named in public records can sign in here. The records it serves are ciphertext either way.');
+  }
   out(`${e.params ? e.params.value('entity.name') : 'An unreadable copy'} is served at http://localhost:${port}/${auto ? ' (settling acts on receipt)' : ''}`);
   out('POST /acts accepts signed acts; GET /bundle and POST /bundle carry the whole record.');
   // A validator's node may sign checkpoints on its own: node.json

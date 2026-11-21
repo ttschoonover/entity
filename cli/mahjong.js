@@ -32,6 +32,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { openEntity, keyDir, settlePending } from './context.js';
+import { readKeyFile } from './keyfile.js';
 import { keys, canonical, draft, signAct, actHash } from '../kernel/index.js';
 import { hash } from '../kernel/hash.js';
 import * as store from '../kernel/store.js';
@@ -168,7 +169,9 @@ export function mahjongNode(opt) {
     const keeper = (x.params.has('mahjong.keeper') && x.params.value('mahjong.keeper')) || x.state.entity.founder;
     const kf = path.join(keyDir(x.state.entity.id), keeper);
     if (!fs.existsSync(kf)) { t.recorded = { skipped: `no key for the keeper ${keeper} on this node: the sheet is kept at .entity/mahjong/${t.id}.json` }; save(T); bump(T); return; }
-    const key = keys.importPrivateKey(fs.readFileSync(kf, 'utf8'));
+    let key;
+    try { key = keys.importPrivateKey(readKeyFile(kf)); }
+    catch (x) { t.recorded = { skipped: `the keeper's key could not be opened (${x.message}): the sheet is kept at .entity/mahjong/${t.id}.json` }; save(T); bump(T); return; }
     const fields = { table: t.id, seats: t.seats.map(s => (s.type === 'ai' ? s.level : 'human')), names: t.seats.map(s => s.name),
       players: t.seats.map(s => (s.type === 'ai' ? null : s.id ? { id: s.id, name: s.name } : { name: s.name, key: s.key })),
       rules: t.rules, seeds: t.seeds, commits: t.commits, moves: t.moves.map(q => q.map(m => m.action)) };

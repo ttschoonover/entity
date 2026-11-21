@@ -51,8 +51,7 @@ parameters:
     describe: How recent a holding's price must be before money is paid in or out at the unit value.
   fund.trade_rule:
     value: ordinary
-    type: string
-    one_of: [ordinary, organic, constitutional]
+    type: rule
     changed_by: organic
     group: Fund
     describe: The rule under which the members authorize a purchase or sale. Always a decision of the members, never a grant.

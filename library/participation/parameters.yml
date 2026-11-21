@@ -1,0 +1,45 @@
+parameters:
+  participation.window_votes:
+    value: 8
+    type: integer
+    min: 1
+    max: 100
+    changed_by: organic
+    group: Participation
+    describe: How many of a partner's most recent closed proposals count toward their standing.
+  participation.min_votes:
+    value: 0.75
+    type: fraction
+    changed_by: organic
+    group: Participation
+    describe: The share of those proposals a partner must have voted on (for, against or abstain) to be in good standing.
+  participation.window_meetings:
+    value: 4
+    type: integer
+    min: 1
+    max: 52
+    changed_by: organic
+    group: Participation
+    describe: How many of the most recent meetings count toward a partner's standing.
+  participation.min_meetings:
+    value: 0.5
+    type: fraction
+    changed_by: organic
+    group: Participation
+    describe: The share of those meetings a partner must have checked in to.
+  participation.grace_days:
+    value: 30
+    type: integer
+    min: 0
+    max: 365
+    changed_by: organic
+    group: Participation
+    describe: Days after joining before proposals and meetings count toward a new partner's standing.
+  participation.cure_days:
+    value: 30
+    type: integer
+    min: 7
+    max: 180
+    changed_by: organic
+    group: Participation
+    describe: Days a partner has, after a participation notice, to return to good standing before the agreement allows the partners to remove them.

@@ -1,5 +1,10 @@
-:root { --ink: #E8E5DC; --paper: #131310; --dim: #8a877f; --rule: rgba(232,229,220,.12); --tint: rgba(232,229,220,.05); --accent: #d07a6e; --ok: #7fc48f;
-  --sans: 'Helvetica Neue', Helvetica, Arial, sans-serif; --mono: 'IBM Plex Mono', Menlo, Consolas, monospace; }
+/* The steward's panel, in the same Athens look as the republics' pages (interface/athens.css):
+   tschoonover.com's paper and ink, Latin Modern for headings, following the device's light or dark. */
+@font-face { font-family: 'Latin Modern Roman'; src: url(/fonts/lmroman10-regular.woff2) format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Latin Modern Mono'; src: url(/fonts/lmmono10-regular.woff2) format('woff2'); font-weight: 400; font-display: swap; }
+:root { --ink: #111110; --paper: #F7F5F0; --sheet: #FFFFFF; --dim: #6B6A64; --rule: rgba(17,17,16,.12); --tint: rgba(17,17,16,.04); --accent: #9b3833; --ok: #4a7a4a;
+  --sans: 'Helvetica Neue', Helvetica, Arial, sans-serif; --mono: 'Latin Modern Mono', 'IBM Plex Mono', Menlo, Consolas, monospace; --serif: 'Latin Modern Roman', 'Century Schoolbook', Georgia, serif; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root { --ink: #E8E5DC; --paper: #131310; --sheet: #1a1a17; --dim: #9c998f; --rule: rgba(232,229,220,.12); --tint: rgba(232,229,220,.05); --accent: #d9806f; --ok: #7fb27f; color-scheme: dark; } }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 14px; background: var(--paper); color: var(--ink); }
 body { font-family: var(--sans); line-height: 1.55; max-width: 980px; margin: 0 auto; border-left: .5px solid var(--rule); border-right: .5px solid var(--rule); min-height: 100vh; }
@@ -10,7 +15,7 @@ a { color: inherit; text-decoration-color: var(--accent); text-underline-offset:
 .sub { color: var(--dim); font-size: .85em; }
 main { padding: 0 0 60px; }
 section { padding: 24px 28px; border-bottom: .5px solid var(--rule); }
-h1 { font-family: 'Century Schoolbook', 'TeX Gyre Schola', Georgia, serif; font-weight: 400; font-size: 2.2em; line-height: 1.15; margin-bottom: 8px; }
+h1 { font-family: var(--serif); font-weight: 400; font-size: 2.2em; line-height: 1.15; margin-bottom: 8px; }
 h2 { font-size: 1.05em; font-weight: 500; margin-bottom: 10px; }
 h3 { font-size: .95em; font-weight: 500; margin: 14px 0 6px; }
 .hint, .fine { color: var(--dim); font-size: .9em; max-width: 46em; }
@@ -27,7 +32,9 @@ button.quiet { border-color: var(--rule); color: var(--dim); }
 button:disabled { opacity: .4; cursor: default; }
 .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 14px; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 2px; margin-top: 14px; }
-.card { background: var(--tint); padding: 16px 18px; border: .5px solid transparent; text-align: left; color: var(--ink); }
+.card { background: var(--sheet); padding: 16px 18px; border: .5px solid var(--rule); border-radius: 10px; text-align: left; color: var(--ink); }
+.cards { gap: 10px; }
+section > h2::before { content: "§ "; font-family: var(--mono); color: var(--accent); }
 button.card { border: .5px solid transparent; }
 button.card:hover { background: var(--tint); color: var(--ink); border-color: var(--dim); }
 .card.on { border-color: var(--accent); }
@@ -52,3 +59,7 @@ pre.out { font-family: var(--mono); font-size: .8em; background: var(--tint); bo
 #toast.show { display: block; } #toast.bad { background: var(--accent); }
 details summary { cursor: pointer; color: var(--dim); font-size: .9em; margin-top: 10px; }
 @media (max-width: 700px) { .mods { columns: 1; } .grid2, .setting { grid-template-columns: 1fr; } }
+h2.gap { margin-top: 22px; }
+label.choice { margin: 0; color: inherit; font-size: .92em; }
+input.narrow { max-width: 16em; }
+button.card { display: flex; flex-direction: column; justify-content: flex-start; gap: 4px; }

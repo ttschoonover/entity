@@ -4,13 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The record</title>
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="interface/style.css">
+<link rel="stylesheet" href="interface/athens.css">
 <script type="application/json" id="entity">__ENTITY__</script>
 <script type="module" src="interface/js/app.js"></script>
 </head>
 <body>
+<a class="skip" href="#view">Skip to the page</a>
 <header class="masthead">
-  <p class="entity-id" id="entity-id"></p>
+  <div class="mast-row">
+    <p class="entity-id" id="entity-id"></p>
+    <div class="controls shell" id="controls"></div>
+  </div>
   <h1 id="entity-name">The record</h1>
 </header>
 <main>

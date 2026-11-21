@@ -77,4 +77,4 @@ function install(r) {
   });
 }
 
-export default { name: 'sealed', core: '0.9.0', install, parameterKeys: ['sealed.history'] };
+export default { name: 'sealed', core: '0.9.9', install, parameterKeys: ['sealed.history'] };

@@ -36,7 +36,7 @@ if [ ! -f "$SRC/cli/index.js" ]; then echo "No entity code at $SRC: unzip the ne
 say "Updating republics in $HOME_DIR to $NEW (log: $LOG)"
 
 # Stop serving while code changes underneath; start-all.sh starts them again.
-if pgrep -f "cli/index.js serve" >/dev/null; then say "Stopping the republics' servers while they update."; pkill -f "cli/index.js serve"; sleep 1; fi
+if [ "${ENTITY_NO_STOP:-0}" != 1 ] && pgrep -f "cli/index.js serve" >/dev/null; then say "Stopping the republics' servers while they update."; pkill -f "cli/index.js serve"; sleep 1; fi
 
 targets=("$@")
 if [ ${#targets[@]} -eq 0 ]; then

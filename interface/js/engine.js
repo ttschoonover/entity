@@ -2,24 +2,46 @@
 // modules' own code; the interface adds no second implementation of any rule.
 // Importable in node, so the engine and the interface can be tested together.
 
-import { createRegistry, parseLines, verifyRecords, prefixRoot, compare, signAct, draft, keys, actHash, Parameters, checkpointStatus,
-  paramsOf, resolveElectorate, describeElectorate, originOf, canonical, makeCheckpoint, cosign, checkpointHash, passwordKey, passwordProblem, signedMaterial, admissionProblem } from '../../kernel/index.js';
+import { createRegistry, parseLines, verifyRecords, verifyStructure, prefixRoot, compare, signAct, draft, keys, actHash, Parameters, checkpointStatus,
+  paramsOf, resolveElectorate, describeElectorate, originOf, canonical, makeCheckpoint, cosign, checkpointHash, passwordKey, passwordProblem, signedMaterial, admissionProblem, sealing } from '../../kernel/index.js';
 import { loadModules } from '../../modules/index.js';
 import { count } from '../../modules/deliberation/count.js';
 import { proposalId, required } from '../../modules/deliberation/index.js';
 import * as yaml from '../../kernel/yaml.js';
 
-export { count, proposalId, required, keys, actHash, Parameters, yaml, paramsOf, resolveElectorate, describeElectorate, originOf, canonical, makeCheckpoint, cosign, checkpointHash, passwordKey, passwordProblem, admissionProblem };
+import * as notice from '../../kernel/notice.js';
+export { notice, sealing, count, proposalId, required, keys, actHash, Parameters, yaml, paramsOf, resolveElectorate, describeElectorate, originOf, canonical, makeCheckpoint, cosign, checkpointHash, passwordKey, passwordProblem, admissionProblem };
 
 export async function loadRegistry(moduleNames) {
   return createRegistry(await loadModules(moduleNames));
 }
 
-export async function verifyText(registry, text) {
+// A sealed record (kernel/sealing.js) is opened here, on this device, with the
+// member's own key: `seed` is the seed of their signing key, `id` who they are.
+// The records returned are views (plaintext, each with its stored hash), so
+// everything that compares hashes still compares the record as stored.
+export async function verifyText(registry, text, { id = null, seed = null } = {}) {
   const { records, damage } = parseLines(text);
-  const v = await verifyRecords(registry, records, damage);
-  return { ...v, count: v.records, records, damage };
+  const sealed = records.filter(sealing.isSealed).length;
+  if (!sealed) {
+    const v = await verifyRecords(registry, records, damage);
+    return { ...v, count: v.records, records, stored: records, damage, sealed: 0, unreadable: 0 };
+  }
+  const opener = id && seed ? { id, sk: (await sealing.recordKeyFromSeed(seed)).sk } : null;
+  const ring = sealing.keyring(opener);
+  const { views, unreadable } = await sealing.openRecords(records, ring);
+  if (unreadable) {
+    const s = verifyStructure(records, damage);
+    return { ...s, count: s.records, records: views, stored: records, damage, sealed, unreadable, ring, state: null };
+  }
+  const v = await verifyRecords(registry, records, damage, { views, sealer: ring });
+  return { ...v, count: v.records, records: views, stored: records, damage, sealed, unreadable: 0, ring };
 }
+// The entity id of a record text, read from its first (always public) record.
+export function entityOf(text) {
+  try { return JSON.parse(String(text).split('\n', 1)[0]).payload.act.entity; } catch { return null; }
+}
+export const hasSealed = (text) => /"sealed":\{/.test(text);
 
 // The interface's tally is the engine's count, called on the replayed state.
 export const tally = (state, proposal) => count(state, proposal);

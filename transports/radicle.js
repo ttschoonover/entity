@@ -22,6 +22,8 @@ import { hash } from '../kernel/hash.js';
 import { canonical } from '../kernel/canonical.js';
 import { nodeId } from '../kernel/keys.js';
 import { BUNDLE_FORMAT } from '../kernel/transport.js';
+import { SEALED_EXCLUDE } from '../kernel/store.js';
+import { latestPeriod, sealActTo } from '../kernel/sealing.js';
 
 export function radHome(dest = {}) {
   const h = dest.home || process.env.RAD_HOME || path.join(os.homedir(), '.radicle');
@@ -120,6 +122,25 @@ export function importDocuments(run, ref, dir) {
   return n;
 }
 
+// In a sealed republic, an unsettled act is sealed to the latest key period
+// before git carries it, so peers and seeds see only ciphertext. A reader's
+// copy opens it again when it settles.
+export async function sealPendingFiles(dir) {
+  const rf = path.join(dir, 'record', 'events.jsonl'), pd = path.join(dir, 'pending');
+  if (!fs.existsSync(rf) || !fs.existsSync(pd)) return 0;
+  const period = latestPeriod(parseLines(fs.readFileSync(rf, 'utf8')).records);
+  if (!period) return 0;
+  let n = 0;
+  for (const f of fs.readdirSync(pd).filter(x => x.endsWith('.json'))) {
+    const file = path.join(pd, f);
+    let data; try { data = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { continue; }
+    if (data.sealedAct) continue;
+    fs.writeFileSync(file, JSON.stringify(await sealActTo(period, data.act || data), null, 2) + '\n');
+    n++;
+  }
+  return n;
+}
+
 export default function radicle(dest, { dir }) {
   const run = runner(dir, dest);
   const branch = dest.branch || 'main';
@@ -130,6 +151,12 @@ export default function radicle(dest, { dir }) {
 
     async push(bundle) {
       if (!isRepo()) throw new Error('this entity is not a Radicle repository; run `entity radicle init`');
+      // A sealed record's register and parameters stay on this copy (kernel/store.js).
+      const exclude = path.join(dir, '.git', 'info', 'exclude');
+      if (fs.existsSync(exclude) && fs.readFileSync(exclude, 'utf8').includes(SEALED_EXCLUDE)) {
+        run('git', ['rm', '-r', '-q', '--cached', '--ignore-unmatch', 'participants', 'parameters.yml']);
+        await sealPendingFiles(dir);
+      }
       run('git', ['add', '-A']);
       if (run('git', ['status', '--porcelain']).trim()) {
         const to = bundle?.range?.to ?? '?';

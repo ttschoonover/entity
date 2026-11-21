@@ -40,10 +40,26 @@ async function open(base, also) {
 
   async function load() {
     const text = await (await fetch(`${base}record/events.jsonl`, { cache: 'no-store' })).text();
-    const v = await E.verifyText(registry, text);
+    // A sealed record (kernel/sealing.js) opens here with the key of the member
+    // signed in on this device, kept by the page in IndexedDB. A key locked with
+    // a password is opened through the site's own unlock hook, if it gives one
+    // (window.entityUnlock(entityId) → seed). Without a key, the chain is still
+    // checked, and the site is told the record is sealed.
+    let opening = {};
+    if (E.hasSealed(text)) {
+      try {
+        const K = await import(`${base}interface/js/keystore.js`);
+        const ident = await K.loadIdentity(E.entityOf(text));
+        if (ident?.seed) opening = { id: ident.id, seed: ident.seed };
+        else if (ident?.locked && typeof globalThis.entityUnlock === 'function') { const seed = await globalThis.entityUnlock(E.entityOf(text)); if (seed) opening = { id: ident.id, seed }; }
+      } catch { /* no key on this device */ }
+    }
+    const v = await E.verifyText(registry, text, opening);
     const before = r.records.length;
-    Object.assign(r, { ok: v.ok, problems: v.problems || [], records: v.records, state: v.ok ? v.state : null, params: v.ok ? E.paramsOf(v.state) : null, head: v.records.at(-1)?.hash || null });
-    if (v.ok && info.id && v.state.entity.id !== info.id) Object.assign(r, { ok: false, problems: [{ problem: `this record belongs to ${v.state.entity.id}, not ${info.id}` }] });
+    const sealedOut = v.unreadable > 0;
+    Object.assign(r, { ok: v.ok && !sealedOut, sealed: v.sealed || 0, problems: sealedOut && v.ok ? [{ problem: 'this record is sealed: sign in as a member on this device to read it', sealed: true }] : (v.problems || []),
+      records: sealedOut ? v.stored : v.records, state: v.ok && !sealedOut ? v.state : null, params: v.ok && !sealedOut ? E.paramsOf(v.state) : null, head: v.records.at(-1)?.hash || null });
+    if (r.ok && info.id && v.state.entity.id !== info.id) Object.assign(r, { ok: false, problems: [{ problem: `this record belongs to ${v.state.entity.id}, not ${info.id}` }] });
     // Other copies: they must agree with this one, as far as both go.
     r.disagree = [];
     for (const other of also) {

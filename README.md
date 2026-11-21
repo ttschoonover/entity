@@ -99,8 +99,10 @@ parameters.yml every settable value, rebuilt from the record at each settlement
 
 ## Tests
 
-`npm test` — 131 tests: the 23 acceptance tests of the specification, numbered as
-there; kernel and lifecycle tests; each module's own; and a
+`npm test` runs every test, and so does CI on each push: the 23 acceptance tests of the specification, numbered as
+there; kernel and lifecycle tests; each module's own; the module contract
+(`test/contract.test.js`: every module ships its files, every setting is described,
+and git ignores nothing a module needs); and a
 two-peer run on a real Radicle network (skipped when Radicle is not installed). Signature
 interop with `ssh-keygen` runs when it is installed. `test/vectors.json` holds
 canonical-serialisation, SHA-256 and Merkle vectors any other implementation
@@ -110,17 +112,25 @@ must reproduce.
 every tab drawn, a key made in-page and locked with a password, application,
 proposal and ballot signed locally and settled, the proposal's, a member's and a
 record's pages opened by address, then a perfect rewrite of the server's record
-— which the page catches.
+— which the page catches. `test/browser/sealed.py` does the same for a sealed
+record served by a node that cannot read it: the page with no key, then with a
+member's, and an act sent sealed. `test/browser/gui.py` checks the shell and
+screens: Home, the composer, settings, the record's health, who can read a
+sealed record, the account screen, the language and colour controls, and the
+phone layout. `test/browser/a11y.py` audits every screen with axe-core (WCAG 2.1
+AA) in light, dark and French. `bash test/browser/run.sh` builds throwaway
+republics and runs all of them (Python with Playwright and Chromium needed).
 
-`docs/COOKBOOK.md` builds six real projects step by step; `docs/HARDWARE.md` adds LEDs and a live counter on a Raspberry Pi; `docs/MANUAL.md` covers setup and use. Read `docs/GUARANTEES.md` before relying on any of this.
+`make-orchard-gp.sh` founds The Orchard General Partnership, an investment club in Berkeley run on this code (sealed, with its partnership agreement and legal register). `docs/COOKBOOK.md` builds six real projects step by step; `docs/HARDWARE.md` adds LEDs and a live counter on a Raspberry Pi; `docs/DEPLOY.md` runs republics on a Pi behind a Cloudflare Tunnel (`tools/deploy.sh` sends new code there); `docs/MANUAL.md` covers setup and use. Read `docs/GUARANTEES.md` before relying on any of this, and `docs/PRIVACY-AUDIT.md` before running a members-only republic (`node tools/privacy-check.mjs` checks the republics on a machine).
 
 ## Without a terminal
 
     node cli/index.js app
 
 opens a control panel in your browser that creates, runs and looks after
-republics: a guide for founding one (preset, modules, settings), and buttons
-for everything the command line does.
+republics: a guide for founding one (who can read the record, preset, modules,
+settings), and buttons for everything the command line does. New republics are
+sealed (members only) unless you choose an open record.
 
 ## Licence
 

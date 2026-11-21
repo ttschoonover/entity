@@ -1,0 +1,28 @@
+parameters:
+  notify.events:
+    value: [trades, proposals, reminders, decisions, members, notices]
+    type: list
+    changed_by: organic
+    group: Notifications
+    describe: What members may be notified of. trades - a proposal to buy or sell (the fund module) opens for a vote; proposals - any other proposal opens; reminders - a proposal you have not voted on closes within notify.remind_hours; decisions - a proposal is decided; members - someone applies, joins or leaves; notices - a member posts a notice, or an officer sends you a participation notice. Each member chooses from these for their own devices. Every notice is sealed to the member's own record key, so the node, the push service and the mail provider carry only ciphertext.
+  notify.remind_hours:
+    value: 24
+    type: integer
+    min: 1
+    max: 168
+    changed_by: ordinary
+    group: Notifications
+    describe: How many hours before a vote closes a member who has not voted is reminded (once).
+  notify.broadcast:
+    value: members
+    one_of: [members, nobody]
+    type: string
+    changed_by: organic
+    group: Notifications
+    describe: Who may post a notice to every member - any active member, or nobody.
+  notify.plaintext_email:
+    value: false
+    type: boolean
+    changed_by: constitutional
+    group: Notifications
+    describe: Whether a member may choose emails that say what happened (the notice's title in the clear, readable by their mail provider). Off, an email only says there is something new and links to the page, where the notice opens on the member's device.

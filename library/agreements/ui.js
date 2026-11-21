@@ -113,7 +113,8 @@ export default function render(api) {
             h('td', { class: why ? 'flag' : null }, s ? `version ${s.version}, ${when(s.at)}${why ? ' (not the current version)' : ''}` : 'not yet')); },
         pin: me ? (p) => p.id === me.id : null,
         filters: [{ label: 'Signed', options: [['Everyone', () => true], ['Not signed', (p) => !!unsigned(state, p.id, id, params)], ['Signed', (p) => !unsigned(state, p.id, id, params)]] }] }),
-      h('div', { class: 'buttons' }, h('button', { class: 'quiet', onclick: () => signedCopy(state, id, v, params) }, 'Print or save a signed copy (PDF)')));
+      h('div', { class: 'buttons' }, h('button', { class: 'quiet', onclick: () => signedCopy(state, id, v, params) }, 'View the signed copy'),
+        h('a', { class: 'button quiet', href: `documents/agreement/${id}.pdf`, target: '_blank', rel: 'noopener' }, 'Signed copy as PDF (LaTeX)')));
   }
   return sec;
 }

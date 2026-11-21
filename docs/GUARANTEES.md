@@ -99,7 +99,26 @@ A system overstating its guarantees is more dangerous than one having fewer.
   cost is only bandwidth.
 - **A public repository is public.** The record holds every act, id, name and
   key. Radicle's private repositories (`entity radicle init --private`) are not
-  tested here.
+  tested here. A node with `"private": true` publishes only privately.
+- **A sealed record hides what it says, not that it exists.** With
+  `records.sealing` on, anyone holding a copy sees how many records there are,
+  roughly how large, and when they were added; only members read them. Who
+  founded it, the members' record keys and the key periods stay public. A
+  member who leaves keeps what they could read; a new key period keeps them out
+  of what follows. Every member reads the whole history (`records.history:
+  full`). Sealing is not retroactive: what was recorded before stays as it was,
+  in every copy that holds it. The construction is built from standard parts
+  but has not been reviewed by an outside cryptographer.
+- **Members signed in with a passkey alone cannot open a sealed record yet.**
+  They need their password or key file on the device.
+- **Ballots are not secret from members.** In a sealed republic they are hidden
+  from everyone else, but every member can see how every other member voted.
+- **A zero-knowledge node cannot check what it relays** beyond the chain, and
+  cannot judge between two diverging sealed histories; a member's copy must.
+- **The sign-in wall covers the web, not the carriers.** A private node shows
+  strangers nothing, but whatever relays its traffic (a Cloudflare tunnel, say)
+  sees every page and record in plaintext, as does anyone holding a copy.
+  docs/PRIVACY-AUDIT.md lists what each place can see.
 - **A passphrase-protected Radicle key cannot double as an entity key.** Join
   without `--radicle` to use a separate one.
 - **`sync` publishes your working tree** to your namespace, drafts of governed
@@ -127,9 +146,14 @@ A system overstating its guarantees is more dangerous than one having fewer.
 - **An act is recorded once.** It is identified by everything it says except
   its signature, so resending it, re-encoded or not, is refused (fixed in 0.5.4;
   before, anyone could replay a public act by re-encoding its signature).
-- **Keys on disk are not encrypted.** The command line keeps private keys in
-  `~/.entity/keys` (or `ENTITY_KEYS`), readable only by your user account.
-  Protect that folder like a password manager's.
+- **Keys on disk are not encrypted unless you lock them.** The command line
+  keeps private keys in `~/.entity/keys` (or `ENTITY_KEYS`), readable only by
+  your user account. `entity key lock` seals a key with a passphrase (scrypt and
+  AES-256-GCM), and `ENTITY_LOCK_KEYS=1` locks new keys as they are made. A
+  node that signs on its own (finality, a mahjong keeper) then needs
+  `ENTITY_PASSPHRASE` or `ENTITY_PASSPHRASE_FILE`, and whoever controls that
+  machine can read it. A key linked to your Radicle key is protected by
+  Radicle's own passphrase instead.
 - **A key in a browser without a password is readable by any code the page
   runs,** and module pages are code the members approved. A password on the key
   limits that to the moment of signing.

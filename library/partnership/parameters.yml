@@ -23,3 +23,15 @@ parameters:
     changed_by: constitutional
     group: Partnership
     describe: The share class whose units measure each partner's interest, shown on partnership certificates.
+  partnership.ein:
+    value: ""
+    type: string
+    changed_by: constitutional
+    group: Partnership
+    describe: The partnership's federal Employer Identification Number (NN-NNNNNNN), as the IRS issued it. The partnership's own number, used on its returns and accounts; partners' own tax numbers are never kept on the record.
+  partnership.office:
+    value: ""
+    type: string
+    changed_by: organic
+    group: Partnership
+    describe: The partnership's principal office (city, county and state, or a mailing address), as given on its fictitious business name statement and tax returns.

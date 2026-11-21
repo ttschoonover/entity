@@ -1,0 +1,17 @@
+# An entity's state and this copy's working files. Anchored with a leading "/"
+# so they match only at the top of the repository: modules and sites have files
+# of the same names (every module's parameters.yml, for one) that must be kept.
+/record/
+/pending/
+/settled/
+/refused/
+/participants/
+/parameters.yml
+/node.json
+/.entity/
+/.staged/
+/parent/
+/site/
+
+node_modules/
+.DS_Store

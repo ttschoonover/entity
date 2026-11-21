@@ -1,0 +1,30 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      # No dependencies to install. ssh-keygen ships with the runner, so the
+      # signature interop test runs here; the Radicle test is skipped.
+      - run: ssh-keygen -V 2>&1 | head -1 || true
+      # Independent Web Push libraries, outside the repository, for the
+      # interoperability test (test/notify-crypto.test.js). Nothing ships with them.
+      - run: mkdir -p /tmp/wp && npm i --prefix /tmp/wp --no-save --silent web-push@3 http_ece@1
+      - run: npm test
+        env:
+          WEBPUSH_LIBS: /tmp/wp

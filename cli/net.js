@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import * as store from '../kernel/store.js';
+import { sealing as S } from '../kernel/index.js';
 import { makeBundle, planAbsorb } from '../kernel/transport.js';
 
 const BUILTIN = { file: '../transports/file.js', dir: '../transports/dir.js', http: '../transports/http.js', radicle: '../transports/radicle.js' };
@@ -23,11 +24,21 @@ export async function connect(dir, node, dest) {
   return make(dest, { dir });
 }
 
-export function bundleOf(e) {
+// In a sealed republic, unsettled acts travel sealed to the key period, so a
+// relay or a node without the key sees only ciphertext (kernel/sealing.js).
+export async function bundleOf(e) {
+  const on = S.sealingOn(e.state), period = S.currentEpoch(e.state);
+  const pending = [];
+  for (const p of store.readPending(e.dir)) {
+    if (p.sealedAct) pending.push({ sealedAct: p.sealedAct });
+    else if (p.act && !on) pending.push(p.act);
+    else if (p.act && period) pending.push(await S.sealAct(e.state, p.act));
+    // sealing on and no key period yet: nobody could open it; it stays here.
+  }
   return makeBundle({
     entity: { id: e.state.entity.id, name: e.params.value('entity.name') },
     records: e.records,
-    pending: store.readPending(e.dir).filter(p => p.act).map(p => p.act),
+    pending,
     attestations: store.readAttestations(e.dir),
     checkpoints: store.readCheckpoints(e.dir),
   });
@@ -35,7 +46,7 @@ export function bundleOf(e) {
 
 export async function push(e, destinations) {
   const node = store.readNode(e.dir);
-  const bundle = bundleOf(e);
+  const bundle = await bundleOf(e);
   const results = await Promise.allSettled(destinations.map(async d => {
     const t = await connect(e.dir, node, d);
     await t.push(bundle);
@@ -62,7 +73,7 @@ export async function absorbInto(e, bundle) {
   const plan = await planAbsorb(e.registry, {
     entity: e.state.entity, records: e.records, state: e.state,
     attestations: store.readAttestations(e.dir), checkpoints: store.readCheckpoints(e.dir),
-  }, bundle);
+  }, bundle, { ring: e.ring || null, relay: !!e.unreadable || (!e.ring && e.records.some(S.isSealed)) });
   if (plan.action === 'refused' || plan.action === 'diverged' || plan.action === 'kept') return plan;
   if (plan.action === 'switched') {
     // The records this copy made after the fork were never final. Keep them
@@ -71,6 +82,7 @@ export async function absorbInto(e, bundle) {
     fs.writeFileSync(f, plan.orphaned.map(r => JSON.stringify(r)).join('\n') + '\n');
     store.writeRecords(e.dir, plan.records);
     e.records = plan.records; e.state = plan.state;
+    e.views = e.ring && e.records.some(S.isSealed) ? (await S.openRecords(e.records, e.ring)).views : e.records;
     store.writeDerived(e.dir, e.state);
     for (const a of plan.acts) store.writePending(e.dir, a);
     return plan;
@@ -78,11 +90,12 @@ export async function absorbInto(e, bundle) {
   if (plan.added > 0) {
     store.writeRecords(e.dir, plan.records);
     e.records = plan.records; e.state = plan.state;
-    store.writeDerived(e.dir, e.state);
+    e.views = e.ring && e.records.some(S.isSealed) ? (await S.openRecords(e.records, e.ring)).views : e.records;
+    if (!plan.relay) store.writeDerived(e.dir, e.state);   // a relay's partial state is not the register
   }
   if (plan.attestations.length) store.writeAttestations(e.dir, plan.attestations);
   if (plan.checkpoints.length) store.writeCheckpoints(e.dir, plan.checkpoints);
-  const already = new Set(store.readPending(e.dir).filter(p => p.act).map(p => JSON.stringify(p.act)));
+  const already = new Set(store.readPending(e.dir).map(p => JSON.stringify(p.act || { sealedAct: p.sealedAct })));
   for (const a of plan.acts) if (!already.has(JSON.stringify(a))) store.writePending(e.dir, a);
   return plan;
 }

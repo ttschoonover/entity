@@ -42,3 +42,15 @@ export default function render(api) {
     } }, 'Sign this proposal')))));
   return sec;
 }
+
+// Home (module UI contract, second edition): the open budget, at a glance.
+export function cards(api) {
+  if (!api.kit) return null;
+  const lines = Object.values(api.state.m.budget?.lines || {}).filter(l => !l.closed);
+  if (!lines.length) return null;
+  const d = api.params.value('budget.decimals'), cur = api.params.value('budget.currency');
+  const fmt = (n) => `${(n / 10 ** d).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d })} ${cur}`;
+  const tot = lines.reduce((a, l) => a + l.amount, 0), sp = lines.reduce((a, l) => a + spent(l), 0);
+  return api.kit.card({ title: 'Budget', href: '#/budget', meta: `${lines.length} open line${lines.length === 1 ? '' : 's'}`,
+    body: [api.kit.meter({ label: 'Spent', value: sp, of: tot || 1, text: `${fmt(sp)} of ${fmt(tot)}` }), api.h('p', { class: 'fine' }, `${fmt(tot - sp)} left`)] });
+}

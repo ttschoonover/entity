@@ -23,6 +23,9 @@ import * as fd from './commands/federation.js';
 import * as sy from './commands/symbols.js';
 import * as lt from './commands/letter.js';
 import * as md from './commands/media.js';
+import * as rec from './commands/records.js';
+import { notifyCommand } from './commands/notify.js';
+import { documentsCommand } from './commands/documents.js';
 
 const COMMANDS = {
   found: [f.found, 'bring it into being            [--preset name] [--id p-0001] [--name "…"]'],
@@ -33,7 +36,7 @@ const COMMANDS = {
   '': null,
   propose: [a.propose, 'lay a proposal, rule chosen for you --title "…" [--effects json] [--changes json] [--admit id,id]'],
   join: [a.join, 'make a key and sign an application --id <id> [--name "…"]'],
-  key: [a.key, 'show or rotate your key          show | rotate'],
+  key: [a.key, 'your key                         show | rotate | status | lock | unlock'],
   seal: [sl.seal, 'sealed content only members read   status | key | epoch | grant M | post | read'],
   password: [pw.password, 'sign in with a password         set | remove [--as id] [--settle]'],
   twofactor: [tfa.twofactor, 'email codes at sign-in (node)   status | mail … | test EMAIL | reset ID | set ID EMAIL'],
@@ -57,6 +60,9 @@ const COMMANDS = {
   letter: [lt.letter, 'official letters on letterheads   list | heads | show | render | sample | issue | cosign | withdraw | specimen | letterhead'],
   media: [md.mediaCmd, 'pictures for the entity\'s texts  add <file> | fetch <url> | list | check  [--alt …] [--caption …]'],
   symbols: [sy.symbols, 'the state\'s digital symbols     seal [--out file] [--colors f,a,l] | fingerprint <files…>'],
+  records: [rec.records, 'sealed records                  status | key | rotate | disclose <seq> | check <file>'],
+  notify: [notifyCommand, 'sealed notices to members       status | send | subscribe | list | unsubscribe | inbox'],
+  documents: [documentsCommand, 'certificates and agreements as PDFs certificate <n|member> | certificates | agreement [page]'],
   radicle: [r.radicle, 'publish and replicate on Radicle  init | status'],
   adopt: [r.adopt, 'bring in approved code or law     <git ref> [--decision <id>] [--dry]'],
   gate: [g.gate, 'may these files change?         <paths…> --decision <id> | --against <dir> | digest <paths…>'],

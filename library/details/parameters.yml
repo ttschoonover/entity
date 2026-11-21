@@ -1,0 +1,13 @@
+parameters:
+  details.required:
+    value: false
+    type: boolean
+    changed_by: organic
+    group: Partner details
+    describe: Whether an applicant must give their particulars (legal name, date of birth, residence, taxpayer number and tax status, contact) before an invitation admits them. They are encrypted to the partner and the officers in details.readers, and kept off the record.
+  details.readers:
+    value: [treasurer, secretary]
+    type: list
+    changed_by: organic
+    group: Partner details
+    describe: The offices whose holders can read partners' particulars, for the partnership's tax returns, registrations and accounts. When a holder changes, a reader who can already open them shares them with the new one (Partner details tab).

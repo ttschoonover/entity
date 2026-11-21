@@ -8,7 +8,19 @@ const tick = (ok) => (ok ? 'ok  ' : 'FAIL');
 
 // verify · check it, offline, needing nobody.
 export async function verify({ opt }) {
-  const e = await openEntity(opt);
+  // --structure, or a copy that cannot open its sealed records: what anyone
+  // can check, the chain over every record as stored.
+  const e = await openEntity(opt, { readable: false });
+  if (opt.structure || e.unreadable) {
+    const { verifyStructure } = await import('../../kernel/verify.js');
+    const s = verifyStructure(e.records, e.damage);
+    if (opt.json) return out(JSON.stringify({ structure: s }, null, 2));
+    out(`chain: ${s.ok ? 'whole' : 'BROKEN'} · ${s.records} records (${s.sealed} sealed, ${s.public} public) · head ${s.head.hash.slice(0, 16)}`);
+    for (const p of s.problems) out(`  ${p.problem}`);
+    if (e.unreadable && !opt.structure) out(`${e.unreadable} sealed record(s) this copy cannot open: only a member can replay the rest. This checks only that nothing was altered.`);
+    if (!s.ok) process.exitCode = 1;
+    return;
+  }
   const report = { chain: null, replay: null, parameters: null, participants: null, attestations: null, checkpoints: [] };
   const v = await fullVerify(e);
   report.chain = { ok: !v.problems.some(p => p.kind === 'chain'), records: v.records, head: v.head.hash };

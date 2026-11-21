@@ -53,6 +53,12 @@ export async function radicle({ pos, opt }) {
   try { run('rad', ['--version']); } catch { refuse('the `rad` command is not installed or not on PATH. See https://radicle.xyz'); }
 
   if (sub === 'init') {
+    // One privacy switch: a members-only republic is private on the web and on
+    // Radicle alike (docs/PRIVACY-AUDIT.md, F1 and F2). A private node never
+    // publishes publicly; --private makes both private.
+    const nodePrivate = store.readNode(e.dir).private === true;
+    if (opt.public && (nodePrivate || opt.private)) refuse('this republic is private (node.json "private": true), so its Radicle copy must be private too: leave out --public, or make the node public first');
+    const visibility = opt.private || nodePrivate ? 'private' : 'public';
     if (!fs.existsSync(path.join(e.dir, '.git'))) run('git', ['init', '-q', '-b', 'main']);
     const gi = path.join(e.dir, '.gitignore');
     if (!fs.existsSync(gi)) fs.writeFileSync(gi, GITIGNORE);
@@ -63,16 +69,22 @@ export async function radicle({ pos, opt }) {
     catch {
       const name = (opt.name || e.params.value('entity.name')).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'entity';
       run('rad', ['init', '--name', name, '--description', `${e.params.value('entity.name')} · ${e.state.entity.id}`,
-        '--default-branch', 'main', opt.private ? '--private' : '--public', '--no-confirm'], { timeout: 120000 });
+        '--default-branch', 'main', `--${visibility}`, '--no-confirm'], { timeout: 120000 });
       rid = run('rad', ['.']).trim();
     }
+    // Already on Radicle: say so if it is public while the republic is private.
+    if (visibility === 'private') {
+      let shown = ''; try { shown = run('rad', ['inspect', '--visibility']); } catch { /* older rad: cannot tell */ }
+      if (/\bpublic\b/i.test(shown)) out('Warning: this repository is already public on Radicle, and a public history cannot be called back. Peers that already fetched it keep it. To keep the record private from here on, make a fresh copy and run radicle init --private there.');
+    }
     const node = store.readNode(e.dir);
+    if (visibility === 'private' && node.private !== true) { node.private = true; out('The node is now private too: its web address asks for sign-in (node.json "private": true).'); }
     node.destinations = node.destinations || [];
     if (!node.destinations.some(d => d.class === 'radicle')) node.destinations.push({ name: 'radicle', class: 'radicle', ...(opt.home ? { home: opt.home } : {}) });
     if (node.settleAfter === undefined) node.settleAfter = 600;
     if (node.publishOnSettle === undefined) node.publishOnSettle = true;
     fs.writeFileSync(store.P(e.dir).node, JSON.stringify(node, null, 2) + '\n');
-    out(`${e.params.value('entity.name')} is published on Radicle as ${rid}`);
+    out(`${e.params.value('entity.name')} is published on Radicle as ${rid} (${visibility})`);
     out(`Others join with:  entity clone ${rid} <dir>   then   entity join --id <id> --radicle`);
     out(`\`entity sync\` now pushes to your namespace and reads every participant's.`);
     out(`Acts settle once ${node.settleAfter}s old (settleAfter in node.json), giving them time to reach every peer first.`);

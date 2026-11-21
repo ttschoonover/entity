@@ -4,8 +4,9 @@ import path from 'node:path';
 import os from 'node:os';
 import * as store from '../kernel/store.js';
 import { emit } from './events.js';
+import { readKeyFile, lockText, passphrase } from './keyfile.js';
 import { ensureModules } from './modules.js';
-import { keys, draft, signAct, settle as settleActs, verifyRecords, paramsOf } from '../kernel/index.js';
+import { keys, draft, signAct, settle as settleActs, verifyRecords, paramsOf, sealing as S } from '../kernel/index.js';
 
 export class Refusal extends Error {}
 export const refuse = (m) => { throw new Refusal(m); };
@@ -43,7 +44,14 @@ export function saveKey(entityId, id, key) {
   fs.mkdirSync(d, { recursive: true, mode: 0o700 });
   const f = path.join(d, id);
   if (fs.existsSync(f)) refuse(`a key for ${id} already exists at ${f}; refusing to overwrite it`);
-  fs.writeFileSync(f, keys.exportPrivateKey(key, `${id}@${entityId}`), { mode: 0o600 });
+  // ENTITY_LOCK_KEYS=1: lock every new key with the passphrase (cli/keyfile.js).
+  let text = keys.exportPrivateKey(key, `${id}@${entityId}`);
+  if (process.env.ENTITY_LOCK_KEYS === '1') {
+    const pass = passphrase(`A passphrase to lock ${id}'s new key: `);
+    if (!pass) refuse('ENTITY_LOCK_KEYS is set but there is no passphrase: set ENTITY_PASSPHRASE, or run this from a terminal');
+    text = lockText(text, pass);
+  }
+  fs.writeFileSync(f, text, { mode: 0o600 });
   fs.writeFileSync(`${f}.pub`, keys.publicKeyLine(key.publicKey, `${id}@${entityId}`) + '\n');
   return f;
 }
@@ -51,7 +59,8 @@ export function saveKey(entityId, id, key) {
 export function loadKey(entityId, id, file) {
   const f = file || path.join(keyDir(entityId), id);
   if (!fs.existsSync(f)) refuse(`no private key for ${id} at ${f}. Pass --key <file> or set ENTITY_KEYS.`);
-  return keys.importPrivateKey(fs.readFileSync(f, 'utf8'));
+  let text; try { text = readKeyFile(f); } catch (x) { refuse(x.message); }
+  return keys.importPrivateKey(text);
 }
 
 export function whoAmI(entityId, opt) {
@@ -63,9 +72,32 @@ export function whoAmI(entityId, opt) {
   refuse(mine.length ? `several keys here (${mine.join(', ')}); say which with --as <id>` : `no key for this entity in ${d}; say who you are with --as <id> --key <file>`);
 }
 
-export async function openEntity(opt, { mustBeFounded = true } = {}) {
+// Who this copy reads a sealed record as: the member whose key is here, by
+// their record key (kernel/sealing.js). Null when there is no such key.
+function openerFor(opt) {
+  return async (entityId) => {
+    try {
+      const id = whoAmI(entityId, opt);
+      const k = loadKey(entityId, id, opt.key);
+      return { id, sk: (await S.recordKeyFromSeed(k.seed)).sk };
+    } catch { return null; }
+  };
+}
+
+// opt.relay (set by `entity serve`): a node may hold a sealed record it cannot
+// open (a zero-knowledge node): it then works on the public part, stores and
+// relays, and never settles.
+export async function openEntity(opt, { mustBeFounded = true, readable = !opt.relay } = {}) {
   const dir = entityDir(opt);
-  const e = await store.open(dir);
+  const opener = openerFor(opt);
+  const e = await store.open(dir, { opener });
+  // Sealing switched on but nothing sealed yet: a keyring all the same, to seal with.
+  if (!e.ring && e.state && S.sealingOn(e.state)) {
+    const who = await opener(e.state.entity.id);
+    e.ring = S.keyring(who); for (const v of e.views) e.ring.learn(v);
+  }
+  e.me = e.ring ? (await opener(e.state?.entity?.id || ''))?.id || null : null;
+  if (e.unreadable && readable) refuse(`this copy holds ${e.unreadable} sealed record(s) it cannot open. Only a member can read them: run as a member (--as id, with their key here). Anyone can check the chain with \`entity verify --structure\`.`);
   if (e.foldError) refuse(`the record cannot be read: ${e.foldError}. Run \`entity diagnose\`.`);
   if (e.damage.length) refuse(`the record file is damaged at line(s) ${e.damage.map(d => d.line).join(', ')}. Run \`entity diagnose\` then \`entity repair\`.`);
   if (mustBeFounded && !e.state.entity) refuse(`${dir} holds no founded entity. Run \`entity found\` first.`);
@@ -142,22 +174,43 @@ export async function publishAfterSettle(e, { wait = true } = {}) {
 }
 
 export async function settlePending(e, { dry = false, until = settleHorizon(e.dir), publish = 'wait' } = {}) {
+  // A copy that cannot open the record cannot settle: it would reach a
+  // different result from a member's copy. Its acts wait for one.
+  if (e.unreadable) return { applied: [], refused: [], records: [], views: [], held: store.readPending(e.dir).filter(p => p.act || p.sealedAct), waitingFor: ['a member\'s copy: this one cannot open the sealed record'], state: e.state, fetched: { installed: [], failed: [] }, published: null, waiting: 0 };
   const fetched = dry ? { installed: [], failed: [] } : await bringModules(e);
   const pend = store.readPending(e.dir);
+  // Sealed acts in transit: a reader's copy opens them; any other leaves them be.
+  for (const p of pend) if (p.sealedAct && e.ring) { try { const a = await S.openAct(p.sealedAct, e.ring); if (a) p.act = a; } catch { p.error = 'a sealed act that does not open'; } }
   const broken = pend.filter(p => p.error);
   for (const b of broken) store.movePending(e.dir, b.file, 'refused', { reason: `unreadable: ${b.error}` });
   // Acts dated in the future stay pending: they are not refused, only early.
   const ready = pend.filter(p => p.act && p.act.at <= until);
-  const out = await settleActs(e.registry, e.state, ready.map(p => p.act), { dry });
-  if (dry) return { ...out, fetched, waiting: pend.length - ready.length - broken.length };
+  const early = pend.filter(p => p.act && p.act.at > until).length;   // dated in the future
+  // Sealing is on and this member has no record key yet: publish one first.
+  if (!dry) { const rk = await publishRecordKey(e, ready.map(p => p.act)); if (rk) ready.push(rk); }
+  let out = await settleActs(e.registry, e.state, ready.map(p => p.act), { dry, sealer: e.ring });
+  // A sealed record waiting for a key period: if this copy is a reader's, open
+  // one now (kernel/sealing.js) and settle again, so nothing waits on a person.
+  // Likewise when members wait to be included (they published a record key).
+  // And at once after a departure, rather than when something next needs sealing.
+  const due = (st) => S.readers(st).includes(e.me) && (/a new key period/.test(out.waitingFor[0] || '') && out.held.length
+    || (S.sealingOn(st) && (S.waitingReaders(st).length || S.rotationNeeded(st))));
+  if (!dry && e.me && due(out.state)) {
+    const opened = await openKeyPeriod(e, out.state).catch(() => null);
+    if (opened) { ready.push(opened); out = await settleActs(e.registry, e.state, ready.map(p => p.act), { dry, sealer: e.ring }); }
+  }
+  if (dry) return { ...out, fetched, waiting: early };
   store.appendRecords(e.dir, out.records);
   const fileOf = new Map(ready.map(p => [p.act, p.file]));
   for (const a of out.applied) store.movePending(e.dir, fileOf.get(a.act), 'settled', { settled: true });
   for (const r of out.refused) store.movePending(e.dir, fileOf.get(r.act), 'refused', { reason: r.reason });
   e.state = out.state;
   e.records = [...e.records, ...out.records];
+  e.views = [...(e.views || []), ...(out.views || out.records)];
   e.params = paramsOf(e.state);
   store.writeDerived(e.dir, e.state);
+  // The notify module: sealed notices for members who asked (cli/notify.js).
+  if (out.records.length) { try { await (await import('./notify.js')).afterSettle(e); } catch (err) { emit(e.dir, 'notify-error', { error: err.message }); } }
   if (out.applied.length) emit(e.dir, 'settled', { acts: out.applied.length, records: e.records.length, kinds: out.applied.map(a => a.act.kind) });
   if (out.refused.length) emit(e.dir, 'refused', { acts: out.refused.length, reasons: out.refused.map(r => r.reason) });
   // node.json "wikiLetters": re-render the wiki as letters when a page changed.
@@ -170,11 +223,38 @@ export async function settlePending(e, { dry = false, until = settleHorizon(e.di
   // A decision may just have installed a module: fetch its code now.
   const after = out.records.some(r => r.kind === 'module.installed') ? await bringModules(e) : { installed: [], failed: [] };
   const published = out.records.length && publish ? await publishAfterSettle(e, { wait: publish === 'wait' }) : null;
-  return { ...out, fetched: { installed: [...fetched.installed, ...after.installed], failed: [...fetched.failed, ...after.failed] }, published, waiting: pend.length - ready.length - broken.length };
+  return { ...out, fetched: { installed: [...fetched.installed, ...after.installed], failed: [...fetched.failed, ...after.failed] }, published, waiting: early };
 }
 
 export async function fullVerify(e) {
-  return verifyRecords(e.registry, e.records, e.damage);
+  return verifyRecords(e.registry, e.records, e.damage, { views: e.views || e.records, sealer: e.ring || null });
+}
+
+// Sign an epoch.open as this copy's member, keeping the new key in the keyring;
+// written to pending and returned as { act, file }.
+export async function openKeyPeriod(e, state = e.state) {
+  if (!e.me || !e.ring) return null;
+  const { E, fields } = await S.newEpoch(state, { ring: e.ring });
+  const act = await signAct(e.registry, draft('epoch.open', { entity: state.entity.id, by: e.me, at: now(), ...fields }), loadKey(state.entity.id, e.me));
+  e.ring.remember(fields.n, E);
+  return { act, file: store.writePending(e.dir, act) };
+}
+
+// Publish this member's record key, if sealing is on and they have none yet.
+// Dated just before the earliest act waiting (never before the head), so it
+// settles first and a key period can be opened for those acts.
+// A newcomer's copy cannot open what was sealed before them, so it may hold only
+// part of the state: it can still publish its key (settlement checks the rest).
+export async function publishRecordKey(e, waiting = []) {
+  if (!e.me || !S.sealingOn(e.state)) return null;
+  if (!e.unreadable && (e.state.participants[e.me]?.status !== 'active' || S.sealingState(e.state).keys[e.me])) return null;
+  const k = loadKey(e.state.entity.id, e.me);
+  const pk = (await S.recordKeyFromSeed(k.seed)).pk;
+  const first = waiting.map(a => Date.parse(a.at)).filter(Number.isFinite).sort((a, b) => a - b)[0];
+  const head = e.state.head.at ? Date.parse(e.state.head.at) : 0;
+  const at = first ? new Date(Math.max(head, first - 1)).toISOString() : now();
+  const act = await signAct(e.registry, draft('member.recordkey', { entity: e.state.entity.id, by: e.me, at, key: S.cryptoB64(pk) }), k);
+  return { act, file: store.writePending(e.dir, act) };
 }
 
 export const out = (...a) => console.log(...a);

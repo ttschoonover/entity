@@ -75,3 +75,14 @@ function one(api, id) {
 }
 
 export const tabs = [{ id: 'offices', title: 'Offices', render: (api, path) => (path[0] ? one(api, path[0]) : render(api)) }];
+
+// Home (module UI contract, second edition): vacancies, and the seats you hold.
+export function cards(api) {
+  if (!api.kit) return null;
+  const at = api.state.head.at, all = Object.values(api.state.m.offices || {}).filter(o => !o.abolished);
+  if (!all.length) return null;
+  const vacant = all.filter(o => current(o, at).length < o.seats);
+  const mine = api.me ? all.filter(o => current(o, at).some(x => x.id === api.me.id)) : [];
+  return api.kit.card({ title: 'Offices', href: '#/offices', meta: `${all.length} office${all.length === 1 ? '' : 's'}${vacant.length ? ` · ${vacant.length} with a vacancy` : ''}`,
+    body: mine.length ? api.h('p', { class: 'fine' }, `You hold: ${mine.map(o => o.title).join(', ')}`) : null });
+}

@@ -28,6 +28,8 @@ exact code, by digest, and every copy then keeps its own copy of that code.
 | **chat** | channels of messages kept by the node, never on the record | | |
 | **laws** | a relational legal system: typed, tagged laws naming who enforces them and on whom; Parliament and referendum | enact, amend, repeal, ratify (referendum) | lay a bill, vote, close, petition, promulgate (Parliament) |
 | **twofactor** | email codes at sign-in, enforced by the node; addresses never on the record | require it of officers or everyone | turn it on or off (node) |
+| **participation** | every partner's standing, read from votes and meeting check-ins; formal notices to those below the minimum | the minimums, the windows, the cure period | — (notices by an officer under a grant) |
+| **notify** | notices to members by push, email or text, each sealed to the member's own key; where to send never on the record | which events, who may post, whether emails may say what happened | post a notice, choose where yours go (node) |
 | **things** | a library of things members lend each other against cash deposits; a solidarity fund that covers deposits | add, keep or retire a shared thing; declare a loss; settle a dispute; record a claim paid | list, request, lend, renew, return (keeping part of a deposit), dispute |
 | **wiki** | pages any member writes, by category; statutes by decision | enact a version, repeal | edit |
 | **site** | a personal website as a record: posts, projects, photographs, résumé, home page | | post, project, photo, resume, profile |
@@ -349,6 +351,77 @@ longest. Messages are signed with members' keys (namespace `entity.chat`) and
 kept in `.entity/chat/`, never on the record. Members-only channels are end-to-end encrypted unless `encrypt: false` (see `interface/js/chatcrypto.js`): the node keeps ciphertext and wrapped channel keys, never the text. Members open rooms of their own (`chat.room_creators`, `chat.max_rooms`), closed by their opener or a moderator, and write to each other directly (`chat.direct_messages`): each direct message is sealed for the two people and deleted only by its author. The site kit's `chat.html` is the
 page.
 
+## Notifications (notify)
+
+Members are told what happens without anyone else learning it. After every
+settlement the node turns new records into notices: a proposal opens
+(`proposals`), a proposal is decided (`decisions`), someone applies, joins or
+leaves (`members`), a member posts a notice (`notice.post`, `notices`). Each
+notice is sealed with HPKE to the member's record key (`kernel/notice.js`,
+label `entity/notice/v1`, the member's id as associated data) before it is
+written anywhere, then:
+
+- kept in the member's inbox (`.entity/notify/inbox/ID.jsonl`), which the page
+  opens on the member's device (Home: "Notices for you");
+- pushed to each device the member set up (You → Notifications), encrypted once
+  more for the browser (RFC 8291) and signed with the node's VAPID key (RFC
+  8292). The service worker (`interface/sw.js`) opens it with the member's key
+  in IndexedDB; a key locked with a password, or held by a passkey, shows only
+  "Something new";
+- or announced by email or text message, through the commands in node.json
+  `"notify": { "mail": "…", "sms": "…" }`, which say only that there is
+  something new and link to the page (`"url"`). Only if the republic allows it
+  (`notify.plaintext_email`, constitutional) and the member chooses it does an
+  email carry the notice's title and text.
+
+Subscriptions (endpoints, addresses, chosen events) are kept by the node in
+`.entity/notify/subs.json`, never in the record. Every request, from
+subscribing to reading the inbox, is proved with the member's record key: the
+member MACs it with a key derived from X25519(record key, node notify key),
+so the node needs no signing key to check it. A member without a record key
+publishes one first (`member.recordkey`, allowed with or without sealing). A
+node that cannot read the record (zero-knowledge) still takes subscriptions,
+from the public record keys; it knows no events, so it sends a sealed
+"something new" when sealed acts arrive, at most once an hour.
+
+    entity notify status | send
+    entity notify subscribe --email a@b.c [--events proposals,notices] [--plaintext] --as you
+    entity notify subscribe --sms +15105551234 --as you
+    entity notify list | unsubscribe <id> | inbox --as you
+
+`entity serve` delivers what waits every few seconds and retries failures six
+times; a push service that says a subscription is gone ends it. A burst of
+more than eight notices becomes one push ("12 new things"); the inbox keeps
+them all.
+
+| Setting | Default | Rule |
+|---|---|---|
+| `notify.events` | proposals, decisions, members, notices | organic |
+| `notify.broadcast` | members (or nobody) | organic |
+| `notify.plaintext_email` | false | constitutional |
+
+What each party sees is in docs/PRIVACY-AUDIT.md, "Notifications".
+
+## Participation (participation)
+
+An investment club stays outside securities law only while every member
+actively decides its investments. This module makes each partner's part
+visible and actionable. A partner's standing is read from the record: of the
+last `participation.window_votes` closed proposals they were on the roll for,
+how many they voted on; of the last `participation.window_meetings` meetings
+held, how many they checked in to (the meetings module). The first
+`participation.grace_days` after joining do not count. Below
+`participation.min_votes` or `participation.min_meetings`, an officer holding
+a grant of `participation.notice` (the Secretary, in the Orchard) gives a
+formal notice, which the notify module sends to that partner alone. The
+Participation tab shows everyone's standing, and when a partner's
+`participation.cure_days` after a notice have passed; what follows (removal by
+joint resolution, in the Orchard's agreement) is the partners' decision.
+
+The notify module also reminds a partner who has not voted,
+`notify.remind_hours` before a vote closes, and alerts every partner when a
+proposal to buy or sell (`fund.authorize`) opens (the `trades` event).
+
 ## Two-factor (twofactor)
 
 Settings only: `twofactor.require` (optional, officers, everyone) and
@@ -598,6 +671,56 @@ members have enacted it. When a required document is amended,
 signs again. The fund module also refuses payments from anyone who has not
 signed what admission requires.
 
+`agreements.drawn_signature` (`off`, `optional` or `required`) adds a
+handwritten signature: the member draws it on the page and it is signed with
+the act, as a small PNG, so the record holds both the key signature and the
+drawing. Signed copies are on the Agreements tab ("View the signed copy") and,
+on a node with pdflatex, as a PDF set in LaTeX with every signer's drawing,
+name, date and key fingerprint (`/documents/agreement/PAGE.pdf`, partners
+only; `entity documents agreement PAGE`).
+
+## Invitations (invites)
+
+Personal invitation links. An officer with the grant (or the members, by the
+admission rule) creates `invite.create { invite, name, hash, days }`: the
+browser makes a random secret, puts only its hash on the record, and shows the
+link `https://HOST/signin?invite=ID.SECRET` to send to that one person. The
+link opens the sign-in page with the invitation named; the person applies,
+signs what admission requires, gives their particulars if required, and then
+`invite.accept { invite, secret }` admits them, once. Admission checks are the
+core's (agreements, seats, particulars), so an invitation is the members'
+admission decision taken in advance for one named person. `invite.revoke`
+withdraws one; `invites.max_days` (default 30) bounds how long a link lives.
+The Invitations tab creates, copies and withdraws links and shows which were used.
+
+## Partner details (details)
+
+The particulars a partnership needs to meet its legal obligations: legal name,
+date of birth, residence and mailing address, email, phone, tax status, the
+kind of taxpayer number and the number (SSN, ITIN or EIN), and a
+certification. They never go on the record. The member's browser encrypts them
+(AES-GCM, the key wrapped with HPKE to the member's own record key and to the
+holders of the offices in `details.readers`, by default treasurer and
+secretary) and the node keeps the ciphertext in `.entity/details/`; the record
+holds only `details.filed { digest }`, so it proves which version was given and
+when. Requests to the node are signed with the member's key.
+`details.required` makes particulars a condition of admission by invitation.
+The Partner details tab lets each member open and correct their own; readers
+open everyone's (numbers masked), download a CSV for the returns (K-1s, the
+fictitious business name statement, the bank), and re-share them with newly
+elected officers.
+
+## Certificates and documents
+
+The partnership module keeps each partner's certificate (units held of units
+outstanding). The Partnership tab shows them as cards with the drawn
+signatures of every officer in office; each downloads as a landscape PDF set
+in LaTeX (`/documents/certificate/N.pdf`: a partner gets their own, an officer
+any). `entity documents certificate N|ID`, `certificates`, `agreement [PAGE]`
+make them from the command line (`--tex` for the source). PDFs need pdflatex on
+the node (Debian: `texlive-latex-recommended texlive-pictures
+texlive-fonts-recommended`) and are cached in `.entity/documents/`.
+
 ## Fund (investment clubs)
 
 The unit value method: the club's value (cash plus each holding at its last
@@ -751,12 +874,20 @@ parameters.yml   its settings, with defaults and the rule that changes each
 tests.js         its own tests
 ui.js            optional: export const tabs = [{ id, title, render(api, path) }]
                  (or, as before 0.4, export default (api) => a <section>: one tab)
+                 and, optionally, export function cards(api) → element(s) or null,
+                 shown on Home under "From the modules"
 ```
 
 A tab owns the page's addresses under `#/ID/…`; `path` is the rest of the
 address, so `#/offices/treasurer` gives the offices tab `['treasurer']`. `api`
 holds the state and parameters, `h` to build elements, `sign`, `propose`,
-`link(path, …)`, `go(path)` and `who(id)`.
+`link(path, …)`, `go(path)` and `who(id)`. `api.kit` holds the page's components
+(`interface/js/kit.js`): `card`, `cards`, `meter`, `stat`, `badge`, `timeline`,
+`feed`, `empty`, `pills`, `heading`. They take the page's look, so a module drawn
+with them matches the page in every look. `api.t(key)` gives the page's words in
+the viewer's language. A page from an older core has no `api.kit`, so a
+module's `cards` should return null without it (meetings, budget and offices
+show how).
 
 In `install`, use `registry.registerKind` for acts members sign,
 `registry.registerEffect` for things only the entity can do (a decision, or a

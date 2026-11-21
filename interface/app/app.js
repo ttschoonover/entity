@@ -41,7 +41,7 @@ async function home() {
 const STEPS = ['Basics', 'Shape', 'Modules', 'Settings', 'Look and serving', 'Review'];
 let draft = null;
 async function guide(step = 0) {
-  if (!draft) draft = { name: '', folder: '', founder: '', password: '', preset: 'assembly', modules: ['page'], settings: {}, look: 'minimal', colour: 'dark', port: 7780, serve: true };
+  if (!draft) draft = { name: '', folder: '', founder: '', password: '', preset: 'assembly', modules: ['page'], settings: {}, sealed: true, look: 'athens', colour: 'system', port: 7780, serve: true };
   const [presets, modules] = await Promise.all([guide.presets ||= api('/api/presets'), guide.modules ||= api('/api/modules')]);
   const pre = presets.find(p => p.name === draft.preset) || presets[0];
   const chosen = () => [...new Set([...pre.modules, ...draft.modules, ...(draft.password ? ['passwords'] : [])])];
@@ -61,7 +61,11 @@ async function guide(step = 0) {
       h('p', { class: 'fine' }, 'Your key is also saved on this computer (in ~/.entity/keys). The password never leaves it either: only the public key it makes is recorded.'),
       nav(() => (!draft.name.trim() ? 'Give the republic a name' : !/^[a-z0-9][a-z0-9-]{0,40}$/.test(draft.folder) ? 'The folder needs lowercase letters, digits and -' : !/^[a-z0-9][a-z0-9-]{0,40}$/.test(draft.founder) ? 'Your id needs lowercase letters, digits and -' : draft.password && draft.password.length < 12 ? 'A password is at least 12 characters' : draft.password !== (draft.password2 || '') ? 'The two passwords differ' : null))];
   } else if (step === 1) {
-    body = [h('h2', {}, 'A starting shape'), h('p', { class: 'hint' }, 'A preset sets the first rules and modules. Every part of it can be changed later, by decision.'),
+    const privacy = [[true, 'Members only', 'The record is sealed: only members can read what it says, on any copy, server or backup. Anyone can still check it has not been altered. Recommended.'],
+      [false, 'Open record', 'Anyone holding a copy can read everything recorded: for public bodies and open experiments. Sealing can be turned on later, by a constitutional vote.']];
+    body = [h('h2', {}, 'Who can read the record'),
+      h('div', { class: 'cards' }, privacy.map(([v, t, d]) => h('button', { class: `card${draft.sealed === v ? ' on' : ''}`, 'aria-pressed': String(draft.sealed === v), onclick: () => { draft.sealed = v; guide(1); } }, h('h3', {}, t), h('p', {}, d)))),
+      h('h2', { class: 'gap' }, 'A starting shape'), h('p', { class: 'hint' }, 'A preset sets the first rules and modules. Every part of it can be changed later, by decision.'),
       h('div', { class: 'cards' }, presets.filter(p => !p.name.startsWith('_')).map(p => h('button', { class: `card${p.name === draft.preset ? ' on' : ''}`, onclick: () => { draft.preset = p.name; draft.settings = {}; guide(1); } },
         h('h3', {}, p.name), h('p', {}, p.about || ''), h('p', { class: 'tag' }, p.modules.join(' · '))))), nav(() => null)];
   } else if (step === 2) {
@@ -96,19 +100,20 @@ async function guide(step = 0) {
       rest.length ? h('details', {}, h('summary', {}, `Every other setting (${rest.reduce((a, g) => a + groups[g].filter(c => !skip.has(c.key)).length, 0)})`), rest.map(block)) : null,
       nav(() => null)];
   } else if (step === 4) {
-    const radio = (key, opts) => h('div', { class: 'row' }, opts.map(([v, l]) => h('label', { style: 'margin:0;color:inherit' }, h('input', { type: 'radio', name: key, checked: draft[key] === v, onchange: () => { draft[key] = v; } }), l)));
+    const radio = (key, opts) => h('div', { class: 'row' }, opts.map(([v, l]) => h('label', { class: 'choice' }, h('input', { type: 'radio', name: key, checked: draft[key] === v, onchange: () => { draft[key] = v; } }), l)));
     body = [h('h2', {}, 'Look and serving'),
-      h('label', {}, 'How its page looks (each visitor can still choose their own)'), radio('look', [['minimal', 'Minimal'], ['classic', 'Classic'], ['schoolbook', 'Schoolbook'], ['terminal', 'Terminal']]),
-      h('label', {}, 'Colours'), radio('colour', [['dark', 'Dark'], ['light', 'Light'], ['system', 'Follow the device']]),
+      h('label', {}, 'How its page looks (each visitor can still choose their own)'), radio('look', [['athens', 'Athens'], ['minimal', 'Minimal'], ['classic', 'Classic'], ['schoolbook', 'Schoolbook'], ['terminal', 'Terminal']]),
+      h('label', {}, 'Colours'), radio('colour', [['system', 'Follow the device'], ['light', 'Light'], ['dark', 'Dark']]),
       h('label', { for: 'g-port' }, 'Port to serve its page on, here'), h('input', { id: 'g-port', type: 'number', value: draft.port, oninput: (e) => { draft.port = Number(e.target.value); } }),
-      h('label', { style: 'color:inherit' }, h('input', { type: 'checkbox', checked: draft.serve, onchange: (e) => { draft.serve = e.target.checked; } }), 'Start serving it as soon as it is founded'),
+      h('label', { class: 'choice' }, h('input', { type: 'checkbox', checked: draft.serve, onchange: (e) => { draft.serve = e.target.checked; } }), 'Start serving it as soon as it is founded'),
       nav(() => (draft.port < 1024 || draft.port > 65535 ? 'Choose a port between 1024 and 65535' : null))];
   } else {
     const changed = Object.entries(draft.settings);
     body = [h('h2', {}, 'Review'),
       h('div', { class: 'grid2' },
         h('div', {}, h('h3', {}, 'The republic'), h('p', {}, draft.name), h('p', { class: 'fine' }, `in ${draft.folder} · founded by ${draft.founder}${draft.password ? ' · with a password' : ' · key file only'}`)),
-        h('div', {}, h('h3', {}, 'Shape'), h('p', {}, draft.preset), h('p', { class: 'fine' }, chosen().join(' · ')))),
+        h('div', {}, h('h3', {}, 'Shape'), h('p', {}, draft.preset), h('p', { class: 'fine' }, chosen().join(' · '))),
+        h('div', {}, h('h3', {}, 'Who can read it'), h('p', {}, draft.sealed ? 'Members only: the record is sealed' : 'Anyone with a copy'), h('p', { class: 'fine' }, draft.sealed ? 'Its node will ask visitors to sign in, and its Radicle copies are private.' : 'You can seal it later by a constitutional vote.'))),
       h('h3', {}, 'Settings you changed'), changed.length ? h('ul', { class: 'log' }, changed.map(([k, v]) => h('li', {}, `${k}: ${JSON.stringify(v)}`))) : h('p', { class: 'fine' }, 'None: every setting at its default.'),
       h('p', { class: 'fine' }, `Look: ${draft.look}, ${draft.colour}. ${draft.serve ? `Served at http://localhost:${draft.port}/ once founded.` : 'Not served yet.'}`),
       h('div', { class: 'row' }, h('button', { class: 'quiet', onclick: () => guide(step - 1) }, '← Back'), h('button', { class: 'primary', id: 'g-found', onclick: found }, 'Found it')),
@@ -123,7 +128,7 @@ async function found() {
   prog.replaceChildren(h('ul', { class: 'log' }, (r.log || []).map(x => h('li', { class: x.code ? 'bad' : '' }, x.what))),
     r.error ? [h('p', { class: 'hint' }, r.error), r.log?.length ? h('pre', { class: 'out' }, r.log.map(x => x.out).filter(Boolean).join('\n')) : null] : null);
   if (r.ok) {
-    prog.append(h('h2', { style: 'margin-top:18px' }, `${draft.name} is founded.`),
+    prog.append(h('h2', { class: 'gap' }, `${draft.name} is founded.`),
       h('div', { class: 'row' }, r.url ? h('a', { href: r.url, target: '_blank' }, h('button', { class: 'primary' }, 'Open its page ↗')) : null,
         h('button', { onclick: () => { location.hash = `#/r/${draft.folder}`; draft = null; } }, 'Manage it')));
     btn.remove();
@@ -199,14 +204,14 @@ async function republic(folder) {
     h('section', {}, h('h2', {}, 'Settings'), settingsBox),
     h('section', {}, h('h2', {}, 'Modules'), h('p', { class: 'hint' }, 'Installing a module is a proposal; the republic’s page (Settings → Install or upgrade modules) does it with a click. From here:'),
       h('div', { class: 'row' }, btn('Installed', ['module', 'list']), btn('Available', ['module', 'available'])),
-      h('div', { class: 'row' }, (() => { const n = h('input', { placeholder: 'module name, e.g. contracts', style: 'max-width:16em' }); const as = h('input', { placeholder: 'as (your id)', value: me, style: 'max-width:10em' });
+      h('div', { class: 'row' }, (() => { const n = h('input', { placeholder: 'module name, e.g. contracts', class: 'narrow' }); const as = h('input', { placeholder: 'as (your id)', value: me, class: 'narrow' });
         return [n, as, h('button', { onclick: () => run(['module', 'add', n.value.trim(), '--as', as.value.trim()]) }, 'Propose installing'), h('button', { class: 'quiet', onclick: () => run(['module', 'upgrade', n.value.trim(), '--as', as.value.trim()]) }, 'Propose upgrading')]; })())),
-    h('section', {}, h('h2', {}, 'Your sign-in'), h('div', { class: 'row' }, (() => { const as = h('input', { placeholder: 'your id', value: me, style: 'max-width:10em' }); const pw = h('input', { type: 'password', placeholder: 'new password (12+)', style: 'max-width:16em' });
+    h('section', {}, h('h2', {}, 'Your sign-in'), h('div', { class: 'row' }, (() => { const as = h('input', { placeholder: 'your id', value: me, class: 'narrow' }); const pw = h('input', { type: 'password', placeholder: 'new password (12+)', class: 'narrow' });
       return [as, pw, h('button', { onclick: () => run(['password', 'set', '--as', as.value.trim(), '--settle'], { newPassword: pw.value }) }, 'Set a password')]; })())),
     h('section', {}, h('h2', {}, 'Copies'), h('p', { class: 'hint' }, 'Publish it on Radicle so others can hold a copy (private: only the copies you allow), or sync with the copies that exist.'),
       h('div', { class: 'row' }, btn('Publish on Radicle', ['radicle', 'init']), btn('Publish privately', ['radicle', 'init', '--private']), btn('Radicle status', ['radicle', 'status']), btn('Sync and settle', ['sync', '--settle']))),
     h('section', {}, h('h2', {}, 'Upgrade its code'), h('p', { class: 'hint' }, `Compares it with the code this panel runs (${info.version}); the upgrade is a proposal the members decide.`),
-      h('div', { class: 'row' }, btn('Check', ['upgrade', 'check', `dir:${info.source}`]), (() => { const as = h('input', { placeholder: 'as (your id)', value: me, style: 'max-width:10em' }); return [as, h('button', { class: 'quiet', onclick: () => run(['upgrade', 'propose', `dir:${info.source}`, '--as', as.value.trim()]) }, 'Propose the upgrade')]; })(), btn('Install an approved upgrade', ['upgrade', 'apply']))),
+      h('div', { class: 'row' }, btn('Check', ['upgrade', 'check', `dir:${info.source}`]), (() => { const as = h('input', { placeholder: 'as (your id)', value: me, class: 'narrow' }); return [as, h('button', { class: 'quiet', onclick: () => run(['upgrade', 'propose', `dir:${info.source}`, '--as', as.value.trim()]) }, 'Propose the upgrade')]; })(), btn('Install an approved upgrade', ['upgrade', 'apply']))),
     h('section', {}, h('h2', {}, 'Serving this computer'), ...nodeForm()),
     h('section', {}, h('h2', {}, 'Any command'), h('p', { class: 'hint' }, 'Anything the terminal’s entity command does (except serve and app, which this panel runs itself).'),
       h('div', { class: 'row' }, any, h('button', { onclick: () => run(any.value.trim().match(/"[^"]*"|\S+/g).map(s => s.replace(/^"|"$/g, ''))) }, 'Run')), outBox));

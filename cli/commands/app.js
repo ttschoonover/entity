@@ -140,15 +140,19 @@ export async function app({ opt }) {
     fs.cpSync(SRC, dir, { recursive: true, filter: (s) => !skip.has(s.slice(SRC.length).replace(/\\/g, '/')) });
     log.push({ what: `copied the code to ${dir}`, code: 0, out: '' });
     // 2 · the preset, with your choices
-    const set = { ...pre.set, ...(b.settings || {}) };
+    const set = { ...pre.set, ...(b.settings || {}), ...(b.sealed ? { 'records.sealing': true } : {}) };
     const yml = [`_: Made with entity app from the ${pre.name} preset.`, `modules: [${modules.join(', ')}]`, 'set:', ...Object.entries(set).map(([k, v]) => `  ${k}: ${JSON.stringify(v)}`)].join('\n') + '\n';
     fs.writeFileSync(path.join(dir, 'presets', '_chosen.yml'), yml);
     await step('composed the settings', run(dir, ['preset', 'apply', '_chosen']));
     await step('founded the republic', run(dir, ['found', '--id', b.founder, '--name', b.name.trim()]));
     if (b.password) await step('set your password', run(dir, ['password', 'set', '--as', b.founder, '--settle'], { env: { ENTITY_NEW_PASSWORD: b.password } }));
     const node = JSON.parse(fs.readFileSync(path.join(dir, 'node.json'), 'utf8'));
-    Object.assign(node, { settleAfter: 0, look: b.look || 'minimal', colour: b.colour || 'dark', ...(b.port ? { port: Number(b.port) } : {}) });
+    Object.assign(node, { settleAfter: 0, look: b.look || 'athens', colour: b.colour || 'system', ...(b.port ? { port: Number(b.port) } : {}), ...(b.sealed ? { private: true } : {}) });
     fs.writeFileSync(path.join(dir, 'node.json'), JSON.stringify(node, null, 2) + '\n');
+    if (b.sealed) {
+      await step('sealed the record: your record key and the first key period', run(dir, ['settle', '--as', b.founder]));
+      await step('checked who can read it', run(dir, ['records', 'status', '--as', b.founder]));
+    }
     await step('checked the record', run(dir, ['verify']));
     let url = null;
     if (b.serve !== false) { const s = startServing(b.folder, Number(b.port || 7780)); url = `http://localhost:${s.port}/`; log.push({ what: `serving it at ${url}`, code: 0, out: '' }); }
@@ -166,10 +170,11 @@ export async function app({ opt }) {
       if (cookie !== token) return send(res, 401, `<!doctype html><meta charset=utf-8><title>entity app</title><body style="font:15px system-ui;background:#111;color:#ddd;padding:3rem">Open the link the panel printed when it started (it ends in ?t=…). Run <code>entity app</code> again to get a new one.</body>`, 'text/html; charset=utf-8');
       const p = url.pathname;
       if (!p.startsWith('/api/')) {
-        const f = path.join(UI, p === '/' ? 'index.html' : p.slice(1));
-        if (!f.startsWith(UI) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) return send(res, 404, 'not found', 'text/plain');
-        const type = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css' }[path.extname(f)] || 'application/octet-stream';
-        return send(res, 200, fs.readFileSync(f), type, { 'content-security-policy': "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'" });
+        const FONTS = path.join(SRC, 'interface', 'fonts');
+        const f = p.startsWith('/fonts/') ? path.join(FONTS, path.basename(p)) : path.join(UI, p === '/' ? 'index.html' : p.slice(1));
+        if (!(f.startsWith(UI) || f.startsWith(FONTS + path.sep)) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) return send(res, 404, 'not found', 'text/plain');
+        const type = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2' }[path.extname(f)] || 'application/octet-stream';
+        return send(res, 200, fs.readFileSync(f), type, { 'content-security-policy': "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'", 'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer' });
       }
       if (req.method !== 'GET' && req.headers['x-entity-app'] !== '1') return send(res, 403, { error: 'refused' });
 

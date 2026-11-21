@@ -123,13 +123,14 @@ export function certificates(records, unitClass = 'units') {
   let n = 0;
   const issue = (who, rec, i, why) => {
     if (current[who]) { current[who].cancelled = rec.at; current[who].cancelledBy = why; }
-    const c = { number: ++n, partner: who, units: units[who] || 0, issued: rec.at, record: rec.hash, seq: i + 1, why, cancelled: null, cancelledBy: null };
+    const outstanding = Object.values(units).reduce((t, u) => t + (u > 0 ? u : 0), 0);
+    const c = { number: ++n, partner: who, units: units[who] || 0, outstanding, issued: rec.at, record: rec.hash, seq: i + 1, why, cancelled: null, cancelledBy: null };
     out.push(c); current[who] = c;
   };
   records.forEach((rec, i) => {
     const k = rec.kind, p = rec.payload || {};
     if (k === 'entity.found') issue(p.act?.by || rec.author, rec, i, 'founded the partnership');
-    else if (k === 'participant.admitted') issue(p.id, rec, i, 'admitted as a partner');
+    else if (k === 'participant.admitted' || k === 'participant.admit') issue(p.id, rec, i, 'admitted as a partner');
     else if (k === 'share.issue' && p.class === unitClass) { units[p.to] = (units[p.to] || 0) + p.count; issue(p.to, rec, i, `${p.count} units issued`); }
     else if (k === 'share.redeem' && p.class === unitClass) { units[p.from] = (units[p.from] || 0) - p.count; if (current[p.from]) issue(p.from, rec, i, `${p.count} units redeemed`); }
     else if (k === 'share.transfer' && p.act?.class === unitClass) {
@@ -145,4 +146,4 @@ export function certificates(records, unitClass = 'units') {
 }
 
 export default { name: 'partnership', core: '0.7.7', install, association, liveClaims, profitShare, certificates,
-  parameterKeys: ['partnership.join_rule', 'partnership.profits_rule', 'partnership.assets_rule', 'partnership.unit_class'] };
+  parameterKeys: ['partnership.join_rule', 'partnership.profits_rule', 'partnership.assets_rule', 'partnership.unit_class', 'partnership.ein', 'partnership.office'] };

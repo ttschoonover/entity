@@ -9,7 +9,7 @@ import { copyCode } from './dist.js';
 
 export async function bundle({ opt }) {
   const e = await openEntity(opt);
-  const b = bundleOf(e);
+  const b = await bundleOf(e);
   if (opt.from) { b.range.from = Number(opt.from); b.records = e.records.slice(b.range.from - 1); }
   const f = opt.out || `${e.state.entity.id}-${String(e.records.length).padStart(6, '0')}.bundle.json`;
   fs.writeFileSync(f, JSON.stringify(b) + '\n');

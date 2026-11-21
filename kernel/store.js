@@ -11,6 +11,7 @@ import { actHash } from './signed.js';
 import { canonical } from './canonical.js';
 import { loadDocument, rewriteValues, Parameters, emitDefinition } from './parameters.js';
 import { loadModules } from '../modules/index.js';
+import { sealingOn, keyring, openRecords, isSealed } from './sealing.js';
 
 export const CODE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -93,10 +94,12 @@ export function writeCheckpoints(dir, cps) {
 }
 
 export function readPending(dir, sub = 'pending') {
-  return readJsonFiles(P(dir)[sub]).map(x => x.data ? { file: x.file, act: x.data.act || x.data } : { file: x.file, error: x.error });
+  // A sealed act in transit ({ sealedAct }) has no act until a reader opens it.
+  return readJsonFiles(P(dir)[sub]).map(x => !x.data ? { file: x.file, error: x.error }
+    : x.data.sealedAct ? { file: x.file, sealedAct: x.data.sealedAct } : { file: x.file, act: x.data.act || x.data });
 }
 export function writePending(dir, act) {
-  const f = path.join(P(dir).pending, `${actHash(act).slice(0, 24)}.json`);
+  const f = path.join(P(dir).pending, `${actHash(act.sealedAct ? { sealed: act.sealedAct.ct } : act).slice(0, 24)}.json`);
   writeAtomic(f, JSON.stringify(act, null, 2) + '\n');
   return f;
 }
@@ -107,8 +110,23 @@ export function movePending(dir, file, to, extra = {}) {
   fs.unlinkSync(file);
 }
 
+// A sealed record's derived files (the register, parameters.yml) are for this
+// copy alone: kept out of git, so no push carries them (peers read only record/
+// and pending/). The marker line tells the Radicle transport to untrack them.
+export const SEALED_EXCLUDE = '# entity: sealed record, derived files stay here';
+function excludeDerived(dir) {
+  const git = path.join(dir, '.git');
+  if (!fs.existsSync(git) || !fs.statSync(git).isDirectory()) return;
+  const f = path.join(git, 'info', 'exclude');
+  const have = fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '';
+  if (have.includes(SEALED_EXCLUDE)) return;
+  mkdirp(path.dirname(f));
+  fs.writeFileSync(f, `${have.replace(/\s*$/, have ? '\n' : '')}${SEALED_EXCLUDE}\n/participants/\n/parameters.yml\n`);
+}
+
 // Everything derivable from the record, written where people look for it.
 export function writeDerived(dir, state) {
+  if (sealingOn(state)) excludeDerived(dir);
   const d = P(dir).participants; mkdirp(d);
   for (const id of state.order) {
     const p = state.participants[id];
@@ -137,12 +155,22 @@ export function parametersText(state) {
   return text;
 }
 
-export async function open(dir) {
+// opener(entityId) → { id, sk } | null: asked for only when the record holds
+// sealed records, to open them (kernel/sealing.js). Without one, a sealed
+// record folds up to its first sealed record and says how much it could not read.
+export async function open(dir, { opener = null } = {}) {
   const registry = await registryFor(dir);
   const { records, damage } = read(dir);
-  let state = null, foldError = null;
-  try { state = foldRecords(registry, records); } catch (e) { foldError = e.message; }
-  return { dir, registry, records, damage, state, foldError };
+  let state = null, foldError = null, views = records, ring = null, unreadable = 0;
+  if (records.some(isSealed)) {
+    const first = records[0]?.payload?.act?.entity || null;
+    const who = opener && first ? await opener(first) : null;
+    ring = keyring(who);
+    ({ views, unreadable } = await openRecords(records, ring));
+  }
+  const readable = unreadable ? views.slice(0, views.indexOf(null)) : views;
+  try { state = foldRecords(registry, readable); } catch (e) { foldError = e.message; }
+  return { dir, registry, records, views, ring, unreadable, damage, state, foldError };
 }
 
 export function readNode(dir) {

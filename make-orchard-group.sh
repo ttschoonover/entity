@@ -121,7 +121,7 @@ page officer-duties "Officers' duties" "Handbook" "## Managing Partner (the Trea
 echo "== Sealed matters"
 E seal key --as "$ME" --settle >/dev/null && echo "  your encryption key is published"
 E seal epoch --as "$ME" --settle >/dev/null && echo "  key period 1 has begun"
-node -e "const fs=require('fs');const n=JSON.parse(fs.readFileSync('node.json'));Object.assign(n,{settleAfter:0,port:Number(process.argv[1]),look:'minimal',colour:'dark'});fs.writeFileSync('node.json',JSON.stringify(n,null,2)+'\n')" "$PORT"
+node -e "const fs=require('fs');const n=JSON.parse(fs.readFileSync('node.json'));Object.assign(n,{settleAfter:0,port:Number(process.argv[1]),look:'minimal',colour:'dark',private:true});fs.writeFileSync('node.json',JSON.stringify(n,null,2)+'\n')" "$PORT"
 E verify | tail -1
 
 if command -v rad >/dev/null && rad self >/dev/null 2>&1; then E radicle init --private | tail -1; else echo "  (Radicle not unlocked: later, cd $DIR && node cli/index.js radicle init --private)"; fi

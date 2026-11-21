@@ -13,7 +13,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import * as store from '../../kernel/store.js';
-import { keys, draft, signAct, randomHex, loadDocument, foldRecords, prefixRoot, serialiseAll, forkMembers, emptyState, settle } from '../../kernel/index.js';
+import { keys, draft, signAct, randomHex, loadDocument, foldRecords, prefixRoot, serialiseAll, forkMembers, emptyState, settle, KERNEL_DEFAULTS } from '../../kernel/index.js';
 import { refuse, openEntity, entityDir, out, now, loadKey, saveKey, keyDir } from '../context.js';
 import { copyCode } from './dist.js';
 import { fetchSource, install, moduleStatus } from '../modules.js';
@@ -44,6 +44,9 @@ export async function fork({ opt }) {
   const doc = structuredClone(ps.doc);
   doc.parameters['entity.name'].value = name;
   if (opt.electorate) (doc.parameters['decision.electorate'] ||= {}).value = String(opt.electorate);
+  // --sealed: a private fork. Its record is sealed from the start, whatever the
+  // parent's; the parent's public history stays as public as it was.
+  if (opt.sealed) doc.parameters['records.sealing'] = { ...KERNEL_DEFAULTS['records.sealing'], value: true };
   const source = store.parametersText({ ...ps, doc });
   const document = loadDocument(source);
   const enabled = document.parameters['entity.modules'].value;

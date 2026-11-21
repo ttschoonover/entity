@@ -3,7 +3,8 @@
 // source, never an authority: nothing is folded in until the record still
 // verifies AND attestations still agree.
 
-import { verifyRecords } from './verify.js';
+import { verifyRecords, verifyStructure } from './verify.js';
+import { isSealed, openRecords, openAct } from './sealing.js';
 import { compare } from './attest.js';
 import { actHash, actId } from './signed.js';
 
@@ -44,7 +45,27 @@ export function mergeCheckpoints(a, b) {
 }
 
 // Decide what absorbing a bundle would do. Nothing is written here.
-export async function planAbsorb(registry, local, bundle) {
+// ring: this copy's keyring (kernel/sealing.js), to open a sealed bundle. A
+// copy without one cannot replay sealed records, so it refuses them here.
+// relay: this copy holds a sealed record it cannot open (a zero-knowledge
+// node). It takes a sealed bundle that extends its own record and whose chain
+// is whole, without replaying it: it stores and passes on, and never settles.
+function relayPlan(local, B, bundle) {
+  const L = local.records;
+  const s = verifyStructure(B);
+  if (!s.ok) return { action: 'refused', why: `bundle's chain is broken: ${s.problems[0]?.problem || 'unknown'}` };
+  const k = Math.min(L.length, B.length);
+  if (k > 0 && L[k - 1].hash !== B[k - 1].hash) return { action: 'diverged', why: 'histories diverge; a relay cannot judge between sealed histories. A member\'s copy must.' };
+  const longer = B.length > L.length;
+  const seen = new Set((local.pendingSealed || []).map(x => x.sealedAct?.ct));
+  return { action: longer ? (L.length ? 'fast-forward' : 'adopt') : (B.length < L.length ? 'ahead' : 'same'), relay: true,
+    records: longer ? B : L, added: longer ? B.length - L.length : 0, state: local.state,
+    attestations: mergeAttestations(local.attestations || [], bundle.attestations || []),
+    checkpoints: mergeCheckpoints(local.checkpoints || [], bundle.checkpoints || []),
+    acts: (bundle.pending || []).filter(a => a?.sealedAct && !seen.has(a.sealedAct.ct)), comparison: null };
+}
+
+export async function planAbsorb(registry, local, bundle, { ring = null, relay = false } = {}) {
   if (!bundle || bundle.format !== BUNDLE_FORMAT) return { action: 'refused', why: 'not an entity bundle' };
   if (local.entity && bundle.entity && bundle.entity.id !== local.entity.id) {
     return { action: 'refused', why: `bundle is for entity ${bundle.entity.id}, this is ${local.entity.id}` };
@@ -56,7 +77,22 @@ export async function planAbsorb(registry, local, bundle) {
     if (base.length !== bundle.range.from - 1) return { action: 'refused', why: `bundle starts at record ${bundle.range.from}; this copy holds only ${L.length}` };
     B = [...base, ...B];
   }
-  const v = await verifyRecords(registry, B);
+  let opts = {};
+  if (B.some(isSealed) && !ring && relay) return relayPlan(local, B, bundle);
+  if (B.some(isSealed)) {
+    if (!ring) return { action: 'refused', why: 'the bundle holds sealed records, and this copy holds no reader\'s key to check them' };
+    const { views } = await openRecords(B, ring);
+    opts = { views, sealer: ring };
+  }
+  // Sealed acts in transit: opened if this copy can, passed on as they are if not.
+  const pending = [];
+  for (const a of bundle.pending || []) {
+    if (!a?.sealedAct) { pending.push(a); continue; }
+    let opened = null; if (ring) { try { opened = await openAct(a.sealedAct, ring); } catch { /* not for us */ } }
+    pending.push(opened || a);
+  }
+  bundle = { ...bundle, pending };
+  const v = await verifyRecords(registry, B, [], opts);
   if (!v.ok) return { action: 'refused', why: `bundle does not verify: ${v.problems[0]?.problem || 'unknown'} (record ${v.problems[0]?.seq ?? '?'})` };
 
   let candidate, action;
@@ -70,7 +106,7 @@ export async function planAbsorb(registry, local, bundle) {
     if (c?.action === 'switch') {
       const orphaned = L.slice(fork);
       const requeue = orphaned.map(r => r.payload?.act).filter(a => a && !v.state.acts.has(actId(a)));
-      const pend = (bundle.pending || []).filter(a => !v.state.acts.has(actId(a)));
+      const pend = (bundle.pending || []).filter(a => a.sealedAct || !v.state.acts.has(actId(a)));
       return { action: 'switched', fork: fork + 1, why: c.why, records: B, added: B.length - fork, state: v.state, orphaned,
         acts: [...requeue, ...pend], attestations: mergeAttestations(local.attestations || [], bundle.attestations || []),
         checkpoints: mergeCheckpoints(local.checkpoints || [], bundle.checkpoints || []) };
@@ -89,7 +125,7 @@ export async function planAbsorb(registry, local, bundle) {
     return { action: 'refused', why: `attestations disagree with this history: ${cmp.diverged.map(d => `${d.by} (${d.why})`).join('; ')}` };
   }
   const known = state.acts;
-  const acts = (bundle.pending || []).filter(a => !known.has(actId(a)));
+  const acts = (bundle.pending || []).filter(a => a.sealedAct || !known.has(actId(a)));
   return {
     action, records: candidate, added: candidate.length - L.length, state,
     attestations: atts.filter(a => !cmp.invalid.some(x => x.by === a.by)),

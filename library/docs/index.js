@@ -399,5 +399,5 @@ function install(r) {
   } });
 }
 
-export default { name: 'docs', core: '0.7.7', install, roleOf, readers, inForce, checkBlob, verifyBlob, blobId, material, heads, latestHead, merge3, diffLines, NS,
+export default { name: 'docs', core: '0.9.9', install, roleOf, readers, inForce, checkBlob, verifyBlob, blobId, material, heads, latestHead, merge3, diffLines, NS,
   parameterKeys: ['docs.personal', 'docs.public_allowed', 'docs.max_per_member', 'docs.create_rule', 'docs.adopt_rule'] };

@@ -49,3 +49,14 @@ export default function render(api) {
     } }, 'Sign')))));
   return sec;
 }
+
+// Home (module UI contract, second edition): the next meeting, if there is one.
+// Draws nothing on a page without the kit (an older core).
+export function cards(api) {
+  if (!api.kit) return null;
+  const now = new Date().toISOString();
+  const next = Object.values(api.state.m.meetings || {}).filter(m => !m.cancelled && m.starts >= now).sort((a, b) => a.starts.localeCompare(b.starts))[0];
+  if (!next) return null;
+  return api.kit.card({ title: next.title, href: '#/meetings', meta: `${api.when(next.starts)}${next.place ? ` · ${next.place}` : ''}`,
+    body: next.agenda?.length ? api.h('p', { class: 'fine' }, next.agenda.slice(0, 3).join(' · ')) : null });
+}

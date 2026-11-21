@@ -192,6 +192,7 @@ function drawWho() {
 function seal(ok, text) { const s = $('#seal'); if (!s) return; s.className = `seal ${ok ? 'ok' : 'bad'}`; s.innerHTML = text; }
 function drawSeal() {
   const r = ctx.r;
+  if (!r.ok && r.problems[0]?.sealed) return seal(false, `This record is sealed: only its members can read it. Sign in as a member on this device (with your key or password) to open it. Its chain of ${r.records.length} records was checked.`);
   if (!r.ok) return seal(false, `This record did not verify: ${esc(r.problems[0]?.problem || 'unknown problem')}. Do not rely on what this page shows.`);
   if (r.disagree.length) return seal(false, 'Copies of the record disagree. Do not rely on what this page shows until that is resolved.');
   seal(true, `${r.records.length} records, all signatures checked in this browser. <span class="hash">Latest ${esc(String(r.head).slice(0, 16))}</span>`);

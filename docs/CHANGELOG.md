@@ -1,5 +1,74 @@
 # Changes
 
+## 0.9.36 · Invitation links, partner particulars, certificates and signed agreements as PDFs
+
+- **New module: invites.** Personal invitation links (`/signin?invite=ID.SECRET`): only the secret's hash is on the record; the person applies, signs, gives their particulars and is admitted once, under the core's admission checks. Created and withdrawn by the members or an officer's grant; `invites.max_days`.
+- **New module: details.** The particulars a partnership needs for its returns and filings (legal name, date of birth, addresses, contact, tax status and number, certification), encrypted in the member's browser to the member and to the officers in `details.readers`, kept off the record by the node (`.entity/details/`); the record holds a digest. Readers open them, export CSV for the returns, and re-share with new officers. `kernel/details.js`, `cli/details.js`, `POST /auth/details`.
+- **Drawn signatures.** `agreements.drawn_signature: required` has every partner draw their signature, signed with the act; a partner who signed without one may add it once. The sign-in page signs the agreement, files particulars and accepts an invitation in one flow.
+- **Certificates and signed agreements, on the page and as LaTeX PDFs**, with the drawn signatures of every officer in office (certificates) and of every signer (agreements): `cli/documents.js`, `entity documents`, `/documents/certificate/N.pdf` and `/documents/agreement/PAGE.pdf` (partners only; a certificate to its holder or an officer). Needs pdflatex on the node.
+- **The Orchard GP** (`make-orchard-gp.sh`, `presets/orchard-gp.yml`) uses all of it: invitations granted to the Secretary, particulars required, drawn signatures required (the founder signs on the page); agreement sections 4.1, 4.2 and 9.1 on admission, particulars and retention.
+- The page's module API gives modules the records (`api.records`); exported signatures are drawn in black, whatever the theme.
+- Tests: library/invites/tests.js, library/details/tests.js, test/browser/orchard.py (in run.sh when pdflatex is present); test/orchard-gp.test.js signs with a drawing.
+
+## 0.9.35 · Privacy, first part; the page, redesigned; sealed notifications; the Orchard refounded
+
+- **Upgrading republics from 0.9.34, rehearsed.** Republics founded with 0.9.34 upgrade by vote to this core (update-republics.sh now sees a new version), their records replay byte for byte, and sealed posts written before still open with the new cryptography.
+- `tools/deploy.sh --rehearse` (and `tools/deploy.sh local`, run on the Pi itself from a checkout there, with no ssh): upgrades copies of the Pi's republics with the new code and reports, changing nothing live. The deploy's header check now uses GET and follows a private node to its sign-in page (a HEAD request is answered 405). update-republics.sh leaves running servers alone when `ENTITY_NO_STOP=1`.
+- A web app manifest (`/manifest.webmanifest`, named after the republic): added to a phone's Home Screen, the page opens as an app, which iPhones and iPads (iOS 16.4+) require before they deliver its notifications. The page says so on an iPhone. `interface/sw-basic.js` is a fallback service worker for browsers that cannot run a module one; it shows only "Something new".
+- Websites built on `window.js` (the club site, the VDR, the solidarity network) open a sealed record with the key of the member signed in on that device, and say plainly that a record is sealed when there is none, instead of failing.
+- **make-orchard-gp.sh** refounds The Orchard General Partnership (Berkeley, California) on this code: sealed record and private node from the first record; the minimal partnership agreement (`presets/orchard-gp-agreement.md`), enacted and signed on the record, required of every partner before admission; every trade a joint resolution of the partners and of the units, never delegated; an elected Treasurer and an elected Secretary (the founder serves as Founding Secretary until the first election); participation required and enforced; alerts for trades to vote on and reminders before votes close; two-factor sign-in (required of everyone when mail is configured); the EIN, set by a sealed decision just after founding so it never appears in the public founding record; and a legal register (`presets/orchard-gp-legal.md`) of federal, California and Berkeley obligations with a calendar. `test/orchard-gp.test.js` runs it end to end.
+- **New module: participation.** Each partner's standing from votes and meeting check-ins, formal notices (an effect, granted to an officer), and the cure period the agreement allows before removal.
+- notify: `trades` (a proposal to buy or sell opens) and `reminders` (a member who has not voted, `notify.remind_hours` before close) events; participation notices go to their partner only.
+- partnership: `partnership.ein` and `partnership.office` settings.
+- `membership.removal_rule` and `fund.trade_rule` may name any of the entity's rules (a partnership's joint rule, for instance), as `membership.admission_rule` already could.
+
+- **New module: notify.** Members are told of new proposals, decisions, members joining or leaving, and notices any member posts (`notice.post`), each notice sealed with HPKE to the member's own record key before it is written anywhere (`kernel/notice.js`). Delivered by Web Push to their devices (RFC 8291 payload encryption and RFC 8292 VAPID, `cli/webpush.js`, no dependencies; reproduces the RFC's example byte for byte and interoperates with Mozilla's http_ece and web-push), kept in an inbox the page opens on the device, or announced by email or text message that says only that there is something new (titles in clear only if the republic allows it and the member chooses).
+  - Subscriptions are kept by the node (`.entity/notify/`), never in the record, and every request is proved with the member's record key, so a zero-knowledge node can take them too; it sends only a sealed "something new", at most hourly.
+  - The page: You → Notifications (this device, email, text; which events; where notices go), Home → Notices for you, a Notices tab. `interface/sw.js` opens pushes with the member's key; a locked key shows "Something new".
+  - `entity notify status | send | subscribe | list | unsubscribe | inbox`; `entity serve` delivers, with retries.
+  - Settings: `notify.events`, `notify.broadcast`, `notify.plaintext_email` (constitutional).
+  - A record key may be published without sealing, for notices.
+  - Tests: test/notify-crypto.test.js, test/notify.test.js, library/notify/tests.js, test/browser/notify.py. CI installs the two independent libraries for the interop test.
+
+- **The page, in the house style of tschoonover.com** (the Athens look, now the default): paper and ink, Helvetica for the frame, Latin Modern for reading (the fonts ship with the page), § numbered sections. The masthead carries the site's pills: text size, English or French, light, dark or as the system. The other looks remain a viewer's choice; node.json `"look"` still sets a republic's default.
+  - Home: what needs your vote, as cards with turnout and share meters and the ballot; what else is open; what happened lately, in words; this copy's health (verified, sealed, key period); and cards from modules.
+  - A composer (`#/compose`): find a setting, give its new value, see the change and the rule it needs (with its readings as a timeline), sign. Every setting's "Propose a change" opens it.
+  - Settings drawn from their own descriptions, grouped, searchable, each with its value, its rule and a change button. A proposal's page shows its meters and its life as a timeline. The Votes tab counts what needs your vote.
+  - On a phone the sections sit at the bottom, within reach.
+  - `interface/js/kit.js` (components), `screens.js`, `i18n.js` (English and French for the shell and new screens; the rest follows), `athens.css`.
+  - Module UI contract, second edition: a module's ui.js may export `cards(api)` for Home, and gets `api.kit` and `api.t`. Meetings, budget and offices do.
+  - The record: this copy's health and its key periods at the top, each record described in words and marked sealed or public; a sealed record's page says how it is stored and shows the ciphertext on request.
+  - Members: who reads the sealed record (in the current key period, waiting for one, or without a record key); a member's page shows their record key and key periods. The law is set in the reading face.
+  - You: who you are, how your key is kept (lock it, save a copy), the sealed record (and a button to publish your record key), what to do if you lose your key, and leaving, as cards.
+  - French for the shell, Home, the composer, settings, You, and the record's and members' headings and tables; the rest of the page falls back to English.
+  - Accessibility: every screen passes axe-core's WCAG 2.1 A and AA checks in light, dark and French. The light theme's secondary text is darker than tschoonover.com's (#6B6A64, 5:1) to meet them; the composer's setting picker is a group of toggle buttons with a name.
+  - test/browser/gui.py, test/browser/a11y.py, and test/browser/run.sh to build the test republics and run every browser check.
+
+- **The control panel** (`entity app`) in the same look, following the device's light or dark. Its founding guide asks first who can read the record: members only (sealed, the default) or anyone; a sealed republic is founded with the founder's record key, the first key period and a private node. New republics default to the Athens look.
+- `tools/deploy.sh user@pi`: packs the code (never state), tests it on the Pi, swaps it in keeping the previous copy, updates the republics by vote, restarts them, then runs the privacy check and checks each public hostname's security headers. docs/DEPLOY.md: the Pi, the Cloudflare Tunnel settings that matter (no page rewriting, no cache-everything, full TLS), and turning on sealing in a live republic.
+
+- Every response carries security headers (`cli/security.js`): a Content Security Policy that runs only the node's own scripts and the inline scripts of the page being sent (by hash), no framing, nosniff, HSTS over HTTPS. node.json `"csp"` allows more origins, or `report-only` / `off`.
+- One privacy switch: `entity radicle init` follows node.json `"private"`, refuses `--public` for a private republic, and `--private` makes the node private too.
+- make-orchard-group.sh, make-orchard.sh and make-sealed-republic.sh make the node private, as their Radicle copies already were (make-orchard.sh: `ORCHARD_PUBLIC=1` for both public).
+- A private node no longer tells strangers who has signed an agreement, which ids are applicants, or which modules its source offers.
+- A node without `library/` (a copy made by dist or clone) starts again: the docs checks load when first needed.
+- docs/PRIVACY-AUDIT.md, and `tools/privacy-check.mjs`, which reports what each republic on a machine shows to strangers.
+- One implementation of public-key encryption, `kernel/crypto.js`: native X25519 (RFC 7748) from Web Crypto with a portable fallback, HKDF, AES-GCM and HPKE (RFC 9180), checked against the published vectors and two independent libraries. Sealed posts, documents and chat use it; every key derivation is unchanged, so everything sealed before still opens. Low-order public keys are refused everywhere.
+- `entity key lock | unlock | status`: private key files locked with a passphrase (scrypt, AES-256-GCM). `ENTITY_LOCK_KEYS=1` locks new keys; `ENTITY_PASSPHRASE` or `ENTITY_PASSPHRASE_FILE` for unattended signing.
+- Core 0.9.10: sealed records need it; the sealed and docs modules need 0.9.9, since their crypto now lives in the kernel.
+- **Sealed records** (`records.sealing`, a constitutional decision; docs/SPEC-RECORD-V2.md). The record on disk holds ciphertext only members open; anyone can still check the chain, and attestations still catch a perfect rewrite. Settlement stays deterministic: two members settling the same acts write the same bytes, and copies that fork never reuse a key.
+  - Key periods: a reader (an active member with a record key) opens one with `epoch.open`, wrapping its key for every reader and granting earlier periods' keys to newcomers. A departure needs a new one before anything more is sealed; a reader's copy opens it as soon as it settles.
+  - Acts travel sealed: in bundles, in git's `pending/`, and to a node's `POST /acts`. Applicants can write without being able to read.
+  - The register and `parameters.yml` stay off git in a sealed republic.
+  - `entity records status | key | rotate | disclose <seq> | check <file>`; `entity verify --structure` for anyone; one record can be disclosed to an outsider and checked against its key commitment.
+  - The browser page opens sealed records on the device with the member's own key (asking for its password if locked), verifies them there, and seals every act it sends; with no key it checks the chain and says the record is sealed. The sign-in page seals applications.
+  - Zero-knowledge nodes: a node with no member's key serves and relays a sealed record, takes sealed acts and sealed bundles, and never settles.
+  - `entity fork --sealed`: a private republic from any republic.
+  - A member who changes their key is granted every key period again.
+  - test/browser/sealed.py: a sealed record in the real page, through a zero-knowledge node.
+- docs/SPEC-RECORD-V2.md: the design of sealed records.
+- CI on every push; `test/contract.test.js` checks every module ships its files and every setting is described; the top-level `.gitignore` is back, anchored.
+
 ## 0.9.34 · Repairs
 
 - athenes.sh repairs an entity an older installer left half-updated (a newer command line on older code): it adds the missing files when that is enough, and otherwise installs the new core, checks that it replays the record exactly, and puts the old code back if not.

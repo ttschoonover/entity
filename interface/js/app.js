@@ -15,6 +15,10 @@
 import * as E from './engine.js';
 import * as K from './keystore.js';
 import { lockSeed, unlockSeed } from './lock.js';
+import { makeKit } from './kit.js';
+import { makeScreens } from './screens.js';
+import { t, language, setLanguage } from './i18n.js';
+const tr = t;   // where a local `t` (a tally) shadows it
 
 const $ = (s) => document.querySelector(s);
 function h(tag, attrs = {}, ...kids) {
@@ -66,7 +70,7 @@ function listView(o) {
     v.page = Math.min(v.page, pages);
     const slice = shown.slice((v.page - 1) * size, v.page * size);
     const kids = [];
-    if (!shown.length) kids.push(h('p', { class: 'hint' }, q || Object.values(v.f).some(Boolean) ? 'Nothing matches.' : (o.empty || 'Nothing yet.')));
+    if (!shown.length) kids.push(h('p', { class: 'hint' }, q || Object.values(v.f).some(Boolean) ? tr('list.nomatch') : (o.empty || tr('list.empty'))));
     else if (small) kids.push(h('div', { class: 'scroll' }, h('table', {}, o.head ? h('thead', {}, h('tr', {}, o.head.map(x => h('th', {}, x)))) : null, h('tbody', {}, slice.map(o.row)))));
     else kids.push(h('ul', { class: 'items' }, slice.map((it) => { const li = o.render(it); const e = o.edit && o.edit(it); if (e && li) li.append(e); return li; })));
     if (pages > 1) kids.push(h('nav', { class: 'pager', 'aria-label': 'Pages' }, Array.from({ length: pages }, (_, i) =>
@@ -78,7 +82,7 @@ function listView(o) {
   };
   const controls = [];
   const n = o.items.length;
-  if (o.text && n > 5) controls.push(h('input', { type: 'search', class: 'find', placeholder: `Search ${o.noun || ''}`.trim(), value: v.q, 'aria-label': `Search ${o.noun || ''}`,
+  if (o.text && n > 5) controls.push(h('input', { type: 'search', class: 'find', placeholder: `${tr('list.search')} ${o.noun || ''}`.trim(), value: v.q, 'aria-label': `${tr('list.search')} ${o.noun || ''}`.trim(),
     oninput: (e) => { v.q = e.target.value; v.page = 1; draw(); } }));
   if ((o.sorts || []).length > 1 && n > 3) controls.push(h('select', { 'aria-label': 'Sort', onchange: (e) => { v.sort = Number(e.target.value); draw(); } },
     o.sorts.map(([label], i) => h('option', { value: i, selected: i === v.sort }, label))));
@@ -131,6 +135,8 @@ const oldest = (f = (x) => x.at) => (a, b) => (f(a) < f(b) ? -1 : f(a) > f(b) ? 
 // ------------------------------------------------------------------ boot
 async function boot() {
   applyLook();
+  setLanguage(language());
+  shellControls();
   $('#noboot').hidden = true;
   const problem = E.environmentProblem(window);
   if (problem) return fatal('This page cannot check anything here', problem);
@@ -149,13 +155,29 @@ async function boot() {
   }
 
   ctx.registry = await E.loadRegistry(island.installed || island.modules || ['deliberation']);
-  const v = await E.verifyText(ctx.registry, text);
-  ctx.records = v.records;
+  // A sealed record (kernel/sealing.js) opens here, with the member's own key,
+  // which never leaves this browser. A locked key asks for its password.
+  let opening = {};
+  if (E.hasSealed(text)) {
+    const entityId = E.entityOf(text);
+    ctx.ident = entityId ? await K.loadIdentity(entityId).catch(() => null) : null;
+    if (ctx.ident && !ctx.ident.passkey) {
+      showSeal(h('p', { class: 'statement' }, 'This record is sealed: opening it with your key, on this device…'));
+      const key = await unlock('Opening the sealed record');
+      if (key?.seed) opening = { id: ctx.ident.id, seed: key.seed };
+    }
+  }
+  const v = await E.verifyText(ctx.registry, text, opening);
+  ctx.records = v.records;            // views: plaintext, each with its stored hash
+  ctx.stored = v.stored || v.records; // as on disk (ciphertext where sealed)
+  ctx.sealedRecord = v.sealed ? { sealed: v.sealed, ring: v.ring } : null;
+  if (v.unreadable) return sealedView(v);
   if (!v.ok) {
     return alarm('This record does not verify', 'The page checked every record itself and found the problems below. Do not act on this copy.',
       v.problems.slice(0, 12).map(p => (p.seq ? `Record ${p.seq}: ${p.problem}` : p.problem)));
   }
   ctx.state = v.state;
+  ctx.verified = { ok: v.ok, count: v.count };
   ctx.params = E.paramsOf(ctx.state);
   ctx.words = words();
   document.title = ctx.params.value('entity.name');
@@ -176,10 +198,24 @@ async function boot() {
   if (mem.warning) return; // nothing else is shown on a copy that has changed behind you
 
   if (island.node && 'EventSource' in window) { try { new EventSource('presence'); } catch { /* optional */ } }
-  ctx.ident = await K.loadIdentity(ctx.state.entity.id).catch(() => null);
+  ctx.ident ||= await K.loadIdentity(ctx.state.entity.id).catch(() => null);
   ctx.tabs = await collectTabs();
   addEventListener('hashchange', route);
   route();
+}
+
+// A sealed record this browser cannot open: what anyone can still check, and
+// how a member gets in.
+function sealedView(v) {
+  const why = !ctx.ident ? 'Sign in as a member, on this device, to read it.'
+    : ctx.ident.passkey ? 'You are signed in with a passkey, which cannot open sealed records yet. Sign in with your password or key file instead.'
+    : `${ctx.ident.id}'s key does not open it: a key period that includes you has not been opened yet, or you are no longer a member.`;
+  const s = showSeal(h('div', {},
+    h('h2', {}, 'This record is sealed'),
+    h('p', {}, `Only members can read it. This device checked what anyone can: the chain of ${v.count} records is ${v.ok ? 'whole, so nothing in it has been altered' : 'BROKEN: do not trust this copy'} (${v.sealed} sealed, ${v.count - v.sealed} public).`),
+    h('p', {}, why),
+    h('p', { class: 'buttons' }, h('a', { href: 'signin' }, 'Sign in'))));
+  if (!v.ok) s.classList.add('bad');
 }
 
 async function loadList(dir) {
@@ -210,8 +246,17 @@ const nameOf = (id) => ctx.state.m.titles?.[id] || ctx.state.participants[id]?.n
 const who = (id) => (ctx.state.participants[id] ? link(`members/${id}`, nameOf(id)) : id);
 
 // ------------------------------------------------------------------ tabs and routing
+// The page's components (interface/js/kit.js) and the screens built on them
+// (interface/js/screens.js): given the internals, so they never reach for ctx.
+const kit = makeKit(h);
+const screens = makeScreens({ h, kit, E, state: () => ctx.state, params: () => ctx.params, records: () => ctx.records, registry: () => ctx.registry, me: () => me(),
+  nameOf: (id) => nameOf(id), day, when, short: (x) => (x ? short(x) : ''), sign: (...a) => sign(...a), ballotButtons: (x, tl) => ballotButtons(x, tl),
+  valueInput: (k, d) => valueInput(k, d), readValue: (k, d) => readValue(k, d), youPanel: () => renderYou(), decidesText: () => decidesText(),
+  verified: () => ctx.verified || { ok: true, count: ctx.records.length }, sealed: () => ctx.sealedRecord?.sealed || 0, moduleCards: () => moduleCards() });
+
 const CORE_TABS = [
-  { id: '', title: 'Overview', render: renderOverview },
+  { id: '', title: 'Home', render: () => screens.home() },
+  { id: 'compose', title: 'Propose', hidden: true, render: (path) => screens.compose(path) },
   { id: 'votes', title: 'Votes', render: renderVotes },
   { id: 'members', title: 'Members', render: renderMembers },
 ];
@@ -226,20 +271,38 @@ const LAST_TABS = [
 async function collectTabs() {
   if (enabled('authority')) { try { ctx.authority = await import('../../modules/authority/index.js'); } catch { /* not installed here */ } }
   const out = [...CORE_TABS];
+  ctx.cards = [];
   for (const m of ctx.params.value('entity.modules')) {
     let mod;
     try { mod = await import(`../../modules/${m}/ui.js`); } catch { continue; }
+    // Module UI contract, second edition: a module may also export cards(api)
+    // → element(s) or null, shown on Home under "From the modules".
+    if (typeof mod.cards === 'function') ctx.cards.push({ module: m, render: mod.cards });
     if (Array.isArray(mod.tabs)) for (const t of mod.tabs) out.push({ ...t, module: m });
     else if (typeof mod.default === 'function') out.push({ id: m, title: m[0].toUpperCase() + m.slice(1), module: m, render: (api) => mod.default(api) });
   }
   return [...out, ...LAST_TABS];
 }
 
+// Core sections take their names from the viewer's language; modules name their own.
+const tabTitle = (tb) => (tb.module ? tb.title : t(`nav.${tb.id || 'home'}`) === `nav.${tb.id || 'home'}` ? tb.title : t(`nav.${tb.id || 'home'}`));
+function dueCount() {
+  const p = me(); if (!p || p.status !== 'active') return 0;
+  const at = new Date().toISOString();
+  return Object.values(ctx.state.proposals).filter(x => !x.closed && x.roll.includes(p.id) && at <= x.deadline && !E.tally(ctx.state, x.id).counted.some(b => b.by === p.id)).length;
+}
+function moduleCards() {
+  const out = [];
+  if (enabled('notify') && me()?.status === 'active') out.push(noticesCard());
+  for (const c of ctx.cards || []) { try { out.push(...[].concat(c.render(api()) || [])); } catch (e) { console.error(`${c.module} cards:`, e); } }
+  return out.filter(Boolean);
+}
 function route() {
   const path = decodeURIComponent(location.hash.replace(/^#\/?/, '')).split('/').filter(Boolean);
   const tab = ctx.tabs.find(t => t.id === (path[0] || '')) || ctx.tabs[0];
-  const nav = $('#tabs');
-  nav.replaceChildren(...ctx.tabs.map(t => h('a', { href: `#/${t.id}`, 'aria-current': t === tab ? 'page' : null }, t.title)));
+  const nav = $('#tabs'), due = dueCount();
+  nav.replaceChildren(...ctx.tabs.filter(tb => !tb.hidden).map(tb => h('a', { href: `#/${tb.id}`, 'aria-current': tb === tab ? 'page' : null },
+    tabTitle(tb), tb.id === 'votes' && due ? h('span', { class: 'count', 'aria-label': `${due} need your vote` }, String(due)) : null)));
   nav.hidden = false;
   renderSeal(tab.id === '');
   const view = $('#view');
@@ -253,8 +316,8 @@ const refresh = () => route();
 
 // What a module's tab is given. The same as 0.3's, plus navigation.
 function api() {
-  return { h, $, state: ctx.state, params: ctx.params, registry: ctx.registry, me: me(), ident: ctx.ident,
-    words: ctx.words, day, when, sign, propose, E, link, go, who, refresh, section,
+  return { h, $, state: ctx.state, params: ctx.params, registry: ctx.registry, records: ctx.records, me: me(), ident: ctx.ident,
+    words: ctx.words, day, when, sign, propose, E, link, go, who, refresh, section, kit, t,
     list: listView, sorts: { byText, newest, oldest }, grantsFor, nameOf, editForm,
     // The signed-in member's private key, for modules that decrypt (sealed):
     // asks for its password if it is locked; null for passkeys, which cannot.
@@ -305,73 +368,179 @@ function decidesText() {
   return `Proposals are decided by ${d}${e.voters ? ` (${e.voters} on the roll${e.total !== e.voters ? `, ${e.total} votes in all` : ''})` : ', and nobody is on it now'}.`;
 }
 
-function renderOverview() {
-  const p = me();
-  const out = [renderYou()];
-  const due = p && p.status === 'active' ? Object.values(ctx.state.proposals).filter(x => !x.closed && x.roll.includes(p.id)
-    && !E.tally(ctx.state, x.id).counted.some(b => b.by === p.id) && new Date().toISOString() <= x.deadline) : [];
-  const open = Object.values(ctx.state.proposals).filter(x => !x.closed);
-  out.push(section(`Before the ${ctx.words.assembly}`, h('p', {}, decidesText()),
-    due.length ? h('div', {}, h('p', {}, h('strong', {}, `${due.length} ${due.length === 1 ? ctx.words.proposal + ' needs' : ctx.words.proposal + 's need'} your vote.`)),
-      h('ul', { class: 'items' }, due.map(x => proposalRow(x))))
-      : h('p', { class: 'hint' }, open.length ? `${open.length} open; none needs your vote.` : `Nothing is open. ${p?.status === 'active' ? '' : ''}`),
-    h('p', {}, link('votes', `All ${ctx.words.proposal}s`))));
-  const parent = ctx.state.entity.parent;
-  if (parent) out.push(section('Where this entity came from', h('p', {}, `It forked from ${parent.name || parent.entity} (${parent.entity}) at that entity's record ${parent.count}, on ${day(ctx.state.entity.founded)}. `,
-    `It started with its parameters and modules as they stood then${Object.keys(ctx.records[0].payload.act.carry || {}).length ? `, and took over its ${Object.keys(ctx.records[0].payload.act.carry).join(' and ')}` : ''}. `,
-    `Its ${Object.keys(parent.members).length} members then keep their ids here, claimable with the keys they held there.`),
-    h('p', { class: 'fine' }, 'Its head there: ', h('span', { class: 'hash' }, parent.head), '. Anyone holding that record can check this: ', h('code', {}, 'entity verify'), ' does, using parent/events.jsonl.')));
-  const applicants = ctx.state.order.map(id => ctx.state.participants[id]).filter(x => x.status === 'applicant');
-  if (applicants.length) out.push(section('Waiting to be admitted', h('p', {}, applicants.map(a => who(a.id)).reduce((a, b) => [a, ', ', b])), h('p', {}, link('members', 'Admit from the register'))));
-  return out;
-}
-
 // ------------------------------------------------------------------ you
 function me() { return ctx.ident && ctx.state.participants[ctx.ident.id]; }
 function myKeyLine() { return !ctx.ident ? null : ctx.ident.passkey || E.keys.publicKeyLine(ctx.ident.publicKey); }
 
 function renderYou() {
   const w = ctx.words;
-  const kids = [h('h2', {}, 'You')];
   const p = me();
   if (!ctx.ident) return signedOut();
   const line = myKeyLine();
   const onRegister = p && p.keys.includes(E.keys.keyId(line));
-  const status = !p ? ' · not yet on the register' : ` · ${{ active: `an active ${w.one}`, applicant: 'applying, awaiting admission', left: 'has left', removed: `removed on ${day(p.removed)}: ${p.reason}` }[p.status]}`;
-  kids.push(h('p', {}, link(`members/${ctx.ident.id}`, h('strong', {}, ctx.ident.id)), status));
+  const statusText = !p ? tr('you.unsettled') : { active: tr('you.active', { one: w.one }), applicant: tr('you.applicant'), left: tr('you.left'), removed: `${tr('you.removed')} ${day(p.removed)}: ${p.reason}` }[p.status];
+  const kept = !ctx.ident.passkey && ctx.ident.via !== 'password';
+  const cards = [];
+
+  // Who you are, and anything standing between you and admission.
+  const who = [h('p', {}, link(`members/${ctx.ident.id}`, h('strong', {}, ctx.ident.id)), nameOf(ctx.ident.id) !== ctx.ident.id ? ` · ${nameOf(ctx.ident.id)}` : ''), h('p', { class: 'meta' }, statusText)];
   if (p?.status === 'applicant') {
     const why = E.admissionProblem(ctx.registry, ctx.state, ctx.params, p.id);
     if (why) {
       const rest = why.replace(/^.*cannot be admitted yet: /, '');
       const signIt = rest.match(/^has not signed (the current version of )?(".*?")/);
-      kids.push(h('p', { class: 'flag' }, signIt ? `Before you can be admitted, sign ${signIt[1] ? 'the current version of ' : ''}${signIt[2]}. ` : `Before you can be admitted: ${rest}. `,
+      who.push(h('p', { class: 'flag' }, signIt ? `Before you can be admitted, sign ${signIt[1] ? 'the current version of ' : ''}${signIt[2]}. ` : `Before you can be admitted: ${rest}. `,
         enabled('agreements') ? link('agreements', 'Read and sign it') : null));
     }
   }
-  if (!p) kids.push(h('p', { class: 'hint' }, 'Your application has not been settled into this record yet. If you have not sent it, send it again.'),
+  if (!p) who.push(h('p', { class: 'hint' }, 'Your application has not been settled into this record yet. If you have not sent it, send it again.'),
     h('div', { class: 'buttons' }, h('button', { onclick: () => applyAct(ctx.ident.id, ctx.ident.name) }, 'Send my application again')));
-  else if (!onRegister) kids.push(h('p', { class: 'hint' }, 'The key in this browser is not one registered for this id. Acts signed with it will be refused. If you lost your key, the members can give you a new one by decision: send them this public key.'), h('p', { class: 'hash' }, line));
-  kids.push(h('p', { class: 'fine' }, ctx.ident.passkey ? 'You are signed in with a passkey: your device asks for Face ID, a fingerprint or its PIN each time you sign.'
-    : ctx.ident.via === 'password' ? `You are signed in with your password${ctx.ident.remember ? ', remembered on this device' : ' for this visit'}.`
-    : ctx.ident.locked ? 'Your key is locked with a password; the page asks for it each time you sign.' : 'Your key is kept in this browser without a password. Anyone using this browser can sign as you.'));
-  if (p && (p.status === 'active' || p.status === 'applicant')) kids.push(waysIn(p));
+  else if (!onRegister) who.push(h('p', { class: 'flag' }, 'The key in this browser is not one registered for this id. Acts signed with it will be refused.'));
   if (p && p.status === 'active' && ctx.registry.has('title.set') && enabled('titles')) {
-    kids.push(h('label', { for: 'title' }, 'The name others see'),
+    who.push(h('label', { for: 'title' }, 'The name others see'),
       h('div', { class: 'row' }, h('input', { id: 'title', value: ctx.state.m.titles?.[p.id] || '' }),
         h('button', { class: 'quiet', onclick: () => sign('title.set', { title: $('#title').value }) }, 'Sign this name')));
   }
-  const kept = !ctx.ident.passkey && ctx.ident.via !== 'password';
-  const btns = kept ? [h('button', { class: 'quiet', onclick: exportKey }, 'Save a copy of my key'), ctx.ident.locked
-    ? h('button', { class: 'quiet', onclick: removeLock }, 'Remove the password')
-    : h('button', { class: 'quiet', onclick: addLock }, 'Lock my key with a password')] : [];
-  if (p && (p.status === 'active' || p.status === 'applicant')) btns.push(h('button', { class: 'danger', onclick: leave }, `Leave ${ctx.params.value('entity.name')}`));
-  btns.push(h('button', { class: 'quiet', onclick: forget }, kept ? 'Remove my key from this browser' : 'Sign out'));
-  kids.push(h('details', {}, h('summary', {}, kept ? 'Your key' : 'Signing out'), h('p', { class: 'hash' }, line),
+  cards.push(kit.card({ title: tr('you.who'), body: who, tone: p && !onRegister ? 'urgent' : null }));
+
+  // How your key is kept on this device.
+  const how = ctx.ident.passkey ? 'You are signed in with a passkey: your device asks for Face ID, a fingerprint or its PIN each time you sign.'
+    : ctx.ident.via === 'password' ? `You are signed in with your password${ctx.ident.remember ? ', remembered on this device' : ' for this visit'}.`
+    : ctx.ident.locked ? 'Your key is locked with a password; the page asks for it each time you sign.' : 'Your key is kept in this browser without a password: anyone using this browser can sign as you.';
+  cards.push(kit.card({ title: tr('you.key'), tone: kept && !ctx.ident.locked ? 'warn' : null, body: [
+    h('p', {}, kit.badge(ctx.ident.passkey ? 'passkey' : ctx.ident.via === 'password' ? 'password' : ctx.ident.locked ? tr('you.locked') : tr('you.unlocked'), ctx.ident.locked || ctx.ident.passkey ? 'lock' : null)),
+    h('p', { class: 'fine' }, how),
+    h('p', { class: 'hash' }, line),
     E.keys.nodeId(line) ? h('p', { class: 'fine' }, 'As a Radicle Node ID: ', h('span', { class: 'hash' }, E.keys.nodeId(line))) : null,
-    h('p', { class: 'fine' }, 'You are a light participant: you hold your own key and verify the record yourself, and a node carries your acts to the network. Running ',
-      h('code', {}, 'entity serve'), ' makes you a full one.'),
-    h('div', { class: 'buttons' }, btns)));
-  return section(null, ...kids);
+    kept ? h('div', { class: 'buttons' }, h('button', { class: 'quiet', onclick: exportKey }, 'Save a copy of my key'), ctx.ident.locked
+      ? h('button', { class: 'quiet', onclick: removeLock }, 'Remove the password')
+      : h('button', { onclick: addLock }, 'Lock my key with a password')) : null] }));
+
+  // The sealed record: can you read it?
+  if (E.sealing.sealingOn(ctx.state) && p?.status === 'active') {
+    const S = E.sealing, st = S.sealingState(ctx.state), rk = st.keys[p.id], ep = S.currentEpoch(ctx.state);
+    const reads = ep && ep.members.includes(p.id) && ep.keyOf[p.id] === rk;
+    cards.push(kit.card({ title: tr('you.sealed'), tone: rk ? null : 'urgent', body: [
+      h('p', {}, rk ? (reads ? `You read it: you are in key period ${ep.n}.` : 'Your record key is published; you are waiting for the next key period, which any reader opens.') : 'You have not published a record key, so the sealed record cannot be opened for you yet.'),
+      rk ? h('p', { class: 'fine' }, 'Record key ', h('span', { class: 'hash' }, short(rk))) : null,
+      !rk && !ctx.ident.passkey ? h('div', { class: 'buttons' }, h('button', { onclick: publishRecordKey }, 'Publish my record key')) : null,
+      !rk && ctx.ident.passkey ? h('p', { class: 'hint' }, 'A passkey cannot hold a record key yet. Publish one from a copy holding your key file: entity records key.') : null] }));
+  }
+
+  if (enabled('notify') && p?.status === 'active') cards.push(notifyCard());
+
+  // If you lose your key.
+  cards.push(kit.card({ title: tr('you.lost'), body: [
+    h('p', { class: 'fine' }, kept ? 'Keep a saved copy of your key somewhere safe. ' : '',
+      'If you lose it, nobody can sign for you, but the members can give you a new key by decision: send them a new public key and ask for it. Your record stays yours.'),
+    p && (p.status === 'active' || p.status === 'applicant') ? waysIn(p) : null] }));
+
+  const leaving = [];
+  if (p && (p.status === 'active' || p.status === 'applicant')) leaving.push(h('button', { class: 'danger', onclick: leave }, `Leave ${ctx.params.value('entity.name')}`));
+  leaving.push(h('button', { class: 'quiet', onclick: forget }, kept ? 'Remove my key from this browser' : 'Sign out'));
+  return [section(tr('h.you'), kit.cards(cards)),
+    section(null, h('p', { class: 'fine' }, 'You are a light participant: you hold your own key and verify the record yourself, and a node carries your acts to the network. Running ',
+      h('code', {}, 'entity serve'), ' makes you a full one.'), h('div', { class: 'buttons' }, leaving))];
+}
+
+// ------------------------------------------------------------------ notices (the notify module)
+// Every notice is sealed to the member's record key (kernel/notice.js); this
+// page opens them here, and asks the node for anything only with a request
+// proved by that key. The key stays in memory for this visit only.
+async function recordSecret(label) {
+  if (ctx.recordSk) return ctx.recordSk;
+  if (ctx.ident.passkey) throw new Error('a passkey cannot hold a record key yet: sign in with your password or key file');
+  const key = ctx.ident.seed ? { seed: ctx.ident.seed } : await unlock(label);
+  if (!key) return null;
+  ctx.recordSk = (await E.sealing.recordKeyFromSeed(key.seed)).sk;
+  return ctx.recordSk;
+}
+const hasRecordKey = () => !!E.sealing.sealingState(ctx.state).keys[ctx.ident?.id];
+async function notifyAsk(body, label) {
+  const sk = await recordSecret(label); if (!sk) return null;
+  const k = await (await fetch('notify/keys', { cache: 'no-store' })).json();
+  const req = await E.notice.signRequest({ entity: ctx.state.entity.id, member: ctx.ident.id, at: new Date().toISOString(), ...body }, { recordSk: sk, nodeKey: k.nodeKey });
+  const r = await fetch('notify/request', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(req) });
+  const j = await r.json().catch(() => ({ why: `the node answered ${r.status}` }));
+  if (!r.ok) throw new Error(j.why || `the node answered ${r.status}`);
+  return { ...j, keys: k };
+}
+const b64uBytes = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - s.length % 4) % 4)), c => c.charCodeAt(0));
+
+function notifyCard() {
+  const allowed = ctx.params.value('notify.events'), plainOk = ctx.params.value('notify.plaintext_email') === true;
+  const WORDS = { trades: 'trades to vote on', proposals: 'other proposals', reminders: 'reminders before a vote closes', decisions: 'decisions', members: 'members joining and leaving', notices: 'notices to you and from members' };
+  const box = h('div', { class: 'notify-events' }, allowed.map(ev => h('label', { class: 'check' }, h('input', { type: 'checkbox', value: ev, checked: true }), ` ${WORDS[ev] || ev}`)));
+  const chosen = () => [...box.querySelectorAll('input:checked')].map(i => i.value);
+  const result = h('p', { class: 'fine', 'aria-live': 'polite' });
+  const say = (t, bad) => { result.textContent = t; result.className = bad ? 'flag' : 'fine'; };
+  const where = h('div');
+  const canPush = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  async function onDevice() {
+    try {
+      if (!hasRecordKey()) return say('Publish your record key first (above): notices are sealed to it.', true);
+      if ((await Notification.requestPermission()) !== 'granted') return say('This browser was not allowed to show notifications. Allow them in its site settings, then try again.', true);
+      // A module service worker opens sealed notices; a browser that cannot run one gets the basic one.
+      let reg; try { reg = await navigator.serviceWorker.register('/sw.js', { type: 'module', scope: '/' }); } catch { reg = await navigator.serviceWorker.register('/sw-basic.js', { scope: '/' }); }
+      if (/iP(hone|ad|od)/.test(navigator.userAgent) && !matchMedia('(display-mode: standalone)').matches) return say('On an iPhone or iPad, first add this page to your Home Screen (Share → Add to Home Screen), open it from there, and press this button again.', true);
+      await navigator.serviceWorker.ready;
+      const k = await (await fetch('notify/keys', { cache: 'no-store' })).json();
+      const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uBytes(k.vapidKey) });
+      const r = await notifyAsk({ op: 'subscribe', channel: 'push', push: sub.toJSON(), events: chosen(), label: (navigator.userAgentData?.platform || navigator.platform || 'a device').slice(0, 40) }, 'Proving your notifications are yours');
+      if (r) say(`This device will be notified of ${r.events.map(x => WORDS[x] || x).join(', ')}.${ctx.ident.locked ? ' Your key is locked, so the device will say only "Something new" until you open the page.' : ''}`);
+    } catch (e) { say(`Nothing changed: ${e.message}`, true); }
+  }
+  async function byMessage(channel) {
+    const address = $(`#nt-${channel}`).value.trim(); if (!address) return say(channel === 'email' ? 'Give an email address.' : 'Give a number, +15105551234.', true);
+    try { const r = await notifyAsk({ op: 'subscribe', channel, address, events: chosen(), plaintext: channel === 'email' && !!$('#nt-plain')?.checked }, 'Proving your notifications are yours');
+      if (r) say(`${address} will be told when there is something new.`); } catch (e) { say(`Nothing changed: ${e.message}`, true); }
+  }
+  async function list() {
+    try {
+      const r = await notifyAsk({ op: 'list' }, 'Proving your notifications are yours'); if (!r) return;
+      where.replaceChildren(r.subscriptions.length ? h('ul', { class: 'plain' }, r.subscriptions.map(s => h('li', {},
+        `${s.channel === 'push' ? `a device${s.label ? ` (${s.label})` : ''}` : s.address}: ${s.events.map(x => WORDS[x] || x).join(', ')}${s.plaintext ? ' · titles in the email' : ''} `,
+        h('button', { class: 'quiet', onclick: async () => { try { await notifyAsk({ op: 'unsubscribe', id: s.id }); list(); } catch (e) { say(e.message, true); } } }, 'Stop')))) : h('p', { class: 'fine' }, 'Nowhere yet.'));
+    } catch (e) { say(e.message, true); }
+  }
+  return kit.card({ title: tr('you.notify'), body: [
+    h('p', { class: 'fine' }, 'Each notice is sealed to your own key before it leaves the server: the push service, your mail provider and the server’s disk see only ciphertext. Emails and texts say only that there is something new', plainOk ? ', unless you choose otherwise below.' : '.'),
+    !hasRecordKey() ? (ctx.ident.passkey ? h('p', { class: 'hint' }, 'A passkey cannot hold a record key yet: sign in with your password or key file to set up notifications.')
+      : h('div', { class: 'buttons' }, h('p', { class: 'hint' }, 'Notices are sealed to your record key: publish it first. '), h('button', { onclick: publishRecordKey }, 'Publish my record key'))) : null,
+    h('p', { class: 'meta' }, 'Tell me about:'), box,
+    h('div', { class: 'buttons' }, canPush ? h('button', { onclick: onDevice }, 'Notify me on this device')
+      : /iP(hone|ad|od)/.test(navigator.userAgent) ? h('span', { class: 'fine' }, 'On an iPhone or iPad: add this page to your Home Screen (Share → Add to Home Screen), open it from there, then turn notifications on here.')
+      : h('span', { class: 'fine' }, 'This browser cannot receive push notifications.')),
+    h('details', {}, h('summary', {}, 'By email or text message'),
+      h('label', { for: 'nt-email' }, 'Email'), h('div', { class: 'row' }, h('input', { id: 'nt-email', type: 'email', autocomplete: 'email' }), h('button', { class: 'quiet', onclick: () => byMessage('email') }, 'Use it')),
+      plainOk ? h('label', { class: 'check' }, h('input', { id: 'nt-plain', type: 'checkbox' }), ' Put what happened in the email (your mail provider can read it)') : null,
+      h('label', { for: 'nt-sms' }, 'Text messages'), h('div', { class: 'row' }, h('input', { id: 'nt-sms', type: 'tel', placeholder: '+15105551234', autocomplete: 'tel' }), h('button', { class: 'quiet', onclick: () => byMessage('sms') }, 'Use it'))),
+    h('div', { class: 'buttons' }, h('button', { class: 'quiet', onclick: list }, 'Where my notices go')), where, result] });
+}
+
+// Home: the member's latest notices, opened here.
+function noticesCard() {
+  const body = h('div', {}, h('p', { class: 'fine' }, '…'));
+  const fill = async (prompted) => {
+    try {
+      if (!hasRecordKey()) return body.replaceChildren(h('p', { class: 'fine' }, 'Publish your record key (on ', link('you', 'You'), ') to get notices.'));
+      if (!prompted && !ctx.recordSk && !ctx.ident.seed) return body.replaceChildren(h('button', { class: 'quiet', onclick: () => fill(true) }, 'Open my notices'));
+      const r = await notifyAsk({ op: 'inbox' }, 'Opening your notices'); if (!r) return;
+      const open = [];
+      for (const s of r.notices.slice(-5).reverse()) { try { open.push(await E.notice.openNotice(s, ctx.recordSk)); } catch { /* sealed to an older key */ } }
+      body.replaceChildren(open.length ? kit.feed(open.map(n => ({ when: day(n.at), text: h('a', { href: n.url || '#/' }, n.title) }))) : kit.empty('No notices yet.'));
+    } catch (e) { body.replaceChildren(h('p', { class: 'fine' }, e.message)); }
+  };
+  if (ctx.ident) fill(false);
+  return kit.card({ title: tr('you.notices'), href: '#/notify', body });
+}
+
+async function publishRecordKey() {
+  const key = await unlock('Publishing your record key'); if (!key) return;
+  const { pk } = await E.sealing.recordKeyFromSeed(key.seed);
+  const fn = (message, namespace) => E.keys.sign(message, key, namespace);
+  try { offer(await E.makeActWith(ctx.registry, ctx.state, 'member.recordkey', { by: ctx.ident.id, key: E.sealing.cryptoB64(pk) }, fn), 'Your record key'); }
+  catch (e) { alert(`Nothing was signed: ${e.message}`); }
 }
 
 async function join() {
@@ -687,6 +856,9 @@ async function deliver(way, act) {
 // Send an act to a node. If the node asks for email two-factor (the twofactor
 // module), confirm this browser with the emailed code, then send it again.
 async function postAct(base, act, say) {
+  // In a sealed republic an act travels sealed to the key period, so nothing
+  // between here and a member's node reads it (kernel/sealing.js).
+  if (ctx.state && E.sealing.sealingOn(ctx.state) && E.sealing.currentEpoch(ctx.state)) act = await E.sealing.sealAct(ctx.state, act);
   const send = async () => { const r = await fetch(new URL('acts', base), { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(act) }); return { r, body: await r.json().catch(() => ({})) }; };
   let x = await send();
   if (x.body.twofactor && new URL(base).origin === location.origin && ctx.ident) {
@@ -769,7 +941,7 @@ function ballotButtons(x, t) {
     kids.push(h('div', { class: 'buttons' },
       ['for', 'against', 'abstain'].map(c => h('button', { class: mine?.choice === c ? '' : 'quiet',
         onclick: () => sign('ballot.cast', { proposal: x.id, choice: c }, `Your ballot: ${c} "${x.title}"`) },
-      c === 'for' ? 'Vote for' : c === 'against' ? 'Vote against' : 'Abstain'))),
+      c === 'for' ? tr('v.for') : c === 'against' ? tr('v.against') : tr('v.abstain')))),
     mine ? h('p', { class: 'fine' }, `Your counted ballot: ${mine.choice}${mine.weight ? `, weighing ${mine.weight}` : ''}. A later ballot replaces it while the ${ctx.words.proposal} is open.`) : null);
   } else if (p && p.status === 'active' && !x.closed && !x.roll.includes(p.id)) {
     kids.push(h('p', { class: 'fine' }, 'You are not on this proposal\'s roll.'));
@@ -940,7 +1112,7 @@ function renderProposal(id) {
     h('p', { class: 'meta' }, `${x.id} · laid by `, who(x.by), ` on ${when(x.at)} under the ${x.rule} rule${x.terms.readings > 1 ? `, reading ${x.reading} of ${x.terms.readings}` : ''}`),
     x.text ? h('p', { class: 'post-body' }, x.text) : null,
     effects.length ? [h('h3', {}, 'What it does'), h('ul', {}, effects)] : h('p', { class: 'hint' }, 'A motion: it changes nothing, and records what is decided.'),
-    h('p', { class: stateClass(x) }, statusOf(x)), ...tallyBar(x, t), ballotButtons(x, t), nextReadingPanel(x), reversalPanel(x),
+    h('p', { class: stateClass(x) }, statusOf(x)), ...screens.meters(x, t), tallyBar(x, t)[1], ballotButtons(x, t), nextReadingPanel(x), reversalPanel(x),
     h('h3', {}, 'Who could vote'),
     h('p', { class: 'fine' }, `${E.describeElectorate(ctx.registry, x.electorate || 'members')}, as they stood when it was laid: ${x.roll.length} ${x.roll.length === 1 ? 'voter' : 'voters'}${weighted ? `, ${t.electorate} votes in all` : ''}.`),
     h('div', { class: 'scroll' }, h('table', {},
@@ -949,7 +1121,7 @@ function renderProposal(id) {
         return h('tr', {}, h('td', {}, who(v)), weighted ? h('td', {}, x.weights[v]) : null, h('td', {}, b ? b.choice : '—'), h('td', {}, b ? when(b.at) : '')); })))),
     t.replaced.length ? h('details', {}, h('summary', {}, `${t.replaced.length} ballot(s) replaced by a later one`), h('ul', {}, t.replaced.map(r => h('li', {}, r.by)))) : null,
     t.rejected.length ? h('details', { open: true }, h('summary', {}, `${t.rejected.length} ballot(s) not counted`), h('ul', {}, t.rejected.map(r => h('li', {}, `${r.by}: ${r.why}`)))) : null,
-    h('h3', {}, 'Timeline'), h('ul', {}, timeline),
+    h('h3', {}, 'Timeline'), screens.voteTimeline(x),
     h('p', {}, link('votes', `Every ${ctx.words.proposal}`)));
 }
 
@@ -1095,7 +1267,7 @@ function renderMembers(path) {
   const applicants = all.filter(p => p.status === 'applicant');
   const out = [];
   if (applicants.length) {
-    out.push(section('Applications', h('p', { class: 'hint' }, `Admission is by decision, under the ${ctx.params.value('membership.admission_rule')} rule.`),
+    out.push(section(tr('m.applications'), h('p', { class: 'hint' }, `Admission is by decision, under the ${ctx.params.value('membership.admission_rule')} rule.`),
       h('ul', { class: 'items' }, applicants.map(a => h('li', {}, h('h3', {}, who(a.id)), h('p', { class: 'meta' }, `applied ${when(a.joined)}${a.name ? ` as ${a.name}` : ''}`),
         (() => { const why = E.admissionProblem(ctx.registry, ctx.state, ctx.params, a.id); return h('p', { class: why ? 'flag' : 'state-carried' }, why ? why.replace(/^.*cannot be admitted yet: /, 'Not ready to admit: ') : 'Ready to admit.'); })(),
         canPropose ? h('div', { class: 'buttons' },
@@ -1103,12 +1275,16 @@ function renderMembers(path) {
           h('button', { class: 'quiet', onclick: () => { const r = prompt(`Why decline ${a.id}? (published)`); if (r) propose(`Decline ${a.id}`, [{ kind: 'participant.remove', id: a.id, reason: r }]); } }, 'Propose declining')) : null)))));
   }
   if (!ctx.views.members) ctx.views.members = { q: '', sort: 0, f: { 0: 1 }, others: false, page: 1 };
+  // With a sealed record: who can read it (kernel/sealing.js).
+  const sealedOn = E.sealing.sealingOn(ctx.state), ep = E.sealing.currentEpoch(ctx.state), rkeys = E.sealing.sealingState(ctx.state).keys;
+  const reads = (p) => (!sealedOn || p.status !== 'active' ? '' : ep && ep.members.includes(p.id) && ep.keyOf[p.id] === rkeys[p.id] ? `reads (key period ${ep.n})` : rkeys[p.id] ? 'waiting for a key period' : 'no record key yet');
   out.push(section(`The ${w.many}`,
     h('p', { class: 'hint' }, `${all.filter(p => p.status === 'active').length} active. Membership cannot be transferred, and anyone may leave at any time.`),
     listView({
-      key: 'members', items: all, noun: w.many, head: ['Id', 'Name', 'Status', 'Joined'],
+      key: 'members', items: all, noun: w.many, head: tr('m.cols').split('|').slice(0, sealedOn ? 5 : 4),
       row: (p) => h('tr', { class: mine && p.id === mine.id ? 'you' : null }, h('td', {}, link(`members/${p.id}`, p.id)), h('td', {}, nameOf(p.id) === p.id ? '' : nameOf(p.id)),
-        h('td', {}, statusText(p), p.recovered ? h('span', { class: 'flag' }, ` · key recovered by decision ${p.recovered.length}×`) : ''), h('td', {}, day(p.joined))),
+        h('td', {}, statusText(p), p.recovered ? h('span', { class: 'flag' }, ` · key recovered by decision ${p.recovered.length}×`) : ''), h('td', {}, day(p.joined)),
+        sealedOn ? h('td', {}, reads(p)) : null),
       text: (p) => `${p.id} ${nameOf(p.id)}`,
       pin: mine ? (p) => p.id === mine.id : null,
       sorts: [['Joined first', oldest((p) => p.joined)], ['Joined last', newest((p) => p.joined)], ['Id, A–Z', byText((p) => p.id)], ['Name, A–Z', byText((p) => nameOf(p.id))]],
@@ -1134,6 +1310,10 @@ function renderMember(id) {
     ...(p.recovered || []).map(r => h('p', { class: 'flag' }, `Key replaced ${when(r.at)} by ${r.proposal ? `decision ${r.proposal}` : `grant ${r.via}`}: ${r.reason}. Check with ${id} that they asked for it.`)),
     badges.length ? h('p', {}, badges.map(b => h('span', { class: 'badge', title: b.description || b.title }, b.title))) : null,
     h('h3', {}, 'Keys'), h('ul', {}, p.keys.map(k => h('li', { class: 'hash' }, k))),
+    E.sealing.sealingOn(ctx.state) ? [h('h3', {}, 'Sealed record'), (() => {
+      const S = E.sealing, rk = S.sealingState(ctx.state).keys[id], periods = S.sealingState(ctx.state).epochs.filter(e => e.members.includes(id)).map(e => e.n);
+      return h('p', {}, rk ? ['Record key ', h('span', { class: 'hash' }, short(rk)), periods.length ? `; included in key period${periods.length > 1 ? 's' : ''} ${periods.join(', ')}.` : '; not yet in a key period.'] : 'No record key yet: they cannot read the sealed record until they publish one.');
+    })()] : null,
   ];
   if (offices.length || comms.length) {
     kids.push(h('h3', {}, 'Offices and committees'), h('ul', {},
@@ -1183,7 +1363,7 @@ function checkpointsSection() {
       h('p', { class: 'fine' }, 'Root ', h('span', { class: 'hash' }, c.root)),
       active && !mine && st.consistent !== false ? h('div', { class: 'buttons' }, h('button', { class: 'quiet', onclick: () => signCheckpoint(c) }, 'Co-sign')) : null);
   });
-  return section('Checkpoints',
+  return section(tr('r.checkpoints'),
     h('p', { class: 'hint' }, `A checkpoint is a signed statement of exactly what the record held at a point. It binds once ${need} members have signed it. After that, anyone presenting a different history up to there is caught, even if every copy were rewritten.`),
     cps.length ? h('ul', { class: 'items' }, rows) : h('p', { class: 'hint' }, 'No checkpoints yet.'),
     active && (!last || last.count < head) ? h('div', { class: 'buttons' }, h('button', { onclick: () => signCheckpoint(E.makeCheckpoint(ctx.records, ctx.state.entity.id, last)) }, `Make a checkpoint at record ${head}`)) : null);
@@ -1210,11 +1390,14 @@ function recordPage() {
   const total = ctx.records.length;
   const kinds = [...new Set(ctx.records.map(r => r.kind))].sort();
   const family = [...new Set(kinds.map(k => k.split('.')[0]))];
-  return [checkpointsSection(), section('The record',
+  const sealedAt = (r) => E.sealing.isSealed(ctx.stored[r.seq - 1]);
+  return [screens.recordHealth(), checkpointsSection(), section(tr('r.heading'),
     h('p', { class: 'hint' }, `${total} records. The whole of it is at `, h('a', { href: 'record/events.jsonl' }, 'record/events.jsonl'), ', one record per line.'),
     listView({
-      key: 'record', items: ctx.records, noun: 'records', head: ['#', 'When', 'What', 'By', 'Hash'],
-      row: (r) => h('tr', { class: provisional(r.seq) ? 'provisional' : null }, h('td', {}, link(`record/${r.seq}`, r.seq)), h('td', {}, when(r.at)), h('td', {}, r.kind, provisional(r.seq) ? h('span', { class: 'category' }, 'provisional') : null), h('td', {}, who(r.author)), h('td', { class: 'hash' }, short(r.hash))),
+      key: 'record', items: ctx.records, noun: 'records', head: tr('r.cols').split('|'),
+      row: (r) => h('tr', { class: provisional(r.seq) ? 'provisional' : null }, h('td', {}, link(`record/${r.seq}`, r.seq)), h('td', {}, when(r.at)),
+        h('td', {}, screens.describe(r), ' ', h('span', { class: 'fine' }, r.kind), sealedAt(r) ? [' ', kit.badge('sealed', 'lock')] : null, provisional(r.seq) ? h('span', { class: 'category' }, 'provisional') : null),
+        h('td', {}, who(r.author)), h('td', { class: 'hash' }, short(r.hash))),
       text: (r) => `${r.seq} ${r.kind} ${r.author || ''} ${nameOf(r.author || '')} ${r.hash}`,
       sorts: [['Newest first', (a, b) => b.seq - a.seq], ['Oldest first', (a, b) => a.seq - b.seq]],
       filters: [{ label: 'Kind', options: [['Every kind', () => true], ...family.map(f => [`${f}.*`, (r) => r.kind.split('.')[0] === f])] }],
@@ -1228,7 +1411,10 @@ function recordOne(seq) {
   const derived = act ? ctx.records.filter(x => x.payload?.cause === E.actHash(act)) : [];
   return section(`Record ${seq}`,
     h('dl', { class: 'facts' },
-      h('dt', {}, 'Kind'), h('dd', {}, r.kind),
+      h('dt', {}, 'What'), h('dd', {}, screens.describe(r), ' ', h('span', { class: 'fine' }, r.kind)),
+      ctx.sealedRecord ? [h('dt', {}, 'On disk'), h('dd', {}, E.sealing.isSealed(ctx.stored[seq - 1])
+        ? [kit.badge('sealed', 'lock'), ` under key period ${ctx.stored[seq - 1].sealed.epoch}: everyone but members sees only ciphertext. This browser opened it with your key.`]
+        : 'in the clear: readable by anyone holding a copy (the founding, record keys and key periods always are)')] : null,
       enabled('finality') ? [h('dt', {}, 'Finality'), h('dd', {}, provisional(seq) ? 'provisional: no final checkpoint covers it yet' : `final: covered by checkpoint ${(ctx.state.m.finality.finals.find(f => f.count >= seq) || {}).number}`)] : null,
       h('dt', {}, 'When'), h('dd', {}, when(r.at)),
       h('dt', {}, 'By'), h('dd', {}, who(r.author)),
@@ -1240,12 +1426,13 @@ function recordOne(seq) {
       act ? [h('dt', {}, 'Signed act'), h('dd', {}, act.kind, ' by ', who(act.by), `, ${when(act.at)}`)] : null,
       act ? [h('dt', {}, 'Signature'), h('dd', {}, h('details', {}, h('summary', {}, 'SSHSIG, checked on this device'), h('pre', { class: 'hash' }, act.signature)))] : null),
     h('h3', {}, 'As recorded'), h('pre', { class: 'json' }, JSON.stringify(r, (k, v) => (k === 'signature' ? '…' : v), 2)),
+    E.sealing.isSealed(ctx.stored[seq - 1]) ? h('details', {}, h('summary', {}, 'As stored on disk (what anyone without a key sees)'), h('pre', { class: 'json' }, JSON.stringify(ctx.stored[seq - 1], null, 2))) : null,
     h('div', { class: 'buttons' }, seq > 1 ? link(`record/${seq - 1}`, 'Previous') : null, ' ', link('record', 'The record'), ' ', seq < ctx.records.length ? link(`record/${seq + 1}`, 'Next') : null));
 }
 
 // ------------------------------------------------------------------ law
 function renderLaw(path) {
-  const box = section('The law', h('p', { class: 'hint' }, 'Reading the law…'));
+  const box = section(tr('l.heading'), h('p', { class: 'hint' }, 'Reading the law…'));
   (async () => {
     let files = [];
     try { const r = await fetch('law/index.json', { cache: 'no-store' }); if (r.ok) files = await r.json(); } catch { /* none */ }
@@ -1260,7 +1447,7 @@ function renderLaw(path) {
       d.addEventListener('toggle', async () => {
         if (!d.open || d.dataset.loaded) return;
         d.dataset.loaded = '1';
-        try { const r = await fetch(`law/${f}`, { cache: 'no-store' }); d.append(h('pre', { class: 'law-text' }, r.ok ? await r.text() : `(${r.status})`)); } catch (e) { d.append(h('p', { class: 'hint' }, e.message)); }
+        try { const r = await fetch(`law/${f}`, { cache: 'no-store' }); d.append(h('div', { class: 'law-text read' }, r.ok ? await r.text() : `(${r.status})`)); } catch (e) { d.append(h('p', { class: 'hint' }, e.message)); }
       });
       kids.push(d);
       if (d.open) d.dispatchEvent(new Event('toggle'));
@@ -1338,15 +1525,6 @@ function renderSettings(path) {
       h('h3', {}, 'History'), hs.length ? h('ul', {}, hs.map(x => h('li', {}, `${when(x.at)}: set to `, h('code', {}, JSON.stringify(x.to)), ' by ', link(`votes/${x.proposal}`, x.proposal)))) : h('p', { class: 'hint' }, 'Unchanged since founding.'),
       h('p', {}, link('settings', 'Every setting')));
   }
-  const groups = {};
-  for (const k of P.keys()) { const d = P.def(k); (groups[d.group || 'Other'] ||= []).push([k, d]); }
-  const tables = Object.entries(groups).map(([g, rows]) => h('table', {}, h('caption', {}, g),
-    h('tbody', {}, rows.map(([k, d]) => {
-      const r = P.rule(k);
-      return h('tr', {}, h('td', {}, link(`settings/${k}`, h('code', {}, k)), d.describe ? h('div', { class: 'fine' }, d.describe) : null),
-        h('td', {}, h('code', {}, JSON.stringify(d.value)), P.isSet(k) ? '' : h('div', { class: 'fine' }, 'default')),
-        h('td', {}, r.changeable === false ? `unchangeable${d.why ? `: ${d.why}` : ''}` : `by ${r.name}`));
-    }))));
   const ruleRows = [...P.ruleOrder(), ...Object.keys(P.rules).filter(n => P.rules[n].changeable === false)].map(n => { const r = P.rules[n];
     return h('tr', {}, h('td', {}, n), h('td', {}, r.changeable === false ? 'cannot be changed' :
       `${Math.round(r.quorum * 100)}% must vote; ${Math.round(r.threshold * 100)}% of decisive votes; ${r.readings} reading${r.readings > 1 ? `s, ${r.apart} days apart` : ''}`)); });
@@ -1355,39 +1533,46 @@ function renderSettings(path) {
     h('td', {}, m), h('td', {}, enabled(m) || m === 'deliberation' ? 'on' : 'off'),
     h('td', {}, m === 'deliberation' ? 'the core' : [h('span', { class: 'hash' }, short(mods[m].digest)), ` from ${mods[m].source}`,
       mods[m].history?.length ? h('div', { class: 'fine' }, `upgraded ${mods[m].history.length}×; installed ${day(mods[m].at)} by ${mods[m].by}`) : h('div', { class: 'fine' }, `installed ${day(mods[m].at)} by ${mods[m].by}`)])));
-  return [section('Settings',
-    h('p', {}, decidesText()),
+  return [screens.settingsList(),
+  section('How decisions are made', h('p', {}, decidesText()), h('div', { class: 'scroll' }, h('table', {}, h('tbody', {}, ruleRows)))),
+  section('Modules',
     h('div', { class: 'scroll' }, h('table', {}, h('caption', {}, 'Modules, and the exact code each runs'), h('tbody', {}, modRows)))),
   modulesOnline(),
   codeSection(),
-  section('Every setting',
-    h('p', { class: 'hint' }, 'These values are read from the record, which is the only place they live. A value marked default stands at what its module\'s code declares.'),
-    h('div', { class: 'controls' }, h('input', { type: 'search', class: 'find', placeholder: 'Search settings', 'aria-label': 'Search settings', oninput: (e) => {
-      const q = e.target.value.trim().toLowerCase();
-      for (const t of e.target.closest('section').querySelectorAll('table')) {
-        let any = false;
-        for (const tr of t.querySelectorAll('tbody tr')) { const hit = !q || tr.textContent.toLowerCase().includes(q); tr.hidden = !hit; any ||= hit; }
-        t.hidden = !any;
-      }
-    } })),
-    h('div', { class: 'scroll' }, h('table', {}, h('caption', {}, 'How decisions are made'), h('tbody', {}, ruleRows))),
-    h('div', { class: 'scroll' }, tables)),
   lookSection()];
 }
 
 // ------------------------------------------------------------------ looks
 // How this page looks in this browser. A viewer's own choice: stored here, not
 // in the record, and it changes nothing for anyone else.
-const LOOKS = [['classic', 'Classic', 'Paper and ink.'], ['schoolbook', 'Schoolbook', 'The house style of tschoonover.com: Helvetica, hairlines, Century Schoolbook headings.'], ['terminal', 'Terminal', 'Dark, monospaced, phosphor green.'], ['minimal', 'Minimal', 'Plain type, lots of space, nothing extra: the default.']];
+const LOOKS = [['athens', 'Athens', 'The house style of tschoonover.com: paper and ink, Helvetica for the frame, Latin Modern for reading: the default.'], ['classic', 'Classic', 'Paper and ink.'], ['schoolbook', 'Schoolbook', 'An earlier take on tschoonover.com: Helvetica, hairlines, Century Schoolbook headings.'], ['terminal', 'Terminal', 'Dark, monospaced, phosphor green.'], ['minimal', 'Minimal', 'Plain type, lots of space, nothing extra.']];
 const COLOURS = [['system', 'As the system'], ['light', 'Light'], ['dark', 'Dark']];
 function applyLook() {
-  let look = (typeof island !== 'undefined' && island.look) || 'minimal', colour = (typeof island !== 'undefined' && island.colour) || 'dark';
+  let look = (typeof island !== 'undefined' && island.look) || 'athens', colour = (typeof island !== 'undefined' && island.colour) || 'system';
   try { look = localStorage.getItem('entity:look') || look; colour = localStorage.getItem('entity:colour') || colour; } catch { /* storage off */ }
   const root = document.documentElement;
   root.dataset.look = look;
   if (colour === 'system') delete root.dataset.theme; else root.dataset.theme = colour;
   return { look, colour };
 }
+// tschoonover.com's controls, in the masthead: text size, language, colours.
+// A viewer's own choices, kept in this browser.
+function shellControls() {
+  const box = $('#controls'); if (!box) return;
+  const store = (k, v) => { try { localStorage.setItem(k, v); } catch { /* storage off */ } };
+  const read = (k, d) => { try { return localStorage.getItem(k) || d; } catch { return d; } };
+  const size = read('entity:size', 'm'); document.documentElement.dataset.size = size;
+  const colour = applyLook().colour;
+  const redraw = () => { shellControls(); if (ctx.tabs.length) route(); };
+  box.replaceChildren(
+    kit.pills({ label: t('ctl.size'), value: size, options: [['s', 'A−', t('ctl.size')], ['m', 'A', t('ctl.size')], ['l', 'A+', t('ctl.size')]],
+      onChange: (v) => { store('entity:size', v); redraw(); } }),
+    kit.pills({ label: t('ctl.lang'), value: language(), options: [['en', 'EN', 'English'], ['fr', 'FR', 'Français']],
+      onChange: (v) => { setLanguage(v); redraw(); } }),
+    kit.pills({ label: t('ctl.theme'), value: colour, options: [['light', '☀', t('ctl.light')], ['dark', '☾', t('ctl.dark')], ['system', t('ctl.auto'), t('ctl.auto')]],
+      onChange: (v) => { store('entity:colour', v); applyLook(); redraw(); } }));
+}
+
 function lookSection() {
   const cur = applyLook();
   const set = (k, v) => { try { localStorage.setItem(k, v); } catch { /* storage off */ } applyLook(); refresh(); };

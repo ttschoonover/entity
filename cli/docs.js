@@ -19,7 +19,18 @@ import * as store from '../kernel/store.js';
 import { keys } from '../kernel/index.js';
 import { openEntity } from './context.js';
 import { emit } from './events.js';
-import { checkBlob, verifyBlob, blobId } from '../library/docs/index.js';
+import { pathToFileURL } from 'node:url';
+
+// The docs module's checks, from this republic's installed copy, or the pack
+// beside the code. Loaded when first needed, so a node without library/ (a
+// copy made by dist or clone) still starts.
+const libs = new Map();
+async function docsLib(dir) {
+  const f = [path.join(dir, 'modules', 'docs', 'index.js'), path.join(store.CODE_ROOT, 'library', 'docs', 'index.js')].find(x => fs.existsSync(x));
+  if (!f) throw new Error('the docs module is not installed here');
+  if (!libs.has(f)) libs.set(f, import(pathToFileURL(f).href));
+  return libs.get(f);
+}
 
 const ID = /^[a-z0-9][a-z0-9-]{0,39}$/, HEX = /^[0-9a-f]{64}$/;
 const SKEW = 5 * 60000, LATE = 15 * 60000, RATE = 60, MAX = 1_200_000;
@@ -90,6 +101,7 @@ export function docsNode(opt) {
     if (req.method === 'GET' && m) { send(res, 200, { doc: m[1], files: filesIn(e.dir, m[1]) }); return true; }
 
     if (req.method === 'POST' && p === '/docs/file') {
+      const { checkBlob, verifyBlob, blobId } = await docsLib(e.dir);
       const raw = await body(req);
       if (raw.length > MAX) { send(res, 413, { why: 'that file is too large' }); return true; }
       let b; try { b = JSON.parse(raw); } catch { send(res, 400, { why: 'not JSON' }); return true; }

@@ -1,0 +1,9 @@
+parameters:
+  invites.max_days:
+    value: 30
+    type: integer
+    min: 1
+    max: 365
+    changed_by: organic
+    group: Invitations
+    describe: The longest an invitation link stays valid.

@@ -8,7 +8,8 @@ Everything in this manual can also be done from a page on your own computer:
 
 It prints a link (http://127.0.0.1:7700/?t=…) and opens it. **Create a
 republic** walks you through it: its name and folder, your member id and
-password, a starting preset, the modules you want, any settings you want to
+password, who can read its record (members only, sealed, unless you choose an
+open record; see "Sealed records" in docs/SPEC-RECORD-V2.md), a starting preset, the modules you want, any settings you want to
 change, its look and the port to serve it on. It then founds the republic and
 serves its page. **Manage** runs it afterwards: start and stop serving, change
 settings (as proposals), install modules, set a password, publish it on
@@ -18,6 +19,12 @@ The panel answers only on this computer, and only through the link it prints;
 nothing reaches it through a tunnel or from other websites. Each operation runs
 the same `entity` command you would type, so the terminal and the panel always
 agree.
+
+Your account in a republic's page (**You**) shows how your key is kept, lets
+you lock it with a password or save a copy, says whether you can read the
+sealed record (and publishes your record key if you have none yet), and what to
+do if you lose your key. To run republics on a Raspberry Pi behind Cloudflare,
+see docs/DEPLOY.md.
 
 ## Private republics
 
@@ -31,7 +38,25 @@ settings for this computer), the republic's address shows only a sign-in page.
 Members sign in with their own account; candidates can apply there, and read
 and sign what membership requires, but see nothing else until admitted. The
 gate covers the network; for contents that must stay secret even inside a copy,
-use sealed posts.
+use sealed posts. The same switch keeps Radicle private: `entity radicle init`
+publishes a private republic privately, and refuses `--public` for it.
+
+To seal the record itself, so that even a copy holds only ciphertext for
+anyone but members, set `records.sealing` to true by decision (or in a preset
+at founding). Each member then publishes a record key (`entity records key`;
+a member's copy does it when it settles), and a reader's copy opens key periods
+as members join and leave. `entity records status` shows where it stands;
+`entity verify --structure` is what anyone can check. See
+docs/SPEC-RECORD-V2.md.
+
+Every page the node serves carries a Content Security Policy: it runs only the
+node's own scripts and the inline scripts written into that page, so a script
+slipped in later cannot reach members' keys. A page that shows windows of other
+republics may load their `window.js`. To allow more origins, or to try the
+policy without enforcing it, set in node.json:
+`"csp": { "allow": ["https://other.example"], "mode": "report-only" }`
+(`"mode": "off"` turns it off). `node tools/privacy-check.mjs` reports what each
+republic on a machine shows to strangers (docs/PRIVACY-AUDIT.md).
 
 ## Showing a republic on another website
 
@@ -72,6 +97,9 @@ entity found --id p-0001 --name "The Commons"
 
 Your private key is saved in `~/.entity/keys/<entity-id>/`, never inside the
 entity directory. Back it up. Set `ENTITY_KEYS` to keep keys elsewhere.
+`entity key lock` protects it with a passphrase, which every command that signs
+then asks for (or reads from `ENTITY_PASSPHRASE`); `entity key status` shows
+which keys are locked, and `entity key unlock` undoes it.
 
 Until a second person joins or a decision is made, you alone may re-apply a
 preset. After that, every value belongs to the membership.

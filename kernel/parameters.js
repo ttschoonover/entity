@@ -67,6 +67,8 @@ const TYPES = {
   list: v => Array.isArray(v),
   timestamp: v => v === null || (typeof v === 'string' && !isNaN(Date.parse(v))),
 };
+// The names a parameter's `type` may take; screens draw a control for each.
+export const PARAMETER_TYPES = Object.freeze(Object.keys(TYPES));
 
 const RULE_FIELDS = { quorum: 'fraction', threshold: 'fraction', readings: 'integer', apart: 'integer' };
 
