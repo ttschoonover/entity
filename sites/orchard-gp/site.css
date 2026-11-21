@@ -1,0 +1,114 @@
+/* site.css · The Orchard General Partnership: a members' site for an
+   investment club. Plain white pages, one deep green, figures set in tabular
+   numbers, gains in green and losses in red. The kit's stylesheet first. */
+@import url("kit.css");
+
+:root {
+  --bg: #F7F7F5; --surface: #FFFFFF; --ink: #17211C; --muted: #5F6B64; --rule: #E3E5E0; --strong-rule: #17211C;
+  --green: #14432F; --green-2: #1F6A49; --tint: #EAF2ED; --gold: #7D5F14; --on-green: #FFFFFF; --on-green-2: rgba(255,255,255,.78);
+  --up: #1E7A4C; --down: #B42318; --aye: #1E7A4C; --no: #B42318;
+  --radius: 10px; --wrap: 76rem;
+  --sans: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --serif: var(--sans);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #0E1411; --surface: #151D19; --ink: #E8EDE9; --muted: #9AA6A0; --rule: #26312B; --strong-rule: #E8EDE9;
+    --green: #6CC195; --green-2: #8AD3AC; --tint: #18291F; --gold: #D2B467; --up: #5CC48C; --down: #F08A80; --on-green: #0B120E; --on-green-2: rgba(11,18,14,.78); color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #0E1411; --surface: #151D19; --ink: #E8EDE9; --muted: #9AA6A0; --rule: #26312B; --strong-rule: #E8EDE9;
+  --green: #6CC195; --green-2: #8AD3AC; --tint: #18291F; --gold: #D2B467; --up: #5CC48C; --down: #F08A80; --on-green: #0B120E; --on-green-2: rgba(11,18,14,.78); color-scheme: dark; }
+
+body { background: var(--bg); }
+h1 { font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-weight: 700; font-size: 1.15rem; letter-spacing: -0.01em; }
+
+/* masthead: a white bar, the club's name, the pages */
+.masthead { background: var(--surface); border-bottom: 1px solid var(--rule); box-shadow: none; }
+.masthead .brand span { font-weight: 700; letter-spacing: -0.01em; }
+.masthead .motto { display: none; }
+.masthead .brand { white-space: nowrap; }
+.masthead .brand span { font-size: 1.05rem; }
+#nav a { font-weight: 500; color: var(--muted); text-decoration: none; padding: .35rem .6rem; border-radius: 6px; }
+#nav a:hover { color: var(--ink); background: var(--tint); }
+#nav a[aria-current="page"] { color: var(--green); background: var(--tint); font-weight: 600; }
+
+/* buttons */
+.primary, .hall-view button:not(.linklike):not(.quiet):not(.danger):not(.secondary) {
+  background: var(--green); border-color: var(--green); color: var(--on-green); border-radius: 8px; }
+a.button.primary { color: var(--on-green); text-decoration: none; }
+.secondary { border-color: var(--green); color: var(--green); border-radius: 8px; }
+button, .button { border-radius: 8px; }
+
+/* the hall hosts the partnership's pages; the site's own pages are the menu */
+.orchard-hall .tabs { display: none; }
+.orchard-hall .hall-view > section { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 1.5rem 1.6rem; }
+.orchard-hall .sign-hint { display: none; }
+
+/* page layout */
+.og-page { padding: 2rem 0 3rem; }
+.og-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+.og-head h1 { font-size: clamp(1.7rem, 3.5vw, 2.3rem); max-width: none; margin: 0; }
+.og-head p { color: var(--muted); margin: .25rem 0 0; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 1.25rem 1.4rem; }
+.card > h2 { margin: 0 0 .9rem; display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+.card > h2 a { font-size: .85rem; font-weight: 500; color: var(--green); text-decoration: none; }
+.grid { display: grid; gap: 1.25rem; }
+.grid-2 { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+.grid-even { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 56rem) { .grid-2, .grid-even { grid-template-columns: minmax(0, 1fr); } }
+.stack { display: grid; gap: 1.25rem; align-content: start; }
+
+/* key figures */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+@media (max-width: 56rem) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 1rem 1.15rem; }
+.stat .label { font-size: .8rem; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
+.stat .value { font-size: 1.65rem; font-weight: 700; letter-spacing: -0.02em; margin: .2rem 0 .1rem; font-variant-numeric: tabular-nums; }
+.stat .sub { font-size: .85rem; color: var(--muted); }
+.stat.lead { background: var(--green); border-color: var(--green); color: var(--on-green); }
+.stat.lead .label, .stat.lead .sub { color: var(--on-green-2); }
+.up { color: var(--up); } .down { color: var(--down); }
+
+/* tables */
+table.data { width: 100%; border-collapse: collapse; font-size: .93rem; }
+table.data th { text-align: left; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; padding: .5rem .6rem; border-bottom: 1px solid var(--rule); }
+table.data td { padding: .65rem .6rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+table.data tr:last-child td { border-bottom: 0; }
+table.data .n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.data tfoot td { font-weight: 700; border-top: 1px solid var(--ink); }
+.sym { font-weight: 700; letter-spacing: .02em; }
+.weight { display: inline-block; width: 4rem; height: .4rem; background: var(--tint); border-radius: 99px; vertical-align: middle; margin-left: .5rem; overflow: hidden; }
+.weight i { display: block; height: 100%; background: var(--green-2); }
+.scroll { overflow-x: auto; }
+
+/* to-do list and votes */
+.todo { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+.todo li { display: flex; gap: .8rem; align-items: center; justify-content: space-between; padding: .75rem .9rem; border: 1px solid var(--rule); border-radius: 8px; background: var(--bg); }
+.todo li strong { display: block; }
+.todo li span { color: var(--muted); font-size: .88rem; }
+.todo a.button { white-space: nowrap; }
+.vote { border: 1px solid var(--rule); border-radius: 8px; padding: .9rem 1rem; margin-bottom: .75rem; }
+.vote h3 { margin: 0 0 .25rem; }
+.vote .meta { margin: 0 0 .6rem; }
+.vote .row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+.bar2 { display: flex; height: .45rem; border-radius: 99px; overflow: hidden; background: var(--tint); margin: .4rem 0 .6rem; }
+.bar2 .aye { background: var(--aye); } .bar2 .no { background: var(--no); }
+.pill { display: inline-block; font-size: .75rem; font-weight: 600; padding: .1rem .55rem; border-radius: 99px; background: var(--tint); color: var(--green); }
+.pill.buy { background: #E7F4EC; color: #1E7A4C; } .pill.sell { background: #FCEBEA; color: #B42318; }
+:root[data-theme="dark"] .pill.buy { background: #17311F; color: #5CC48C; } :root[data-theme="dark"] .pill.sell { background: #3A1B18; color: #F08A80; }
+.activity { list-style: none; margin: 0; padding: 0; }
+.activity li { display: flex; justify-content: space-between; gap: 1rem; padding: .55rem 0; border-bottom: 1px solid var(--rule); font-size: .92rem; }
+.activity li:last-child { border-bottom: 0; }
+.activity .when { color: var(--muted); white-space: nowrap; font-size: .85rem; }
+
+/* forms */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .75rem 1rem; align-items: end; }
+.form-grid label { display: grid; gap: .3rem; font-size: .85rem; font-weight: 600; color: var(--muted); }
+.form-grid input, .form-grid select { width: 100%; }
+details.desk { border: 1px solid var(--rule); border-radius: 8px; padding: .2rem 1rem; margin-bottom: .6rem; background: var(--bg); }
+details.desk summary { cursor: pointer; padding: .7rem 0; font-weight: 600; }
+details.desk[open] { padding-bottom: 1rem; }
+.desk-note { font-size: .88rem; color: var(--muted); margin: 0 0 .9rem; }
+.badge-treasurer { font-size: .75rem; font-weight: 600; color: var(--gold); text-transform: uppercase; letter-spacing: .05em; }
+
+.footer { background: var(--surface); border-top: 1px solid var(--rule); }

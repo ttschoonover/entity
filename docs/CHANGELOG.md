@@ -1,5 +1,15 @@
 # Changes
 
+## 0.9.37 · The Orchard GP on its own website; the Treasurer alone keeps the books
+
+- **The Orchard GP's website** (`sites/orchard-gp`): a members' site for an investment club, served by its private node, so visitors see only the sign-in page (now showing the club's name, node.json `brand`). Partners see an Overview (club value, unit value, their stake, what needs them, open votes, top holdings, recent activity), a Portfolio (holdings with cost, price, gain and weight; approved trades awaiting execution; every transaction; capital accounts; proposing a trade), Partners (register, officers, applicants), and Votes, Meetings, the Agreement, Certificates, My details and Invitations drawn by their modules. The Treasurer's desk on the Portfolio (payments in, executed trades, prices, income and expenses, payouts) is shown only to the Treasurer. No accessibility violations (axe, WCAG 2.1 AA) in light or dark.
+- **`fund.bookkeeper`**: an office (treasurer) whose holders alone record anything on the books, under a grant to it: payments in, trades done, prices, income, expenses, payouts and opening balances. A resolution of the partners can no longer record them. Every partner still reads every line. `import-holdings.sh` follows it: the Treasurer records the opening balances, and the units that follow capital go to the partners.
+- **`partnership.associations`**: off, the partnership joins no association and grants no claims; the associations are not shown.
+- The Orchard GP drops notifications, shared files (Docs), chat, polls and associations; the wiki stays only to hold the agreement's text and is not shown. The agreement says the Treasurer alone keeps the books and every partner may read them (8.2, 11.1), and that the partnership joins no associations (10.2). Default port 7795.
+- Site kit: `config.js` may name a `brand` and `hide` tabs; module views get the records and know which tabs are hidden; long values (a drawn signature) are shortened in the signing box; the signing box says "the partnership’s record" on a private site.
+- Invitations: the link just made stays on screen when the page redraws after signing.
+- Founding scripts put a new hostname above any wildcard rule in the Cloudflare tunnel's config; below it, the hostname was never reached (every such site answered 404).
+
 ## 0.9.36 · Invitation links, partner particulars, certificates and signed agreements as PDFs
 
 - **New module: invites.** Personal invitation links (`/signin?invite=ID.SECRET`): only the secret's hash is on the record; the person applies, signs, gives their particulars and is admitted once, under the core's admission checks. Created and withdrawn by the members or an officer's grant; `invites.max_days`.

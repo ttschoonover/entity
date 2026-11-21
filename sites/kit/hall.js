@@ -11,6 +11,7 @@ import { start, onChange, onSigned, ctx, h, $, day, when, me, isCitizen, nameOf,
 const ORDER = SITE.order.length ? SITE.order : ['elections', 'offices', 'committees', 'polls', 'meetings', 'wiki', 'badges', 'authority'];
 let tabs = [];
 const PLUMBING = new Set(['deliberation', 'titles', 'vocabulary', 'passwords', 'passkeys', 'page', 'republic']); // no page of their own
+const HIDE = new Set(SITE.hide || []); // tabs a site leaves out (config.js hide: [...]): modules, or record and modules
 
 // ── the entity's own tabs ────────────────────────────────────────────────
 const link = (path, ...kids) => {
@@ -178,14 +179,14 @@ async function collectTabs() {
   const out = [{ id: PEOPLE(), title: W().Many, render: citizens }, { id: BILLS(), title: W().Proposals, render: bills }];
   const mods = ctx.r.params.value('entity.modules').slice().sort((a, b) => (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99));
   for (const m of mods) {
-    if (PLUMBING.has(m)) continue;
+    if (PLUMBING.has(m) || HIDE.has(m)) continue;
     let mod;
     try { mod = await import(`${ctx.r.base}modules/${m}/ui.js`); } catch { continue; } // from the node of the entity shown
     if (Array.isArray(mod.tabs)) for (const t of mod.tabs) out.push({ ...t, title: t.id === m ? institutionTitle(m) : t.title, module: m });
     else if (typeof mod.default === 'function') out.push({ id: m, title: institutionTitle(m), module: m, render: (api) => mod.default(api) });
   }
   out.push({ id: 'record', title: 'The record', render: record }, { id: 'modules', title: 'Modules', render: modules });
-  return out;
+  return out.filter(t => !HIDE.has(t.id) && !HIDE.has(t.module));
 }
 
 function draw() {

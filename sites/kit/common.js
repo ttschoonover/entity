@@ -130,7 +130,7 @@ const PAGES = SITE.pages;
 function buildMasthead() {
   const head = $('header.masthead');
   head.replaceChildren(h('div', { class: 'masthead-inner' },
-    h('a', { class: 'brand', href: 'index.html', id: 'brand' }, h('img', { src: 'flag.svg', alt: '', width: 42, height: 28 }), h('span', {}, h('span', { id: 'brand-name' }, fullName()), h('span', { class: 'motto', id: 'brand-motto' }))),
+    h('a', { class: 'brand', href: 'index.html', id: 'brand' }, h('img', { src: 'flag.svg', alt: '', width: 42, height: 28 }), h('span', {}, h('span', { id: 'brand-name' }, SITE.brand || fullName()), h('span', { class: 'motto', id: 'brand-motto' }))),
     h('nav', { 'aria-label': 'Pages', id: 'nav' }),
     h('div', { class: 'who', id: 'who' })),
     h('nav', { class: 'entities', id: 'entities', 'aria-label': 'Which entity', hidden: true }));
@@ -156,7 +156,7 @@ function drawEntities() {
 }
 function drawBrand() {
   if (!ctx.r?.ok) return;
-  $('#brand-name').textContent = fullName();
+  $('#brand-name').textContent = SITE.brand || fullName();
   $('#brand-motto').textContent = setting('republic.motto', '');
   $('#brand').setAttribute('aria-label', `${fullName()}, home`);
   document.title = document.title.replace(/[^·]*$/, ` ${fullName()}`).replace(/^\s+/, '');
@@ -380,8 +380,8 @@ export async function signAll(steps, title) {
     const locked = !!ctx.ident.locked;
     const form = h('form', { method: 'dialog' },
       h('h2', {}, title || first[0]?.[2] || 'Sign this'),
-      h('p', { class: 'fine' }, `Signing as ${displayName(ctx.ident.id)}. Read it through: your signature applies to exactly this, and it goes on the public record for good.`),
-      first.map((s, i) => (s ? h('pre', { class: 'act' }, JSON.stringify({ kind: s[0], ...s[1] }, null, 2)) : h('p', { class: 'fine' }, `Then step ${i + 1}, which follows from the one before it.`))),
+      h('p', { class: 'fine' }, `Signing as ${displayName(ctx.ident.id)}. Read it through: your signature applies to exactly this, and it goes on the ${SITE.private ? 'partnership’s' : 'public'} record for good.`),
+      first.map((s, i) => (s ? h('pre', { class: 'act' }, JSON.stringify({ kind: s[0], ...s[1] }, (k, v) => (typeof v === 'string' && v.length > 160 ? `${v.slice(0, 48)}… (${v.length.toLocaleString()} characters${/^data:image\//.test(v) ? ': your drawn signature' : ''})` : v), 2)) : h('p', { class: 'fine' }, `Then step ${i + 1}, which follows from the one before it.`))),
       locked ? [h('label', { for: 'sg-pw' }, 'Your password'), h('input', { id: 'sg-pw', type: 'password', autocomplete: 'current-password', required: true })] : null,
       out,
       h('div', { class: 'row' }, h('button', { class: 'primary', type: 'submit' }, 'Sign and send'), h('button', { class: 'secondary', type: 'button', onclick: () => { d.close(); resolve(false); } }, 'Cancel')));
@@ -580,9 +580,10 @@ export function moduleApi({ link, go, refresh }) {
   const r = ctx.r;
   const who = (id) => (r.state.participants[id] ? link(`members/${id}`, displayName(id)) : id);
   return {
-    h, $, state: r.state, params: r.params, registry: ctx.registry, me: me(), ident: ctx.ident, E,
+    h, $, state: r.state, params: r.params, records: r.records, registry: ctx.registry, me: me(), ident: ctx.ident, E,
     words: (({ one, many, assembly, proposal }) => ({ one, many, assembly, proposal }))(W()),
     day, when, link, go, who, refresh, nameOf: displayName, grantsFor, editForm,
+    hidden: (tab) => (SITE.hide || []).includes(tab), // a tab this site leaves out (config.js hide)
     // Markdown, rendered the way the site renders its texts (headings, lists, emphasis).
     markdown: (text) => { const d = h('div', {}); d.innerHTML = renderText(text, { base: ctx.r.base }).html; return d; },
     // A picture for a text (wiki pages, say): returns the Markdown that shows it.

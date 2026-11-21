@@ -679,6 +679,17 @@ on a node with pdflatex, as a PDF set in LaTeX with every signer's drawing,
 name, date and key fingerprint (`/documents/agreement/PAGE.pdf`, partners
 only; `entity documents agreement PAGE`).
 
+## Who keeps the books (fund.bookkeeper)
+
+`fund.bookkeeper` names an office, such as `treasurer`. Its holders alone then
+record anything on the fund's books (payments in, trades done, prices, income,
+expenses, payouts and opening balances), under a grant to that office: neither
+anyone else nor a resolution of the members can. Every member still reads every
+line. Investment decisions (`fund.authorize`) stay with the members.
+
+`partnership.associations: false` turns associations off: the partnership joins
+none and grants no claims.
+
 ## Invitations (invites)
 
 Personal invitation links. An officer with the grant (or the members, by the

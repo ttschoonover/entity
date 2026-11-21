@@ -42,6 +42,7 @@ function install(r) {
     rule: (p) => p.value('partnership.join_rule'),
     describe: (e) => `Join the association "${e.name}" (${e.association})`,
     check(state, e, params) {
+      if (params.value('partnership.associations') === false) return 'this partnership does not join associations (partnership.associations is off)';
       const rm = ruleMissing(params, 'partnership.join_rule'); if (rm) return rm;
       if (!ID.test(e.association || '')) return 'an association id is 1–40 lowercase letters, digits and -';
       if (member(state, e.association)) return `the partnership already belongs to ${e.association}`;
@@ -61,6 +62,7 @@ function install(r) {
     rule: (p, e) => p.value(e.on === 'assets' ? 'partnership.assets_rule' : 'partnership.profits_rule'),
     describe: (e) => `Grant ${e.association} a claim to ${(e.share / 100).toFixed(2)}% of the partnership's ${e.on === 'assets' ? 'net assets' : 'profits'}${e.cap ? `, up to ${(e.cap / 100).toFixed(2)}` : ''}`,
     check(state, e, params) {
+      if (params.value('partnership.associations') === false) return 'this partnership does not join associations (partnership.associations is off)';
       const rm = ruleMissing(params, e.on === 'assets' ? 'partnership.assets_rule' : 'partnership.profits_rule'); if (rm) return rm;
       const a = member(state, e.association);
       if (!a) return `the partnership does not belong to ${e.association}`;
@@ -146,4 +148,4 @@ export function certificates(records, unitClass = 'units') {
 }
 
 export default { name: 'partnership', core: '0.7.7', install, association, liveClaims, profitShare, certificates,
-  parameterKeys: ['partnership.join_rule', 'partnership.profits_rule', 'partnership.assets_rule', 'partnership.unit_class', 'partnership.ein', 'partnership.office'] };
+  parameterKeys: ['partnership.associations', 'partnership.join_rule', 'partnership.profits_rule', 'partnership.assets_rule', 'partnership.unit_class', 'partnership.ein', 'partnership.office'] };

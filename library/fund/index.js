@@ -65,6 +65,16 @@ function stale(state, at) {
 }
 const holders = (f) => Object.keys(f.units).filter(id => f.units[id] > 0);
 
+// fund.bookkeeper names an office (treasurer, say): then only that office's
+// holders change the books, under a grant to it, and never a decision of the
+// members. Everyone still reads every line; only the bookkeeper writes them.
+function keeperProblem(state, p, ctx = {}) {
+  const office = p.value('fund.bookkeeper');
+  if (!office) return null;
+  const g = ctx.via ? state.m.authority?.grants?.[ctx.via] : null;
+  return g && g.to?.office === office ? null : `only the ${office} keeps the books (fund.bookkeeper), under a grant to that office`;
+}
+
 function install(r) {
   const eff = (def) => r.registerEffect({ module: 'fund', ...def });
 
@@ -103,7 +113,8 @@ function install(r) {
     name: 'fund.withdraw',
     rule: (p) => p.value('fund.withdraw_rule'),
     describe: (e) => e.all ? `Pay out ${e.member}'s whole stake` : `Pay ${e.member} $${(e.amount / 100).toFixed(2)} from their stake`,
-    check(state, e, p, at) {
+    check(state, e, p, at, ctx = {}) {
+      const k = keeperProblem(state, p, ctx); if (k) return k;
       const f = state.m.fund;
       if (!f || !f.units[e.member]) return `${e.member} holds no units`;
       const s = stale(state, at); if (s.length) return `value the holdings first (no recent price for ${s.join(', ')})`;
@@ -141,7 +152,8 @@ function install(r) {
     rule: (p) => p.value('fund.trade_rule'),
     describe: (e) => `Open the books as of ${e.as_of}: $${(e.cash / 100).toFixed(2)} in cash, ${(e.holdings || []).length} holding(s), capital for ${Object.keys(e.capital || {}).length} partner(s)`,
     check(state, e, p, at, ctx = {}) {
-      if (ctx.via) return 'opening balances are adopted by the members, never under a grant';
+      if (p.value('fund.bookkeeper')) { const k = keeperProblem(state, p, ctx); if (k) return k; }
+      else if (ctx.via) return 'opening balances are adopted by the members, never under a grant';
       const f = state.m.fund;
       if (f && (f.ledger.length || Object.keys(f.units).length)) return 'the books are already open: opening balances come before anything else';
       if (!/^\d{4}-\d{2}-\d{2}$/.test(e.as_of || '') || e.as_of > at.slice(0, 10)) return 'as_of is the date of the balances, YYYY-MM-DD, not in the future';
@@ -195,6 +207,7 @@ function install(r) {
     rule: (p) => p.value('fund.books_rule'),
     describe: (e) => `Record $${(e.amount / 100).toFixed(2)} paid in by ${e.member}`,
     check(state, e, p, at, ctx = {}) {
+      const k = keeperProblem(state, p, ctx); if (k) return k;
       if (!['active'].includes(state.participants[e.member]?.status)) return `${e.member} is not an active member`;
       // Whatever admission requires (a signed partnership agreement, say), paying in requires too.
       for (const c of ctx.registry?.admissionChecks || []) {
@@ -230,7 +243,8 @@ function install(r) {
     name: 'fund.fill',
     rule: (p) => p.value('fund.books_rule'),
     describe: (e) => `Record the ${e.authorization} trade: ${e.quantity} at $${(e.price / 100).toFixed(2)}${e.fees ? ` (fees $${(e.fees / 100).toFixed(2)})` : ''}`,
-    check(state, e, p, at) {
+    check(state, e, p, at, ctx = {}) {
+      const k = keeperProblem(state, p, ctx); if (k) return k;
       const a = state.m.fund?.authorizations?.[e.authorization];
       if (!a || a.cancelled) return `there is no open authorization ${e.authorization}`;
       if (at > a.until) return `the authorization ${a.id} expired on ${a.until.slice(0, 10)}`;
@@ -268,7 +282,8 @@ function install(r) {
     name: 'fund.valuation',
     rule: (p) => p.value('fund.books_rule'),
     describe: (e) => `Record market prices: ${Object.entries(e.prices || {}).map(([s, c]) => `${s} $${(c / 100).toFixed(2)}`).join(', ')}${e.source ? ` (${e.source})` : ''}`,
-    check(state, e) {
+    check(state, e, p, at, ctx = {}) {
+      const k = keeperProblem(state, p, ctx); if (k) return k;
       if (!e.prices || typeof e.prices !== 'object' || !Object.keys(e.prices).length) return 'prices is { SYMBOL: cents, … }';
       for (const [s, c] of Object.entries(e.prices)) { if (!SYM.test(s)) return `${s} is not a ticker`; if (!cents(c)) return `the price of ${s} is in cents`; }
       return null;
@@ -285,7 +300,8 @@ function install(r) {
       name,
       rule: (p) => p.value('fund.books_rule'),
       describe: (e) => `Record ${sign > 0 ? 'income' : 'an expense'} of $${(e.amount / 100).toFixed(2)}: ${e.memo}`,
-      check(state, e) {
+      check(state, e, p, at, ctx = {}) {
+        const k = keeperProblem(state, p, ctx); if (k) return k;
         if (!cents(e.amount)) return 'amount is in cents, above zero';
         if (typeof e.memo !== 'string' || !e.memo.trim() || e.memo.length > 200) return 'say what it was (1–200 characters)';
         return sign < 0 && e.amount > (state.m.fund?.cash || 0) ? 'the club does not have that much cash' : null;

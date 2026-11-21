@@ -68,8 +68,12 @@ finish_up() {
     [ -f "$START" ] && ! grep -q "entities/$FOLDER:" "$START" && sed -i "s|^ENTITIES=(\(.*\))|ENTITIES=(\1 \"\$HOME/entities/$FOLDER:$PORT\")|" "$START" && echo "  added to the start script"
     if [ -f "$CFG" ] && ! grep -q "hostname: $HOST" "$CFG"; then
       python3 - "$CFG" "$HOST" "$PORT" <<'PY'
-import sys; p,h,port=sys.argv[1:4]; s=open(p).read()
-s=s.replace('  - service: http_status:404', f'  - hostname: {h}\n    service: http://localhost:{port}\n  - service: http_status:404'); open(p,'w').write(s)
+import sys, re; p,h,port=sys.argv[1:4]; s=open(p).read()
+# Rules match top to bottom: a new hostname goes above any wildcard rule, or it is never reached.
+rule = f'  - hostname: {h}\n    service: http://localhost:{port}\n'
+m = re.search(r'^  - hostname: "?\*\.', s, re.M) or re.search(r'^  - service: http_status:404', s, re.M)
+s = s[:m.start()] + rule + s[m.start():] if m else s + rule
+open(p,'w').write(s)
 PY
       # DNS: athenes.sh dns writes each record with the certificate for its zone.
       case "$HOST" in *.poezine.org) cloudflared tunnel route dns --overwrite-dns poezine "$HOST" 2>&1 | tail -1 || true ;; esac

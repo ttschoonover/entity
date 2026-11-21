@@ -1,4 +1,10 @@
 parameters:
+  partnership.associations:
+    value: true
+    type: boolean
+    changed_by: constitutional
+    group: Partnership
+    describe: Whether the partnership may join associations and grant them claims on its profits or assets. Off, joining and new claims are refused and the associations are not shown.
   partnership.join_rule:
     value: organic
     type: rule

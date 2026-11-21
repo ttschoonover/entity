@@ -69,6 +69,8 @@ async function signDocuments(todo, id, key) {
 }
 
 // A personal invitation (the invites module): ?invite=ID.SECRET in the link.
+// The name the node shows on its sign-in page (node.json "brand"), if any: nothing about members.
+fetch('signin/brand').then(r => (r.ok ? r.json() : null)).then(b => { if (b?.name) { const el = document.getElementById('brand'); el.textContent = b.name; el.hidden = false; document.title = `Sign in · ${b.name}`; } }).catch(() => {});
 const INVITE = (() => { const v = new URLSearchParams(location.search).get('invite') || ''; const i = v.indexOf('.'); return i > 0 ? { id: v.slice(0, i), secret: v.slice(i + 1) } : null; })();
 
 // Particulars (the details module): sealed here to the applicant and the officers.

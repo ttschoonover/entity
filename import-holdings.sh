@@ -18,6 +18,10 @@
 # The partners vote on it like any joint resolution. Nothing is bought or sold:
 # this records what the club already owns. Run it once, before anything else is
 # recorded in the books.
+#
+# Where one office keeps the books (fund.bookkeeper, as in The Orchard GP), run
+# it as that officer: they record the opening balances under their grant, and
+# the units that follow capital are put to the partners as a resolution.
 
 set -euo pipefail
 ME="${1:?usage: import-holdings.sh your-id club-folder holdings.csv [YYYY-MM-DD]}"
@@ -59,13 +63,29 @@ for (const [id, c] of Object.entries(capital)) {
   lines.push(`${id}: capital $${(c / 100).toFixed(2)}, ${want} units (${(100 * c / total).toFixed(2)}%)`);
 }
 for (const id of Object.keys(have)) if (!(id in capital) && Number(have[id]) > 0) effects.push({ kind: 'share.redeem', class: cls, from: id, count: Number(have[id]), note: 'no opening capital' });
-console.log(JSON.stringify({ effects, summary: [`cash $${(cash / 100).toFixed(2)}; ${holdings.length} holding(s); worth $${(worth / 100).toFixed(2)} as of ${asOf}`, ...lines] }));
+const keeper = p.has('fund.bookkeeper') ? p.value('fund.bookkeeper') : '';
+let grant = null;
+if (keeper) {
+  const me = process.env.ME_ID, at = new Date().toISOString();
+  if (!(st.m.offices?.[keeper]?.holders || []).some(x => x.id === me && (!x.until || x.until > at))) fail(`only the ${keeper} keeps these books (fund.bookkeeper): run this as the ${keeper}`);
+  grant = Object.values(st.m.authority?.grants || {}).find(g => !g.revoked && g.to?.office === keeper && g.may.includes('fund.opening'))?.id;
+  if (!grant) fail(`no grant to the ${keeper} permits fund.opening`);
+}
+console.log(JSON.stringify({ effects, grant, summary: [`cash $${(cash / 100).toFixed(2)}; ${holdings.length} holding(s); worth $${(worth / 100).toFixed(2)} as of ${asOf}`, ...lines] }));
 JS
-PLAN="$(node --input-type=module < "$JSFILE" - "$DIR" "$CSV" "$ASOF")"
+PLAN="$(ME_ID="$ME" node --input-type=module < "$JSFILE" - "$DIR" "$CSV" "$ASOF")"
 echo "== Opening balances"
 node -p 'JSON.parse(process.argv[1]).summary.map(s => "  " + s).join("\n")' "$PLAN"
 EFF="$(node -p 'JSON.stringify(JSON.parse(process.argv[1]).effects)' "$PLAN")"
-id=$(E propose --as "$ME" --title "Opening balances as of $ASOF" --effects "$EFF" | grep -o 'd-[0-9a-f]\{12\}' | head -1)
+GRANT="$(node -p 'JSON.parse(process.argv[1]).grant || ""' "$PLAN")"
+if [ -n "$GRANT" ]; then
+  # The Treasurer alone records the opening balances; the units that follow capital are a resolution of the partners.
+  OPEN="$(node -p 'JSON.stringify(JSON.parse(process.argv[1]).filter(e => e.kind === "fund.opening"))' "$EFF")"
+  E act authority.exercise --grant "$GRANT" --effects "$OPEN" --as "$ME" --settle | tail -1
+  EFF="$(node -p 'JSON.stringify(JSON.parse(process.argv[1]).filter(e => e.kind !== "fund.opening"))' "$EFF")"
+  [ "$EFF" = "[]" ] && { echo "  Opening balances recorded. No units to change."; exit 0; }
+fi
+id=$(E propose --as "$ME" --title "$( [ -n "$GRANT" ] && echo "Units for the opening capital as of $ASOF" || echo "Opening balances as of $ASOF")" --effects "$EFF" | grep -o 'd-[0-9a-f]\{12\}' | head -1)
 E settle >/dev/null; E act ballot.cast --proposal "$id" --choice for --as "$ME" --settle >/dev/null
 echo "  resolution $id: $(E count "$id" | tail -1)"
 echo "  The other partners vote on it from the club's site (Resolutions). Once it carries, the books show the holdings, and every partner's certificate their units."

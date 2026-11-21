@@ -11,6 +11,8 @@
 @media (prefers-color-scheme: light) { :root { --ink:#1d1c1a; --paper:#f7f5f0; --dim:#6b6860; --rule:rgba(29,28,26,.14); } }
 * { box-sizing:border-box; } body { margin:0; background:var(--paper); color:var(--ink); font:15px/1.55 'Helvetica Neue',Helvetica,Arial,sans-serif; }
 main { max-width:26rem; margin:12vh auto 4rem; padding:0 20px; }
+p.brand { font:600 1.05em system-ui,-apple-system,'Segoe UI',sans-serif; letter-spacing:-.01em; margin:0 0 18px; color:#14432F; }
+@media (prefers-color-scheme: dark) { p.brand { color:#6CC195; } }
 h1 { font:400 1.7em 'Century Schoolbook','TeX Gyre Schola',Georgia,serif; margin:0 0 6px; }
 .dim { color:var(--dim); font-size:.88em; } .bad { color:var(--accent); font-size:.9em; min-height:1.3em; }
 label { display:block; color:var(--dim); font-size:.82em; margin:14px 0 4px; }
@@ -28,6 +30,7 @@ h2.sub { font:400 1.15em 'Century Schoolbook',Georgia,serif; margin:22px 0 4px; 
 <script type="module" src="interface/js/signin.js"></script>
 </head>
 <body><main>
+<p id="brand" class="brand" hidden></p>
 <h1>Members only</h1>
 <p class="dim">Sign in with your account to continue. Your password never leaves this device: it signs a one-time challenge here.</p>
 <div id="kept"></div>

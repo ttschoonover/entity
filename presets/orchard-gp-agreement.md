@@ -12,7 +12,7 @@
 
 ## 3. The Record
 3.1 The Partnership keeps its decisions, partners, offices, units, books and agreements on a signed record kept by the Athènes software (the "Record"), sealed so that only partners can read it.
-3.2 Each partner agrees that signing on the Record with their own key is their electronic signature, with the same effect as a handwritten one (Civil Code section 1633.7), and that notices may be given through the Record, its notifications and its website.
+3.2 Each partner agrees that signing on the Record with their own key is their electronic signature, with the same effect as a handwritten one (Civil Code section 1633.7), and that notices may be given through the Record and the Partnership's website.
 3.3 Where the Record and this agreement differ about what was decided, the Record prevails; this agreement prevails over any setting of the software.
 
 ## 4. Partners
@@ -29,7 +29,6 @@
 ## 6. Decisions
 6.1 Each partner has one vote, and votes their units with it. Resolutions are decided on the Record, each in a single vote:
    - **joint**: a majority of the partners voting *and* of the units voting, at least half of each voting;
-   - **associate**: 60% of each;
    - **joint-super**: two thirds of each;
    - **ordinary** (procedural matters only): a majority of votes cast, one fifth of partners voting.
 6.2 Every purchase or sale of an investment is a joint resolution of the partners, stating the security, the most to buy or sell, any price limit and a deadline. This power is never delegated. The Treasurer places at the broker only what a resolution authorized, and records each trade.
@@ -43,8 +42,8 @@
 
 ## 8. Officers
 8.1 The officers are the **Treasurer** and the **Secretary**, each elected by the partners on the Record for one year by approval voting. One person may not hold both offices. An officer may be removed, and a new election called, by joint resolution at any time.
-8.2 **The Treasurer** keeps the brokerage and bank accounts in the Partnership's name and EIN only; places and records authorized trades; records contributions, income, expenses and the monthly unit value; reconciles the books with the broker each month; collects each partner's Form W-9 off the Record; prepares or has prepared the federal Form 1065 and California Form 565 and every partner's Schedule K-1 by their due date (March 15 for a calendar year, or the extended date); and serves as the partnership representative under Internal Revenue Code section 6223. When eligible, the Partnership elects out of the centralized partnership audit regime (section 6221(b)).
-8.3 **The Secretary** receives applications; sees that every partner signs this agreement before admission; keeps the roll, minutes and the legal register; calls meetings; gives participation notices; signs checkpoints of the Record; and keeps the Partnership's registrations current (the fictitious business name, and any City of Berkeley business license the City requires).
+8.2 **The Treasurer** keeps the brokerage and bank accounts in the Partnership's name and EIN only; places and records authorized trades; alone records contributions, trades, income, expenses, payouts and the monthly unit value on the books, which no other partner or officer may change; reconciles the books with the broker each month; collects each partner's Form W-9 off the Record; prepares or has prepared the federal Form 1065 and California Form 565 and every partner's Schedule K-1 by their due date (March 15 for a calendar year, or the extended date); and serves as the partnership representative under Internal Revenue Code section 6223. When eligible, the Partnership elects out of the centralized partnership audit regime (section 6221(b)).
+8.3 **The Secretary** receives applications; sees that every partner signs this agreement before admission; keeps the roll, the minutes and the list of the Partnership's legal obligations; calls meetings; gives participation notices; signs checkpoints of the Record; and keeps the Partnership's registrations current (the fictitious business name, and any City of Berkeley business license the City requires).
 8.4 No officer may contract for, or bind, the Partnership beyond what a resolution or a grant on the Record authorizes.
 
 ## 9. Privacy
@@ -54,10 +53,10 @@
 
 ## 10. Distributions
 10.1 Distributions are made only by joint resolution, in proportion to units, in cash or in kind.
-10.2 The partners may, by joint resolution, give part of a distribution of profits to the Trustees of the Orchard or another association, under the terms the Record records.
+10.2 The Partnership does not join associations or grant anyone a claim on its profits or assets.
 
 ## 11. Books and information
-11.1 Every partner may read the Record, the books and the broker's statements at any time (Corporations Code section 16403).
+11.1 The books are kept by the Treasurer alone. Every partner may read the Record, the books and the broker's statements at any time (Corporations Code section 16403); the books are open to every partner on the Partnership's website.
 
 ## 12. Withdrawal and redemption
 12.1 A partner may withdraw by notice on the Record. A withdrawn or removed partner is redeemed at the unit value on the first valuation date after their withdrawal or removal, in cash or, by joint resolution, in kind, within 90 days. The Partnership continues among the others.
@@ -67,7 +66,7 @@
 13.2 The duties of loyalty and care in Corporations Code section 16404 apply in full.
 
 ## 14. Compliance and disputes
-14.1 The Partnership complies with federal, California and City of Berkeley law; the legal register on the Record lists the obligations and who meets each.
+14.1 The Partnership complies with federal, California and City of Berkeley law; the Secretary keeps a list of the obligations and who meets each.
 14.2 Partners first try to resolve a dispute among themselves, then by mediation in Alameda County, before going to court. California law governs this agreement; the courts of Alameda County have jurisdiction.
 
 ## 15. Amendment and dissolution

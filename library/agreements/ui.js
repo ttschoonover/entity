@@ -93,7 +93,7 @@ export default function render(api) {
     const people = state.order.map(pid => state.participants[pid]).filter(p => p.status === 'active' || p.status === 'applicant');
     const sp = drawnMode !== 'off' ? pad(h) : null;
     sec.append(h('h3', {}, v.title),
-      h('p', { class: 'meta' }, `version ${v.n}${page.statute ? `, enacted ${when(page.statute.at)}` : ', not yet enacted'} · `, link(`wiki/${id}/${v.n}`, 'open on the Wiki')),
+      h('p', { class: 'meta' }, `version ${v.n}${page.statute ? `, enacted ${when(page.statute.at)}` : ', not yet enacted'}`, api.hidden?.('wiki') ? null : [' · ', link(`wiki/${id}/${v.n}`, 'open on the Wiki')]),
       h('details', { open: me && mine ? true : null }, h('summary', {}, 'Read it'), h('div', { class: 'post-body wiki-body' }, v.body)),
       me && mine ? h('div', { class: 'grant' },
         sp ? [h('label', {}, drawnMode === 'required' ? 'Draw your signature' : 'Draw your signature (optional)'), sp.el,

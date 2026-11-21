@@ -62,6 +62,12 @@ parameters:
     changed_by: organic
     group: Fund
     describe: The rule for bookkeeping by decision (payments in, trades done, prices, income, expenses). Usually granted to the treasurer instead.
+  fund.bookkeeper:
+    value: ""
+    type: string
+    changed_by: organic
+    group: Fund
+    describe: An office (treasurer, say) whose holders alone keep the books, under a grant to that office. Payments in, trades done, prices, income, expenses, payouts and opening balances are then never recorded by anyone else, nor by a decision of the members. Every member still reads them. Empty means a grant or a decision may record them.
   fund.withdraw_rule:
     value: ordinary
     type: string

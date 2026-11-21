@@ -145,6 +145,7 @@ export async function serve({ opt }) {
     // fetch from its module source is not (docs/PRIVACY-AUDIT.md, F9).
     if (OPEN_PREFIXES.some(x => p.startsWith(x)) && req.method === 'GET' && p !== '/modules/available') return false;
     if ((p === '/sw.js' || p === '/sw-basic.js' || p === '/manifest.webmanifest') && req.method === 'GET') return false;   // the service workers and the manifest: needed before sign-in, nothing private
+    if (p === '/signin/brand') { const b = store.readNode(e.dir).brand; return sendPlain(res, 200, JSON.stringify(typeof b === 'string' ? { name: b } : {}), TYPES['.json']), true; }
     if (p === '/signin' || p === '/signin.html') return sendPlain(res, 200, fs.readFileSync(path.join(e.dir, 'interface/signin.html')), TYPES['.html']), true;
     if (p === '/interface/style.css' || p === '/interface/athens.css') return false;
     const fresh = async () => (await openEntity(opt)).state;

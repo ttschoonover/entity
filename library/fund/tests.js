@@ -91,3 +91,22 @@ test('fund: an existing club brings in its opening balances once, by decision, a
   assert.ok(Math.abs(fund.position(w.state.m.fund, 'p-0003').value - 62441) <= 1);
   assert.equal((await verifyRecords(w.registry, w.records)).ok, true);
 });
+
+test('fund: with fund.bookkeeper, only the treasurer writes the books; a decision of the members cannot', async () => {
+  const { w, books } = await club();
+  const set = await decide(w, { title: 'Treasurer keeps the books', rule: 'organic', changes: { 'fund.bookkeeper': 'treasurer' },
+    effects: [{ kind: 'authority.grant', grant: 'books2', to: { office: 'treasurer' }, may: ['fund.withdraw', 'fund.opening'] }] });
+  assert.equal(set.enacted, true, set.refused?.[0]?.reason || set.notEnacted);
+  // A decision of all the members may not record a payment.
+  const byVote = await decide(w, { title: 'Record a payment', rule: 'ordinary', effects: [{ kind: 'fund.contribute', member: 'p-0001', amount: 5000 }] });
+  assert.notEqual(byVote.enacted, true);
+  assert.match(JSON.stringify(byVote), /only the treasurer keeps the books/);
+  // Nor anyone but the treasurer under the grant.
+  assert.match((await books([{ kind: 'fund.contribute', member: 'p-0001', amount: 5000 }], 'p-0003')).refused[0].reason, /only members of the office treasurer/);
+  // The treasurer does, and every member reads it.
+  assert.equal((await books([{ kind: 'fund.contribute', member: 'p-0001', amount: 5000 }])).applied.length, 1);
+  assert.equal(w.state.m.fund.ledger.at(-1).kind, 'contribution');
+  // Investment decisions stay with the members.
+  const auth = await decide(w, { title: 'Buy VTI', rule: 'ordinary', effects: [{ kind: 'fund.authorize', id: 'vti-9', side: 'buy', symbol: 'VTI', quantity: 1, days: 5 }] });
+  assert.equal(auth.enacted, true, auth.refused?.[0]?.reason || auth.notEnacted);
+});

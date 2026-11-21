@@ -1,18 +1,17 @@
 _: The Orchard General Partnership, an investment club organized as a California
    general partnership in Berkeley. Every partner decides every trade, by a
    majority of the partners and of the units; the Treasurer and the Secretary
-   are elected; every partner must take part; the record is sealed, so only
-   partners can read it; two-factor sign-in and sealed notifications.
+   are elected; the Treasurer alone keeps the books, which every partner reads;
+   every partner must take part; the record is sealed, so only partners can
+   read it. Served as the partnership's own members' website.
 
 modules: [page, deliberation, titles, vocabulary, passwords, twofactor, offices, elections, authority,
-          shares, wiki, agreements, finality, partnership, meetings, polls, docs, chat, fund,
-          notify, participation, invites, details]
+          shares, wiki, agreements, finality, partnership, meetings, fund, participation, invites, details]
 
 rules:
   joint:       { quorum: 0.5, threshold: 0.5, readings: 1, concurrent: "shares:units" }
-  associate:   { quorum: 0.5, threshold: 0.6, readings: 1, concurrent: "shares:units" }
   joint-super: { quorum: 0.5, threshold: 0.6666, readings: 1, concurrent: "shares:units" }
-order: [ordinary, joint, associate, organic, joint-super, constitutional, entrenched]
+order: [ordinary, joint, organic, joint-super, constitutional, entrenched]
 
 set:
   entity.name: The Orchard General Partnership
@@ -22,7 +21,6 @@ set:
   vocabulary.proposal: resolution
   # Privacy: the record is sealed (only partners read it), never public.
   records.sealing: true
-  docs.public_allowed: false
   # Admission: apply, sign the agreement, be admitted by joint resolution.
   membership.admission: decision
   membership.admission_rule: joint
@@ -35,20 +33,19 @@ set:
   details.required: true
   details.readers: [treasurer, secretary]
   # Every trade is a joint resolution of all partners; never delegated.
+  # The Treasurer alone records anything on the books; every partner reads them.
   fund.trade_rule: joint
+  fund.bookkeeper: treasurer
   fund.max_members: 99
   deliberation.period: 7
-  partnership.join_rule: associate
+  # No associations: the partnership joins none and grants no claims.
+  partnership.associations: false
+  partnership.join_rule: joint-super
   partnership.profits_rule: joint
   partnership.assets_rule: joint-super
   # Officers: Treasurer and Secretary, elected separately, never the same person.
   elections.incompatible: [[treasurer, secretary]]
   finality.signers: "office:secretary"
-  # Notices: trades to vote on, reminders before votes close, decisions.
-  notify.events: [trades, proposals, reminders, decisions, members, notices]
-  notify.remind_hours: 24
-  notify.broadcast: members
-  notify.plaintext_email: false
   # Participation: vote on 3 of every 4 resolutions; attend half the meetings.
   participation.min_votes: 0.75
   participation.window_votes: 8
@@ -56,9 +53,6 @@ set:
   participation.window_meetings: 4
   participation.grace_days: 30
   participation.cure_days: 30
-  chat.channels:
-    - { id: partners, title: Partners, about: "The partnership's business, between meetings.", read: members, post: members }
-    - { id: research, title: Research, about: "Stock studies and ideas before they become resolutions.", read: members, post: members }
   amendment.rules.constitutional.readings: 1
   amendment.rules.constitutional.apart: 0
   amendment.rules.entrenched.readings: 1
@@ -66,5 +60,5 @@ set:
 
 note: >
   Used by make-orchard-gp.sh, which also writes the partnership agreement
-  (presets/orchard-gp-agreement.md) and the legal register
-  (presets/orchard-gp-legal.md). Neither is legal advice.
+  (presets/orchard-gp-agreement.md) and installs the website (sites/orchard-gp).
+  presets/orchard-gp-legal.md lists the legal obligations. Neither is legal advice.

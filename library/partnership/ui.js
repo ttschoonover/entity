@@ -32,9 +32,10 @@ function view(api) {
   const assoc = Object.values(state.m.partnership?.associations || {});
   const certs = api.records ? certificates(api.records, api.params?.value?.('partnership.unit_class') || 'units') : [];
   const officers = officersNow(state, new Date().toISOString());
+  const withAssoc = api.params?.value?.('partnership.associations') !== false;
   return h('section', {}, h('h2', {}, 'Partnership'),
-    h('h3', {}, 'Associations'),
-    assoc.length ? h('ul', {}, assoc.map(a => h('li', {}, h('strong', {}, a.name), ` (${a.id}) · joined ${day(a.joined)}${a.left ? ` · left ${day(a.left)}` : ''}`,
+    withAssoc ? h('h3', {}, 'Associations') : null,
+    !withAssoc ? null : assoc.length ? h('ul', {}, assoc.map(a => h('li', {}, h('strong', {}, a.name), ` (${a.id}) · joined ${day(a.joined)}${a.left ? ` · left ${day(a.left)}` : ''}`,
       liveClaims(a).length ? h('ul', {}, liveClaims(a).map(c => h('li', {}, `claim ${c.id}: ${pct(c.share)} of ${c.on === 'assets' ? 'net assets' : 'profits'}${c.cap ? `, up to ${(c.cap / 100).toFixed(2)}` : ''}, since ${day(c.since)}`))) : null)))
       : h('p', { class: 'hint' }, 'The partnership belongs to no association.'),
     h('h3', {}, 'Certificates in force'),
