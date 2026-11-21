@@ -60,7 +60,7 @@ const COMMANDS = {
   letter: [lt.letter, 'official letters on letterheads   list | heads | show | render | sample | issue | cosign | withdraw | specimen | letterhead'],
   media: [md.mediaCmd, 'pictures for the entity\'s texts  add <file> | fetch <url> | list | check  [--alt …] [--caption …]'],
   symbols: [sy.symbols, 'the state\'s digital symbols     seal [--out file] [--colors f,a,l] | fingerprint <files…>'],
-  records: [rec.records, 'sealed records                  status | key | rotate | disclose <seq> | check <file>'],
+  records: [rec.records, 'sealed records                  status | key | rotate | password | disclose <seq> | check <file>'],
   notify: [notifyCommand, 'sealed notices to members       status | send | subscribe | list | unsubscribe | inbox'],
   documents: [documentsCommand, 'certificates and agreements as PDFs certificate <n|member> | certificates | agreement [page]'],
   radicle: [r.radicle, 'publish and replicate on Radicle  init | status'],

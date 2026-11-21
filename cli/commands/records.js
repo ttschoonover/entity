@@ -3,12 +3,13 @@
 //   entity records status                  sealing, key periods, readers, what this copy can open
 //   entity records key    [--settle]       publish your record key, so key periods include you
 //   entity records rotate [--settle]       open a new key period for the current readers
+//   entity records password [--settle]     let your password open the records too (member.keywrap)
 //   entity records disclose <seq> [--out f]  hand one sealed record to an outsider, nothing else
 //   entity records check <disclosure.json>   check a disclosure against this copy's record
 import fs from 'node:fs';
 import * as store from '../../kernel/store.js';
 import { sealing as S } from '../../kernel/index.js';
-import { refuse, openEntity, out, settlePending, openKeyPeriod, publishRecordKey, signed, whoAmI, loadKey } from '../context.js';
+import { refuse, openEntity, out, settlePending, openKeyPeriod, publishRecordKey, signed, whoAmI, loadKey, askPassword } from '../context.js';
 
 export async function records({ pos, opt }) {
   const sub = pos[0] || 'status';
@@ -45,6 +46,25 @@ export async function records({ pos, opt }) {
     const r = await publishRecordKey(e);
     if (!r) refuse(`${e.me || 'you'} already ${e.me && S.sealingState(st).keys[e.me] ? 'has a record key' : 'cannot publish one (an active member, with their key here)'}`);
     out(`signed member.recordkey by ${e.me} → ${r.file}`);
+    if (opt.settle) report(await settlePending(e));
+    return;
+  }
+  if (sub === 'password') {
+    // Your record key comes from the key file on this machine. Your password
+    // makes another signing key; this seals your record secret to it, so
+    // signing in with the password opens the records as the key file does.
+    if (!on) refuse('records are not sealed here (records.sealing is off)');
+    const id = whoAmI(st.entity.id, opt), mine = await S.recordKeyFromSeed(loadKey(st.entity.id, id, opt.key).seed);
+    if (S.sealingState(st).keys[id] !== S.cryptoB64(mine.pk)) refuse(`the key here is not ${id}'s record key: run this where ${id}'s key file is (the one that published it)`);
+    const { passwordKey, keys } = await import('../../kernel/index.js');
+    const pw = process.env.ENTITY_NEW_PASSWORD || await askPassword(`${id}'s password on the page: `);
+    const k = await passwordKey(st.entity.id, id, pw);
+    if (!st.participants[id].keys.includes(keys.keyId(keys.publicKeyLine(k.publicKey)))) refuse(`that is not ${id}'s password here (set one with: entity password set)`);
+    const to = await S.recordKeyFromSeed(k.seed);
+    if ((S.sealingState(st).keywraps?.[id] || []).some(w => w.key === S.cryptoB64(to.pk))) { out(`${id}'s password already opens the records`); return; }
+    const fields = await S.makeKeywrap({ entity: st.entity.id, member: id, recordSk: mine.sk, toPk: to.pk });
+    const file = store.writePending(e.dir, await signed(e, 'member.keywrap', { by: id, ...fields }, { ...opt, password: false }));
+    out(`signed member.keywrap by ${id} → ${file}: signing in with the password now opens the records`);
     if (opt.settle) report(await settlePending(e));
     return;
   }

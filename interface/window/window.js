@@ -38,6 +38,11 @@ async function open(base, also) {
   };
   const registry = await E.loadRegistry(info.modules);
 
+  // After a password sign-in, the sign-in page keeps this tab's record key (it
+  // reads; it cannot sign) in sessionStorage, gone when the tab closes.
+  function readingKey(entity) {
+    try { const k = JSON.parse(sessionStorage.getItem(`entity:rk:${entity}`) || 'null'); return k?.id && k?.sk ? { id: k.id, sk: Uint8Array.from(atob(k.sk), c => c.charCodeAt(0)) } : null; } catch { return null; }
+  }
   async function load() {
     const text = await (await fetch(`${base}record/events.jsonl`, { cache: 'no-store' })).text();
     // A sealed record (kernel/sealing.js) opens here with the key of the member
@@ -50,7 +55,9 @@ async function open(base, also) {
       try {
         const K = await import(`${base}interface/js/keystore.js`);
         const ident = await K.loadIdentity(E.entityOf(text));
+        const kept = readingKey(E.entityOf(text));
         if (ident?.seed) opening = { id: ident.id, seed: ident.seed };
+        else if (kept) opening = kept;
         else if (ident?.locked && typeof globalThis.entityUnlock === 'function') { const seed = await globalThis.entityUnlock(E.entityOf(text)); if (seed) opening = { id: ident.id, seed }; }
       } catch { /* no key on this device */ }
     }

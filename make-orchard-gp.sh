@@ -107,6 +107,8 @@ const fs=require('fs');const n=JSON.parse(fs.readFileSync('node.json'));
 Object.assign(n,{settleAfter:0,port:Number(process.argv[1]),look:'athens',colour:'system',private:true,modulesOnline:false,brand:'The Orchard'});
 fs.writeFileSync('node.json',JSON.stringify(n,null,2)+'\n')" "$PORT"
 echo "  sealed record, private node: visitors see only the sign-in page"
+# Your password opens the sealed records as your key file does (member.keywrap).
+E records password --as "$ME" --settle >/dev/null && echo "  your password opens the sealed records"
 if [ -n "${SMTP_HOST:-}" ] && [ -n "${ORCHARD_EMAIL:-}" ]; then
   E twofactor mail --host "$SMTP_HOST" --port "${SMTP_PORT:-465}" --user "${SMTP_USER:-}" --from "${SMTP_FROM:-$NAME <${SMTP_USER:-}>}" >/dev/null
   E twofactor set "$ME" "$ORCHARD_EMAIL" >/dev/null

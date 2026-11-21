@@ -3,6 +3,7 @@
 // activity. Worked out in the partner's browser from the record.
 import { start, ctx, h, $, me, sign, nameOf, onChange, onSigned, fullName } from './common.js';
 import { st, money, qty, pct, updown, short, firstName, fundCode, figures, books, openVotes, myBallot, todo, todoList, describeEntry, holdersOf } from './og.js';
+import { blocked } from './og.js';
 
 const main = $('#main');
 await start();
@@ -66,7 +67,7 @@ function activity() {
 }
 
 function draw() {
-  if (!ctx.r?.ok) return;
+  if (!ctx.r?.ok) { main.replaceChildren(blocked()); return; }
   const p = me();
   main.replaceChildren(h('div', { class: 'og-page' },
     h('div', { class: 'og-head' }, h('div', {}, h('h1', {}, p ? `${greeting()}, ${firstName(p.id)}` : fullName()), h('p', {}, `${fullName()} · ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`))),

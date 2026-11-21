@@ -14,6 +14,12 @@
 // epoch.open act carrying E wrapped (HPKE) for every reader. A reader is an
 // active member who has published a record key (member.recordkey), derived
 // from the seed of their signing key, so it is the same on every device.
+//
+// A member who signs in more than one way (a key file and a password, say)
+// still has one record key. Their other keys open it through a public
+// member.keywrap act: the record secret key, sealed (HPKE) to the record key
+// the other signing key derives. Whoever holds that key opens the wrap, then
+// every key period the member can read. Nothing else about key periods changes.
 
 import { canonical } from './canonical.js';
 import { recordHash } from './record.js';
@@ -22,13 +28,13 @@ import { Parameters } from './parameters.js';
 
 export const SEALED_VERSION = 2;
 // Kinds that are never sealed: everyone must read them to verify and to join.
-export const ALWAYS_PUBLIC = Object.freeze(['entity.found', 'member.recordkey', 'epoch.open']);
+export const ALWAYS_PUBLIC = Object.freeze(['entity.found', 'member.recordkey', 'epoch.open', 'member.keywrap']);
 const B64_32 = /^[A-Za-z0-9+/]{43}=$/;
 const B64 = /^[A-Za-z0-9+/]+={0,2}$/;
 const ZERO32 = new Uint8Array(32);
 
 // ── state ─────────────────────────────────────────────────────────────────
-const sv = (state) => (state.sealing ||= { keys: {}, epochs: [], current: 0 });
+const sv = (state) => (state.sealing ||= { keys: {}, epochs: [], current: 0, keywraps: {} });
 export const sealingState = (state) => sv(state);
 
 export const sealingOn = (state) => !!paramValue(state, 'records.sealing');
@@ -116,6 +122,16 @@ export function grantsNeeded(state) {
   return readers(state).filter(id => !e.members.includes(id) || e.keyOf[id] !== s.keys[id]);
 }
 const historyOf = (state) => paramValue(state, 'records.history') || 'full';
+// member.keywrap: a member's record secret key, sealed to the record key of
+// another of their signing keys (their password key, say).
+const keywrapInfo = (entity, member) => C.utf8(`entity/keywrap/v1\n${entity}\n${member}`);
+export async function makeKeywrap({ entity, member, recordSk, toPk }) {
+  const w = await C.hpkeSeal(toPk, recordSk, { info: keywrapInfo(entity, member) });
+  return { key: C.b64(toPk), enc: C.b64(w.enc), ct: C.b64(w.ct) };
+}
+export async function openKeywrap({ entity, member, wrap, sk }) {
+  return C.hpkeOpen(sk, C.unb64(wrap.enc), C.unb64(wrap.ct), { info: keywrapInfo(entity, member) });
+}
 export async function openWrap(entity, n, wrap, sk) {
   return C.hpkeOpen(sk, C.unb64(wrap.enc), C.unb64(wrap.ct), { info: wrapInfo(entity, n) });
 }
@@ -169,8 +185,21 @@ export const isSealed = (r) => !!(r && r.sealed);
 // opener: { id, sk } — a member's id and record secret key. Epoch keys are
 // found in the public epoch.open records' wraps, opened on demand.
 export function keyring(opener) {
-  const wraps = new Map(), cache = new Map();
-  let entity = null;
+  const wraps = new Map(), cache = new Map(), keywraps = [];
+  let entity = null, mine = null, myPk = null;
+  // The secret keys this reader may try: their own record key, then any it
+  // opens through a member.keywrap addressed to it.
+  async function secrets() {
+    if (!opener) return [];
+    if (!myPk) myPk = C.b64(await C.x25519Public(opener.sk));
+    if (mine === null) {
+      mine = [];
+      for (const w of keywraps) if (w.member === opener.id && w.key === myPk) {
+        try { mine.push(await openKeywrap({ entity, member: w.member, wrap: w, sk: opener.sk })); } catch { /* not ours after all */ }
+      }
+    }
+    return [opener.sk, ...mine];
+  }
   return {
     get entity() { return entity; },
     learn(view) {                    // feed every public view, in order
@@ -183,13 +212,17 @@ export function keyring(opener) {
           const n = Number(m); wraps.set(n, { ...(wraps.get(n) || {}), [id]: g });
         }
       }
+      if (view.kind === 'member.keywrap') { const a = view.payload.act; keywraps.push({ member: a.by, key: a.key, enc: a.enc, ct: a.ct }); mine = null; }
     },
     remember(n, E) { cache.set(n, E); },
     async epochKey(n) {
       if (cache.has(n)) return cache.get(n);
       const w = opener && wraps.get(n)?.[opener.id];
       if (!w || !entity) return null;
-      try { const E = await openWrap(entity, n, w, opener.sk); cache.set(n, E); return E; } catch { return null; }
+      for (const sk of await secrets()) {
+        try { const E = await openWrap(entity, n, w, sk); cache.set(n, E); return E; } catch { /* the next */ }
+      }
+      return null;
     },
     async applicantKey(n) { const E = await this.epochKey(n); return E && entity ? applicantKeyOf(E, entity) : null; },
   };
@@ -254,6 +287,23 @@ export function installSealing(registry) {
       return null;
     },
     reduce(state, rec) { sv(state).keys[rec.payload.act.by] = rec.payload.act.key; },
+  });
+
+  registry.registerKind({
+    name: 'member.keywrap',
+    check(state, act) {
+      const p = state.participants[act.by];
+      if (!p || p.status !== 'active') return 'only an active member wraps their record key';
+      if (!sv(state).keys[act.by]) return 'publish your record key first (member.recordkey)';
+      if (!B64_32.test(act.key || '')) return 'key must be 32 bytes, base64 (the X25519 record key of your other signing key)';
+      if (act.key === sv(state).keys[act.by]) return 'that is your record key itself';
+      if (!B64_32.test(act.enc || '') || !B64.test(act.ct || '') || C.unb64(act.ct).length !== 48) return 'the wrap is not a sealed 32-byte key';
+      return null;
+    },
+    reduce(state, rec) {
+      const a = rec.payload.act, s = sv(state); s.keywraps ||= {};
+      s.keywraps[a.by] = [...(s.keywraps[a.by] || []).filter(w => w.key !== a.key), { key: a.key, at: rec.at }];
+    },
   });
 
   registry.registerKind({

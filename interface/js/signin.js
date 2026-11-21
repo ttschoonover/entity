@@ -6,6 +6,12 @@ import { passwordKey, passwordProblem } from '../../kernel/password.js';
 import { canonical } from '../../kernel/canonical.js';
 import { loadIdentity, saveIdentity } from './keystore.js';
 import { lockSeed, unlockSeed } from './lock.js';
+import { recordKeyFromSeed } from '../../kernel/sealing.js';
+// For this tab only: the record key a password's signing key derives, so a
+// sealed record opens after a password sign-in. It reads; it cannot sign.
+async function keepReadingKey(id, seed) {
+  try { const { sk } = await recordKeyFromSeed(seed); sessionStorage.setItem(`entity:rk:${ENTITY}`, JSON.stringify({ id, sk: btoa(String.fromCharCode(...sk)) })); } catch { /* the page still signs in */ }
+}
 import * as D from '../../kernel/details.js';
 import { b64 } from '../../kernel/crypto.js';
 
@@ -148,7 +154,7 @@ async function start() {
       const out = $('#kept-out'); out.textContent = 'Signing in…';
       try {
         if (ident.passkey) await signIn(ident.id, (m, ns) => viaPasskey(ident.passkey, m, ns));
-        else { const seed = ident.locked ? await unlockSeed(ident.locked, $('#kpw').value) : ident.seed; const key = { seed, publicKey: ident.publicKey }; await signIn(ident.id, viaKey(key), key); }
+        else { const seed = ident.locked ? await unlockSeed(ident.locked, $('#kpw').value) : ident.seed; const key = { seed, publicKey: ident.publicKey }; if (ident.locked) await keepReadingKey(ident.id, seed); await signIn(ident.id, viaKey(key), key); }
       } catch (e) { out.textContent = e.message; }
     };
   }
@@ -159,6 +165,7 @@ async function start() {
     try {
       const k = await passwordKey(ENTITY, id, pw);
       if ($('#remember').checked) await saveIdentity(ENTITY, { id, locked: await lockSeed(k.seed, pw), publicKey: k.publicKey, via: 'password', created: new Date().toISOString() });
+      await keepReadingKey(id, k.seed);
       await signIn(id, viaKey(k), k);
     } catch (e) { out.textContent = e.message; }
   };

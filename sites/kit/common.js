@@ -62,6 +62,32 @@ const signed = () => { for (const fn of signedListeners) try { fn(); } catch (e)
 const fire = () => { for (const fn of listeners) try { fn(ctx.r); } catch (e) { console.error(e); } };
 
 // One entity: its verified record, its code, and who is signed in to it here.
+// A sealed record and a key kept locked with a password: the window asks this
+// hook for the seed (interface/window/window.js). It asks once per tab, and
+// keeps only the record key it derives (it reads; it cannot sign) for the tab.
+globalThis.entityUnlock = async (entityId) => {
+  const ident = await withTimeout(K.loadIdentity(entityId), 3000).catch(() => null);
+  if (!ident?.locked) return null;
+  return new Promise((done) => {
+    const out = h('p', { class: 'status', role: 'status' });
+    const pw = h('input', { id: 'unlock-pw', type: 'password', autocomplete: 'current-password', required: true });
+    const d = dialog(h('form', { method: 'dialog', onsubmit: async (ev) => {
+      ev.preventDefault(); out.textContent = 'Opening…';
+      try {
+        const seed = await unlockSeed(ident.locked, pw.value);
+        const S = await import('./kernel/sealing.js').catch(() => null);
+        if (S) { const { sk } = await S.recordKeyFromSeed(seed); sessionStorage.setItem(`entity:rk:${entityId}`, JSON.stringify({ id: ident.id, sk: btoa(String.fromCharCode(...sk)) })); }
+        d.close(); done(seed);
+      } catch { out.textContent = 'That is not the password for this device’s key.'; out.className = 'status bad'; }
+    } },
+      h('h2', {}, 'Open the records'),
+      h('p', {}, `The records are sealed. Your password opens them on this device, for as long as this tab is open (${ident.id}).`),
+      h('label', { for: 'unlock-pw' }, 'Your password'), pw, out,
+      h('div', { class: 'buttons' }, h('button', { class: 'primary', type: 'submit' }, 'Open'), h('button', { type: 'button', class: 'quiet', onclick: () => { d.close(); done(null); } }, 'Not now'))));
+    d.showModal(); pw.focus();
+  });
+};
+
 async function openEntity(x) {
   const r = await connect(x.url);
   // Its own code, from its own node: each entity runs the modules it chose.

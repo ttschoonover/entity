@@ -1,5 +1,13 @@
 # Changes
 
+## 0.9.38 · A password opens sealed records
+
+- **`member.keywrap`** (core 0.9.11): a member's record secret key, sealed to the record key their other signing key derives (a password, say), in a public signed act. A reader with that key opens the wrap, then every key period the member can. Key periods are unchanged, so older records replay as before. Spec: SPEC-RECORD-V2.md, "Keywraps".
+- **`entity records password`** writes it, from the machine holding the member's key file; `make-orchard-gp.sh` runs it at founding, so the founder's password opens the records from the start. For a republic founded before: `node cli/index.js records password --as ID --settle`.
+- After a password sign-in the page keeps, for that tab only, the record key the password derives (it reads; it cannot sign). A new tab asks for the password once (the site kit's unlock dialog).
+- The Orchard website explains when this device's key cannot open the records, instead of loading forever.
+- Tests: the keywrap in kernel tests (test/sealing.test.js); a password-only sign-in and a new tab in test/browser/orchard.py.
+
 ## 0.9.37 · The Orchard GP on its own website; the Treasurer alone keeps the books
 
 - **The Orchard GP's website** (`sites/orchard-gp`): a members' site for an investment club, served by its private node, so visitors see only the sign-in page (now showing the club's name, node.json `brand`). Partners see an Overview (club value, unit value, their stake, what needs them, open votes, top holdings, recent activity), a Portfolio (holdings with cost, price, gain and weight; approved trades awaiting execution; every transaction; capital accounts; proposing a trade), Partners (register, officers, applicants), and Votes, Meetings, the Agreement, Certificates, My details and Invitations drawn by their modules. The Treasurer's desk on the Portfolio (payments in, executed trades, prices, income and expenses, payouts) is shown only to the Treasurer. No accessibility violations (axe, WCAG 2.1 AA) in light or dark.

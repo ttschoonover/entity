@@ -2,6 +2,7 @@
 // the officers and their elections, and anyone applying to join.
 import { start, ctx, h, $, me, propose, nameOf, onChange, onSigned, setting } from './common.js';
 import { st, money, pct, short, fundCode, books, holdersOf, now } from './og.js';
+import { blocked } from './og.js';
 
 const main = $('#main');
 await start();
@@ -51,7 +52,7 @@ function applicants() {
 }
 
 function draw() {
-  if (!ctx.r?.ok) return;
+  if (!ctx.r?.ok) { main.replaceChildren(blocked()); return; }
   main.replaceChildren(h('div', { class: 'og-page' },
     h('div', { class: 'og-head' }, h('div', {}, h('h1', {}, 'Partners'), h('p', {}, 'Each partner has one vote and votes their units with it.')),
       ctx.r.params.value('entity.modules').includes('invites') ? h('a', { class: 'button primary', href: 'hall.html#/invites' }, 'Invite someone') : null),

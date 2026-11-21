@@ -4,6 +4,7 @@
 // it by joint resolution); only the Treasurer records anything on the books.
 import { start, ctx, h, $, me, sign, propose, nameOf, onChange, onSigned, toast } from './common.js';
 import { st, money, qty, pct, updown, short, fundCode, figures, books, isOfficer, bookkeeper, booksGrant, describeEntry, now } from './og.js';
+import { blocked } from './og.js';
 
 const main = $('#main');
 await start();
@@ -136,7 +137,7 @@ function capital() {
 }
 
 function draw() {
-  if (!ctx.r?.ok) return;
+  if (!ctx.r?.ok) { main.replaceChildren(blocked()); return; }
   const busy = document.activeElement && /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName);
   if (busy) return;
   const openDesk = [...document.querySelectorAll('details.desk')].map(d => d.open);

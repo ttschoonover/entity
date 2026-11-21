@@ -225,3 +225,32 @@ test('sealing: a member who changes their key is granted every key period again'
   const theirs = await S.openRecords(w.records, w.ring('p-0002'));
   assert.equal(theirs.unreadable, 0, 'with the new key they read the whole record');
 });
+
+test('sealing: a member\'s other key (their password) opens the records through a keywrap, and nobody else\'s does', async () => {
+  const w = await sealedWorld({ people: 2 });
+  const f = w.ids[0];
+  // A second signing key of the founder's, as a password makes one.
+  const { keys } = await import('../kernel/index.js');
+  const other = await keys.generate();
+  const otherRk = await S.recordKeyFromSeed(other.privateKey.seed);
+  const ringOf = (sk, id = f) => { const r = S.keyring({ id, sk }); for (const v of w.views) r.learn(v); return r; };
+  assert.ok((await S.openRecords(w.records, ringOf(otherRk.sk))).unreadable >= 1, 'before the keywrap, the other key reads nothing sealed');
+  // The founder wraps their record secret to it, in public.
+  const fields = await S.makeKeywrap({ entity: w.state.entity.id, member: f, recordSk: w.rk[f].sk, toPk: otherRk.pk });
+  const r = await w.run(await w.sign('member.keywrap', f, fields));
+  assert.equal(r.refused.length, 0, r.refused[0]?.reason);
+  assert.ok(!S.isSealed(r.records[0]), 'a keywrap is public: every copy must read it to open with it');
+  const opened = await S.openRecords(w.records, ringOf(otherRk.sk));
+  assert.equal(opened.unreadable, 0, 'with the keywrap, the other key reads the whole record');
+  assert.equal(opened.views.find(v => v?.kind === 'participant.apply').payload.act.by, 'p-0002');
+  // It is the founder's alone: under another member's name the same key opens nothing.
+  assert.ok((await S.openRecords(w.records, ringOf(otherRk.sk, 'p-0002'))).unreadable >= 1);
+  // Checks: only an active member with a record key, never their record key itself, a 32-byte wrap.
+  assert.match((await w.run(await w.sign('member.keywrap', f, { ...fields, key: S.cryptoB64(w.rk[f].pk) }))).refused[0].reason, /your record key itself/);
+  assert.match((await w.run(await w.sign('member.keywrap', f, { ...fields, ct: fields.enc }))).refused[0].reason, /not a sealed 32-byte key/);
+  // Later key periods open too.
+  await w.recordKey('p-0002');
+  await w.run(await w.sign('member.recordkey', 'p-0002', { key: S.cryptoB64(w.rk['p-0002'].pk) }));
+  assert.equal((await w.open(f)).refused.length, 0);
+  assert.equal((await S.openRecords(w.records, ringOf(otherRk.sk))).unreadable, 0, 'and every later key period');
+});

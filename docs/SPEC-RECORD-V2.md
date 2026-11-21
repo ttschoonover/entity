@@ -84,6 +84,17 @@ act whose payload is:
   "entity/record/member-key/v1", 32))`. The public half is registered by a
   signed act (`member.recordkey`). Passkey users have no seed. They need the
   WebAuthn PRF extension, or a seed wrapped to their passkey (open question 2).
+- **Keywraps.** A member who signs in more than one way (a key file and a
+  password) has one record key, from the key that published it. Each other
+  signing key opens it through a public, signed `member.keywrap { key, enc, ct }`:
+  the record secret key, sealed by HPKE (info `entity/keywrap/v1 ‖ entity ‖
+  member`) to `key`, the record key that other signing key's seed derives. A
+  reader holding that key opens the wrap, then every key period the member can.
+  It is always public, like `member.recordkey` and `epoch.open`. Settlement
+  checks the member is active with a record key, that `key` is not the record
+  key itself, and that the wrap is a sealed 32-byte key. A wrap is permanent: if
+  that other key (the password) is exposed, the member publishes a new record
+  key, which opens a new key period that the old one cannot.
 
 **Grants.** A member's copy works out the present state by replaying every
 record, so it needs every earlier key period's key. So, with `records.history:

@@ -3,6 +3,17 @@
 // and what a partner still has to do.
 import { ctx, h, me, nameOf, setting } from './common.js';
 
+// The page when the records cannot be read here: say why, and what to do.
+export function blocked() {
+  const sealed = ctx.r?.problems?.[0]?.sealed;
+  return h('div', { class: 'og-page' }, h('section', { class: 'card', style: 'max-width:38rem' },
+    h('h1', { style: 'font-size:1.5rem' }, sealed ? 'Your key on this device can’t open the records' : 'The records could not be read'),
+    sealed ? [h('p', {}, 'The partnership’s records are encrypted to its partners. This device holds no key that opens them, or the key it holds is locked.'),
+      h('p', {}, 'Sign in again with your password or your key file. If you signed in with your password and this persists, the password has not yet been allowed to open the records: ask the founder to run ', h('code', {}, 'entity records password'), '.'),
+      h('div', { class: 'buttons' }, h('a', { class: 'button primary', href: 'signin' }, 'Sign in again'))]
+      : h('p', {}, String(ctx.r?.problems?.[0]?.problem || 'Unknown problem.'))));
+}
+
 export const st = () => ctx.r.state;
 export const money = (c, { sign = false, cents = true } = {}) => {
   const v = Number(c) || 0;

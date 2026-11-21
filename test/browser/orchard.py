@@ -115,6 +115,16 @@ with sync_playwright() as p:
     check('open on the Wiki' not in pg.locator('main').inner_text() and pg.locator('#view canvas, #view img').count() >= 1, 'the agreement is on the website, with its signatures, and no wiki')
     pg.screenshot(path='/tmp/orchard-site.png', full_page=True)
     c.close()
+    # ── the founder's password alone opens the sealed records (member.keywrap) ─
+    pc = b.new_context(viewport={'width': 1100, 'height': 1000}); pp = pc.new_page(); watch(pp)
+    pp.goto(base + 'signin', wait_until='networkidle'); pp.fill('#id', 'tim'); pp.fill('#pw', 'correct horse battery staple'); pp.click('#pw-form button[type=submit]')
+    poll(lambda: 'club value' in pp.locator('main').inner_text().lower(), 20)
+    check('club value' in pp.locator('main').inner_text().lower(), 'the founder signs in with only their password, and the sealed records open')
+    pn = pc.new_page(); watch(pn); pn.goto(base + 'portfolio.html'); pn.wait_for_selector('dialog.site-dialog[open]', timeout=15000)
+    pn.fill('#unlock-pw', 'correct horse battery staple'); pn.locator('dialog.site-dialog[open]').get_by_role('button', name='Open').click()
+    poll(lambda: 'Holdings' in pn.locator('main').inner_text(), 20)
+    check('Holdings' in pn.locator('main').inner_text(), 'a new tab asks for the password once, then opens')
+    pc.close()
     # A stranger, not signed in, gets nothing.
     x = b.new_context(); xr = x.request.get(base + 'documents/agreement/partnership-agreement.pdf')
     check(xr.status in (401, 302) or b'%PDF' not in xr.body()[:8], f'a stranger gets no PDF ({xr.status})')

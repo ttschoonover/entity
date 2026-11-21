@@ -20,14 +20,16 @@ export async function loadRegistry(moduleNames) {
 // member's own key: `seed` is the seed of their signing key, `id` who they are.
 // The records returned are views (plaintext, each with its stored hash), so
 // everything that compares hashes still compares the record as stored.
-export async function verifyText(registry, text, { id = null, seed = null } = {}) {
+// opening: { id, seed } (a signing key's seed) or { id, sk } (a record secret key,
+// as the sign-in page keeps for a password sign-in).
+export async function verifyText(registry, text, { id = null, seed = null, sk = null } = {}) {
   const { records, damage } = parseLines(text);
   const sealed = records.filter(sealing.isSealed).length;
   if (!sealed) {
     const v = await verifyRecords(registry, records, damage);
     return { ...v, count: v.records, records, stored: records, damage, sealed: 0, unreadable: 0 };
   }
-  const opener = id && seed ? { id, sk: (await sealing.recordKeyFromSeed(seed)).sk } : null;
+  const opener = id && sk ? { id, sk } : id && seed ? { id, sk: (await sealing.recordKeyFromSeed(seed)).sk } : null;
   const ring = sealing.keyring(opener);
   const { views, unreadable } = await sealing.openRecords(records, ring);
   if (unreadable) {
