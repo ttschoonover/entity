@@ -31,6 +31,9 @@ function view(api) {
   const { h, state, day, who } = api;
   const assoc = Object.values(state.m.partnership?.associations || {});
   const certs = api.records ? certificates(api.records, api.params?.value?.('partnership.unit_class') || 'units') : [];
+  // partnership.certificates: own shows each partner only theirs; otherwise the officers see all.
+  const ownOnly = api.params?.has?.('partnership.certificates') && api.params.value('partnership.certificates') === 'own';
+  const shown = certs.filter(c => !c.cancelled && (!ownOnly || c.partner === api.me?.id));
   const officers = officersNow(state, new Date().toISOString());
   const withAssoc = api.params?.value?.('partnership.associations') !== false;
   return h('section', {}, h('h2', {}, 'Partnership'),
@@ -39,8 +42,8 @@ function view(api) {
       liveClaims(a).length ? h('ul', {}, liveClaims(a).map(c => h('li', {}, `claim ${c.id}: ${pct(c.share)} of ${c.on === 'assets' ? 'net assets' : 'profits'}${c.cap ? `, up to ${(c.cap / 100).toFixed(2)}` : ''}, since ${day(c.since)}`))) : null)))
       : h('p', { class: 'hint' }, 'The partnership belongs to no association.'),
     h('h3', {}, 'Certificates in force'),
-    h('p', { class: 'hint' }, 'Each partner’s certificate, signed by the officers in office. Download one as a PDF set in LaTeX.'),
-    certs.filter(c => !c.cancelled).length ? h('div', { class: 'cards' }, certs.filter(c => !c.cancelled).map(c => certificate(api, c, officers)))
+    h('p', { class: 'hint' }, ownOnly ? 'Your certificate, signed by the officers in office. Only you can see it. Download it as a PDF set in LaTeX.' : 'Each partner’s certificate, signed by the officers in office. Download one as a PDF set in LaTeX.'),
+    shown.length ? h('div', { class: 'cards' }, shown.map(c => certificate(api, c, officers)))
       : h('p', { class: 'hint' }, 'None yet.'));
 }
 export const tabs = [{ id: 'partnership', title: 'Partnership', render: (api) => view(api) }];

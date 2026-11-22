@@ -172,7 +172,7 @@ export async function serve({ opt }) {
       const { hash } = await import('../../kernel/hash.js');
       const ok = i && typeof b.secret === 'string' && hash(b.secret) === i.hash;
       const state = !ok ? 'unknown' : i.used ? 'used' : i.revoked ? 'withdrawn' : new Date().toISOString() > i.expires ? 'expired' : 'open';
-      return sendPlain(res, ok ? 200 : 404, JSON.stringify(ok ? { name: i.name, state, expires: i.expires, details: !!(ee.params.has('details.required') && ee.params.value('details.required')) } : { why: 'that invitation link is not valid' }), TYPES['.json']), true;
+      return sendPlain(res, ok ? 200 : 404, JSON.stringify(ok ? { name: i.name, state, expires: i.expires, details: !!(ee.params.has('details.required') && ee.params.value('details.required')), tin: !(ee.params.has('details.tin') && ee.params.value('details.tin') === false) } : { why: 'that invitation link is not valid' }), TYPES['.json']), true;
     }
     if (p === '/auth/required' && req.method === 'GET') {
       // What a candidate must sign before admission: the texts in force.
@@ -300,7 +300,8 @@ export async function serve({ opt }) {
         });
       }
       // Certificates and signed agreements as PDFs (cli/documents.js), for signed-in members:
-      // a partner sees their own certificates, the officers every one.
+      // a partner sees their own certificates, the officers every one (or, with
+      // partnership.certificates: own, each partner only their own).
       let dm;
       if (req.method === 'GET' && (dm = p.match(/^\/documents\/(certificate|agreement)\/([a-z0-9-]+)\.pdf$/))) {
         const who = sessionOf(req)?.id;
@@ -317,7 +318,8 @@ export async function serve({ opt }) {
               const certs = certificates(e.views || e.records, e.params.value('partnership.unit_class'));
               const c = certs.find(x => String(x.number) === dm[2]);
               if (!c) return send(res, 404, { why: 'no such certificate' });
-              if (c.partner !== who && !documents.officers(st).some(o => o.id === who)) return send(res, 403, { why: 'a partner sees their own certificates; the officers see all' });
+              const ownOnly = e.params.has('partnership.certificates') && e.params.value('partnership.certificates') === 'own';
+              if (c.partner !== who && (ownOnly || !documents.officers(st).some(o => o.id === who))) return send(res, 403, { why: ownOnly ? 'each partner sees only their own certificate' : 'a partner sees their own certificates; the officers see all' });
               doc = documents.certificateTex(e, c.number, certs);
             } else {
               if (!on('agreements')) return send(res, 404, { why: 'no agreements module here' });

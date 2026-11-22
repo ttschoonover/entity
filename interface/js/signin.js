@@ -80,12 +80,13 @@ fetch('signin/brand').then(r => (r.ok ? r.json() : null)).then(b => { if (b?.nam
 const INVITE = (() => { const v = new URLSearchParams(location.search).get('invite') || ''; const i = v.indexOf('.'); return i > 0 ? { id: v.slice(0, i), secret: v.slice(i + 1) } : null; })();
 
 // Particulars (the details module): sealed here to the applicant and the officers.
+let TIN = true; // details.tin, from the invitation
 function particularsForm(box) {
   box.replaceChildren();
   const h2 = document.createElement('h2'); h2.textContent = 'Your particulars'; h2.className = 'sub';
-  const note = document.createElement('p'); note.className = 'dim'; note.textContent = 'The partnership needs these for its tax returns and registrations. They are encrypted on this device to you and the officers who keep them; the server cannot read them.';
+  const note = document.createElement('p'); note.className = 'dim'; note.textContent = (TIN ? 'The partnership needs these for its tax returns and registrations.' : 'The partnership needs these for its accounts and registrations; it asks for no taxpayer number.') + ' They are encrypted on this device to you and the officers who keep them; the server cannot read them.';
   box.append(h2, note);
-  for (const [k, label, req] of D.FIELDS) {
+  for (const [k, label, req] of D.fieldsFor({ tin: TIN })) {
     if (k === 'certified') {
       const l = document.createElement('label'); l.className = 'check'; const c = document.createElement('input'); c.type = 'checkbox'; c.id = `pt-${k}`;
       l.append(c, ' I certify, under penalties of perjury, that the number above is my correct taxpayer identification number, that I am not subject to backup withholding, and that I am a U.S. person if I said so (a foreign person gives the Treasurer a Form W-8BEN).');
@@ -99,7 +100,7 @@ function particularsForm(box) {
     } else { el = document.createElement(k === 'residence' || k === 'mailing' ? 'textarea' : 'input'); if (k === 'date_of_birth') el.type = 'date'; if (k === 'email') el.type = 'email'; el.autocomplete = 'off'; }
     el.id = `pt-${k}`; box.append(l, el);
   }
-  return () => Object.fromEntries(D.FIELDS.map(([k]) => [k, k === 'certified' ? $(`#pt-${k}`).checked : $(`#pt-${k}`).value.trim()]));
+  return () => Object.fromEntries(D.fieldsFor({ tin: TIN }).map(([k]) => [k, k === 'certified' ? $(`#pt-${k}`).checked : $(`#pt-${k}`).value.trim()]));
 }
 async function detailsRequest(id, key, body) {
   const full = { entity: ENTITY, member: id, at: new Date().toISOString(), ...body };
@@ -188,6 +189,7 @@ async function start() {
       invited = r;
       $('#apply-intro').textContent = `You are invited to join, as ${r.name}. Choose a member id and a password, sign the agreement with your drawn signature${r.details ? ', give your particulars' : ''}, and you are admitted.`;
       $('#aname').value = r.name; $('#apply-sum').textContent = 'Accept your invitation';
+      TIN = r.tin !== false;
       if (r.details) particulars = particularsForm($('#particulars'));
       applyBox.open = true;
     }
@@ -201,7 +203,7 @@ async function start() {
       const why = passwordProblem(pw, id); if (why) throw new Error(why);
       for (const { d, p } of applyDocs) if (d.drawn === 'required' && !p.used()) throw new Error(`draw your signature on "${d.title}" first`);
       const facts = particulars ? particulars() : null;
-      if (facts) { const bad = D.problems(facts); if (bad.length) throw new Error(bad.join('; ')); }
+      if (facts) { const bad = D.problems(facts, { tin: TIN }); if (bad.length) throw new Error(bad.join('; ')); }
       out.textContent = 'Signing your application…';
       const k = await passwordKey(ENTITY, id, pw);
       const salt = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join('');

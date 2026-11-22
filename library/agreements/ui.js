@@ -77,6 +77,37 @@ ${rows.map(({ p, s }) => `<div class="sig"><div>${s.drawing ? `<img src="${s.dra
   setTimeout(() => w.print(), 400);
 }
 
+// Changing the agreement by vote: any active member writes the new text, which
+// is saved as the next version and put to the members in one step (wiki.edit,
+// then a proposal to enact it under wiki.enact_rule). Once it passes, members
+// sign the new version as agreements.on_amend says.
+function amendments(api, id, page) {
+  const { h, state, params, me, link, when } = api;
+  const open = Object.values(state.proposals).filter(p => !p.closed && (p.effects || []).some(e => e.kind === 'wiki.enact' && e.page === id));
+  const latest = page.versions.at(-1), enacted = page.statute ? page.versions[page.statute.version - 1] : null;
+  const changed = (a, b) => { const x = String(a).split('\n'), y = String(b).split('\n'); const sx = new Set(x), sy = new Set(y); return [y.filter(l => !sx.has(l)).length, x.filter(l => !sy.has(l)).length]; };
+  const out = h('div', { style: 'margin-top:1.5rem' }, h('h3', {}, 'Changing the agreement'),
+    open.length ? h('ul', { class: 'items' }, open.map(p => { const e = p.effects.find(x => x.kind === 'wiki.enact' && x.page === id); const ver = page.versions[e.version - 1];
+      const [add, del] = enacted && ver ? changed(enacted.body, ver.body) : [0, 0];
+      return h('li', {}, link(`bills/${p.id}`, p.title), h('p', { class: 'meta' }, `version ${e.version}: ${add} line${add === 1 ? '' : 's'} added, ${del} removed · voting until ${when(p.deadline)}`)); }))
+      : h('p', { class: 'hint' }, `Any partner may propose new text. It is decided by a ${params.value('wiki.enact_rule')} resolution; once it passes, partners sign the new version.`));
+  if (me?.status !== 'active') return out;
+  const text = h('textarea', { id: `am-${id}`, rows: 18, style: 'width:100%;font-family:var(--mono, monospace);font-size:.85rem' }, latest.body);
+  const why = h('input', { id: `am-why-${id}`, placeholder: 'What changes, and why (shown with the vote)', style: 'width:100%' });
+  out.append(h('details', {}, h('summary', {}, 'Propose a change'),
+    h('p', { class: 'hint' }, `Edit the text below (from version ${latest.n}${latest.n !== enacted?.n ? ', a draft newer than the one in force' : ', the one in force'}). It becomes version ${latest.n + 1} and goes to a vote.`),
+    text, h('label', { for: `am-why-${id}` }, 'Why'), why,
+    h('div', { class: 'buttons', style: 'margin-top:.6rem' }, h('button', { onclick: () => {
+      const body = text.value.replace(/\r\n/g, '\n');
+      if (body.trim() === latest.body.trim()) return alert('Nothing has changed yet.');
+      const reason = why.value.trim();
+      api.sign('wiki.edit', { page: id, title: latest.title, body, base: latest.n, ...(latest.category ? { category: latest.category } : {}), note: (reason || 'Proposed amendment').slice(0, 200) },
+        `Version ${latest.n + 1} of "${latest.title}", put to a vote`,
+        [['proposal.lay', { title: `Amend the ${latest.title}`, rule: params.value('wiki.enact_rule'), effects: [{ kind: 'wiki.enact', page: id, version: latest.n + 1 }], ...(reason ? { text: reason } : {}) }]]);
+    } }, 'Put it to a vote'))));
+  return out;
+}
+
 export default function render(api) {
   const { h, state, params, me, $, when, who, link } = api;
   const required = params.value('agreements.required');
@@ -114,7 +145,8 @@ export default function render(api) {
         pin: me ? (p) => p.id === me.id : null,
         filters: [{ label: 'Signed', options: [['Everyone', () => true], ['Not signed', (p) => !!unsigned(state, p.id, id, params)], ['Signed', (p) => !unsigned(state, p.id, id, params)]] }] }),
       h('div', { class: 'buttons' }, h('button', { class: 'quiet', onclick: () => signedCopy(state, id, v, params) }, 'View the signed copy'),
-        h('a', { class: 'button quiet', href: `documents/agreement/${id}.pdf`, target: '_blank', rel: 'noopener' }, 'Signed copy as PDF (LaTeX)')));
+        h('a', { class: 'button quiet', href: `documents/agreement/${id}.pdf`, target: '_blank', rel: 'noopener' }, 'Signed copy as PDF (LaTeX)')),
+      amendments(api, id, page));
   }
   return sec;
 }

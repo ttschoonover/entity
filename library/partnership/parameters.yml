@@ -5,24 +5,31 @@ parameters:
     changed_by: constitutional
     group: Partnership
     describe: Whether the partnership may join associations and grant them claims on its profits or assets. Off, joining and new claims are refused and the associations are not shown.
+  partnership.certificates:
+    value: officers
+    type: string
+    one_of: [officers, own]
+    changed_by: organic
+    group: Partnership
+    describe: Who sees a partner's certificate on the page and as a PDF. officers, the partner and the officers; own, only the partner whose certificate it is. (Units themselves are on the record, which every partner reads.)
   partnership.join_rule:
     value: organic
     type: rule
     changed_by: constitutional
     group: Partnership
-    describe: The rule under which the partnership joins or leaves an association. The partnership preset sets a concurrent rule, 60% of the partners and 60% of the units.
+    describe: The rule under which the partnership joins or leaves an association.
   partnership.profits_rule:
     value: organic
     type: rule
     changed_by: constitutional
     group: Partnership
-    describe: The rule under which an association is granted, or loses, a claim to the partnership's profits. The partnership preset sets a majority of the partners and a majority of the units.
+    describe: The rule under which an association is granted, or loses, a claim to the partnership's profits.
   partnership.assets_rule:
     value: constitutional
     type: rule
     changed_by: constitutional
     group: Partnership
-    describe: The rule under which an association is granted, or loses, a claim to the partnership's assets. The partnership preset sets two thirds of the partners and two thirds of the units.
+    describe: The rule under which an association is granted, or loses, a claim to the partnership's assets.
   partnership.unit_class:
     value: units
     type: string

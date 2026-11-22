@@ -57,3 +57,31 @@ test('elections: nobody elected, nothing changes', async () => {
   assert.equal(e.counted.enacted, false);
   assert.equal(e.counted.notEnacted, 'nobody was elected');
 });
+
+test('elections: direct, every member a candidate and voting at once; one may decline; one person may hold two offices', async () => {
+  const w = await worldWith(['offices', 'elections'], { people: 4 });
+  const r = await decide(w, { title: 'Two officers, elected directly', rule: 'organic', effects: [
+    { kind: 'office.create', office: 'treasurer', title: 'Treasurer', seats: 1 },
+    { kind: 'office.create', office: 'secretary', title: 'Secretary', seats: 1 },
+    { kind: 'election.call', election: 't-1', office: 'treasurer', direct: true, vote_days: 7 },
+    { kind: 'election.call', election: 's-1', office: 'secretary', direct: true, vote_days: 7 }] });
+  assert.equal(r.enacted, true, r.refused?.[0]?.reason || r.notEnacted);
+  const e = w.state.m.elections['t-1'];
+  assert.deepEqual(Object.keys(e.candidates).sort(), ['p-0001', 'p-0002', 'p-0003', 'p-0004'], 'every member stands');
+  const act = async (kind, by, f) => w.settle(await w.sign(kind, by, f));
+  assert.match((await act('election.stand', 'p-0001', { election: 't-1' })).refused[0].reason, /candidacy .* closed|already standing/);
+  assert.equal((await act('election.withdraw', 'p-0004', { election: 't-1' })).applied.length, 1, 'a member may decline');
+  for (const v of ['p-0001', 'p-0002', 'p-0003']) {
+    assert.equal((await act('election.vote', v, { election: 't-1', choices: ['p-0002'] })).applied.length, 1);
+    assert.equal((await act('election.vote', v, { election: 's-1', choices: ['p-0002'] })).applied.length, 1);
+  }
+  assert.match((await act('election.vote', 'p-0003', { election: 't-1', choices: ['p-0004'] })).refused[0].reason, /choose among the candidates/);
+  w.jump(7.5);
+  for (const id of ['t-1', 's-1']) assert.equal((await act('election.count', 'p-0001', { election: id })).applied.length, 1);
+  const holds = (o) => w.state.m.offices[o].holders.filter(h => !h.until).map(h => h.id);
+  assert.deepEqual([holds('treasurer'), holds('secretary')], [['p-0002'], ['p-0002']], 'one person holds both, as nothing forbids it');
+  // stand_days is refused on a direct election.
+  const bad = await decide(w, { title: 'Bad', rule: 'organic', effects: [{ kind: 'election.call', election: 't-2', office: 'treasurer', direct: true, stand_days: 3, vote_days: 3 }] });
+  assert.notEqual(bad.enacted, true);
+  assert.equal((await verifyRecords(w.registry, w.records)).ok, true);
+});

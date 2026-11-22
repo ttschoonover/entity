@@ -1,5 +1,16 @@
 # Changes
 
+## 0.9.39 · The Orchard GP: no taxpayer numbers, private certificates, direct elections, amendments by vote, a constitution page
+
+- **`details.tin`**: off, the particulars form (on the website and in the invitation sign-up) asks for no taxpayer number and none is accepted. The Orchard GP turns it off; agreement 4.2 says the Treasurer collects Forms W-9 separately.
+- **`partnership.certificates: own`**: each partner sees only their own certificate, on the page and as a PDF, officers included.
+- **Direct elections** (`election.call { direct: true, vote_days }`): every active member is a candidate unless they decline, and voting opens at once. The Orchard GP drops the Treasurer–Secretary incompatibility; the founder holds both offices until the partners hold an election ("Hold an election" on the Partners page). Agreement 8.1 says so.
+- **Amending the agreement by vote**: "Propose a change" on the Agreement page writes the next version and lays a resolution to enact it (wiki.enact_rule) in one step; open amendments show how many lines change.
+- **The Constitution page** (Orchard website): every setting in force as articles of numbered sections: a plain title, the value in words, its meaning, and the resolution that changes it; a table of the kinds of resolution. Read from the record in the browser.
+- **The Secretary's Modules page**: the modules installed and those that can be added, each proposed with one click (node.json `modulesOnline` on for the Orchard GP). The site kit's menu can show a page only to an office's holders.
+- Fixed: with a password sign-in, opening or saving one's own particulars used the password key's own record key instead of the member's (now `sealing.memberSecret`, through the keywrap).
+- Tests: direct elections (library/elections/tests.js); the Orchard browser journey checks each change as the founder and as a partner.
+
 ## 0.9.38 · A password opens sealed records
 
 - **`member.keywrap`** (core 0.9.11): a member's record secret key, sealed to the record key their other signing key derives (a password, say), in a public signed act. A reader with that key opens the wrap, then every key period the member can. Key periods are unchanged, so older records replay as before. Spec: SPEC-RECORD-V2.md, "Keywraps".

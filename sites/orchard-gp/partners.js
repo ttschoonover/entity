@@ -18,13 +18,13 @@ function register() {
   const f = books();
   const office = (id) => ['treasurer', 'secretary'].filter(o => holdersOf(o).includes(id)).map(o => st().m.offices[o].title);
   const rows = people.map(p => ({ id: p.id, units: holders[p.id] || 0, value: f.units[p.id] ? Fm.position(f, p.id).value : null, since: p.admitted || p.joined })).sort((a, b) => b.units - a.units);
-  return h('section', { class: 'card' }, h('h2', {}, `Partners (${people.length})`, h('a', { href: 'hall.html#/partnership' }, 'Certificates with signatures →')),
+  return h('section', { class: 'card' }, h('h2', {}, `Partners (${people.length})`, h('a', { href: 'hall.html#/partnership' }, setting('partnership.certificates', 'officers') === 'own' ? 'Your certificate →' : 'Certificates with signatures →')),
     h('div', { class: 'scroll' }, h('table', { class: 'data' }, h('thead', {}, h('tr', {}, ['Partner', 'Office', 'Partner since', 'Voting units', 'Interest', 'Capital', 'Certificate'].map((c, i) => h('th', { class: i > 2 ? 'n' : null }, c)))),
       h('tbody', {}, rows.map(r => h('tr', { class: me()?.id === r.id ? 'you' : null },
         h('td', {}, h('strong', {}, nameOf(r.id))), h('td', { class: 'fine' }, office(r.id).join(', ')), h('td', { class: 'fine' }, short(r.since)),
         h('td', { class: 'n' }, r.units.toLocaleString()), h('td', { class: 'n' }, pct(r.units / total)),
         h('td', { class: 'n' }, r.value === null ? '—' : money(r.value, { cents: false })),
-        h('td', { class: 'n' }, certs[r.id] ? h('a', { href: `documents/certificate/${certs[r.id].number}.pdf`, target: '_blank', rel: 'noopener' }, `No. ${certs[r.id].number} (PDF)`) : '—')))))));
+        h('td', { class: 'n' }, certs[r.id] && (r.id === me()?.id || setting('partnership.certificates', 'officers') !== 'own') ? h('a', { href: `documents/certificate/${certs[r.id].number}.pdf`, target: '_blank', rel: 'noopener' }, `No. ${certs[r.id].number} (PDF)`) : certs[r.id] ? `No. ${certs[r.id].number}` : '—')))))));
 }
 
 function officers() {
@@ -36,7 +36,23 @@ function officers() {
       return h('tr', {}, h('td', {}, h('strong', {}, st().m.offices[o].title)), h('td', {}, holdersOf(o).map(nameOf).join(', ') || h('em', {}, 'vacant')),
         h('td', { class: 'fine' }, el ? [t <= el.standUntil ? `Candidacy open until ${short(el.standUntil)} · ` : `Voting until ${short(el.voteUntil)} · `, h('a', { href: `hall.html#/elections/${el.id}` }, t <= el.standUntil ? 'Stand' : 'Vote')] : ''));
     }))),
-    h('p', { class: 'fine' }, 'The Treasurer keeps the books and the accounts; the Secretary keeps the roll, calls meetings and sends invitations. Each is elected for a year, and nobody holds both.'));
+    h('p', { class: 'fine' }, 'The Treasurer keeps the books and the accounts; the Secretary keeps the roll, calls meetings and sends invitations. Each is elected directly for a year: every partner is a candidate. One partner may hold both.'),
+    hold());
+}
+
+// Direct elections for every office without one under way: proposed by any
+// partner, decided by the partners; then every partner is a candidate and
+// voting opens at once.
+function hold() {
+  if (me()?.status !== 'active') return null;
+  const open = Object.values(st().m.elections || {}).filter(e => !e.counted).map(e => e.office);
+  const offices = ['treasurer', 'secretary'].filter(o => st().m.offices?.[o] && !open.includes(o));
+  if (!offices.length) return null;
+  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const go = () => propose(`Elect the ${offices.map(o => st().m.offices[o].title).join(' and the ')}`,
+    offices.map(o => ({ kind: 'election.call', election: `${o}-${stamp}`, office: o, method: 'approval', direct: true, vote_days: 7 })),
+    'Every partner is a candidate unless they decline; voting opens as soon as this passes and runs for seven days.');
+  return h('div', { class: 'buttons', style: 'margin-top:.75rem' }, h('button', { class: 'secondary', onclick: go }, `Hold an election for ${offices.map(o => st().m.offices[o].title).join(' and ')}`));
 }
 
 function applicants() {

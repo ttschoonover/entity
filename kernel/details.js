@@ -37,9 +37,15 @@ export const FIELDS = [
   ['certified', 'Certification (Form W-9 statements, or Form W-8BEN given to the Treasurer)', true],
 ];
 
-export function problems(f) {
+// The taxpayer fields, left out where the partnership asks for no taxpayer
+// number (details.tin off): then nobody types one, and none is kept.
+const TIN_FIELDS = new Set(['tin_type', 'tin', 'certified']);
+export const fieldsFor = ({ tin = true } = {}) => (tin ? FIELDS : FIELDS.filter(([k]) => !TIN_FIELDS.has(k)));
+
+export function problems(f, opt = {}) {
   const out = [];
-  for (const [k, label, required] of FIELDS) if (required && !String(f[k] ?? '').trim()) out.push(`${label} is required`);
+  if (opt.tin === false && Object.keys(f).some(k => TIN_FIELDS.has(k) && String(f[k] ?? '').trim() && f[k] !== false)) out.push('this partnership asks for no taxpayer number: leave it out');
+  for (const [k, label, required] of fieldsFor(opt)) if (required && !String(f[k] ?? '').trim()) out.push(`${label} is required`);
   if (f.date_of_birth) {
     const d = Date.parse(f.date_of_birth);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(f.date_of_birth) || Number.isNaN(d)) out.push('the date of birth is YYYY-MM-DD');

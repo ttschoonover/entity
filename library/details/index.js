@@ -40,4 +40,4 @@ export function readers(state, params, at) {
   return [...out];
 }
 
-export default { name: 'details', core: '0.9.10', install, filed, readers, parameterKeys: ['details.required', 'details.readers'] };
+export default { name: 'details', core: '0.9.10', install, filed, readers, parameterKeys: ['details.required', 'details.tin', 'details.readers'] };

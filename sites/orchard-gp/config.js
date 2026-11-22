@@ -12,11 +12,13 @@ export default {
     ['partners.html', 'Partners'],
     ['hall.html#/meetings', 'Meetings', 'meetings'],
     ['hall.html#/agreements', 'Agreement', 'agreements'],
+    ['constitution.html', 'Constitution'],
     ['hall.html#/details', 'My details', 'details'],
+    ['hall.html#/modules', 'Modules', null, 'secretary'],
   ],
   order: ['agreements', 'partnership', 'details', 'invites', 'meetings', 'elections', 'offices'],
   // Kept by the partnership but not shown as pages of their own.
-  hide: ['wiki', 'finality', 'authority', 'shares', 'fund', 'participation', 'twofactor', 'record', 'modules'],
+  hide: ['wiki', 'finality', 'authority', 'shares', 'fund', 'participation', 'twofactor', 'record'],
   institutions: () => ({
     agreements: ['The partnership agreement', 'The agreement in force, signed by every partner with a drawn signature.'],
     partnership: ['Certificates', 'Each partner’s certificate of units, signed by the officers.'],

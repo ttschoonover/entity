@@ -4,7 +4,13 @@ parameters:
     type: boolean
     changed_by: organic
     group: Partner details
-    describe: Whether an applicant must give their particulars (legal name, date of birth, residence, taxpayer number and tax status, contact) before an invitation admits them. They are encrypted to the partner and the officers in details.readers, and kept off the record.
+    describe: Whether an applicant must give their particulars (legal name, date of birth, residence, contact, tax status, and a taxpayer number if details.tin is on) before an invitation admits them. They are encrypted to the partner and the officers in details.readers, and kept off the record.
+  details.tin:
+    value: true
+    type: boolean
+    changed_by: organic
+    group: Partner details
+    describe: Whether partners give a taxpayer identification number (SSN, ITIN or foreign TIN) with a Form W-9 certification. Off, the form never asks for one and none is kept; the Treasurer then collects taxpayer numbers another way when the returns need them.
   details.readers:
     value: [treasurer, secretary]
     type: list

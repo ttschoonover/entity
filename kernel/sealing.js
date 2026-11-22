@@ -132,6 +132,15 @@ export async function makeKeywrap({ entity, member, recordSk, toPk }) {
 export async function openKeywrap({ entity, member, wrap, sk }) {
   return C.hpkeOpen(sk, C.unb64(wrap.enc), C.unb64(wrap.ct), { info: keywrapInfo(entity, member) });
 }
+// A member's record secret key from any of their signing keys' seeds: the key
+// it derives if that is their record key, else through their keywrap to it.
+export async function memberSecret(state, id, seed) {
+  const own = await recordKeyFromSeed(seed), s = state.sealing || {};
+  if (s.keys?.[id] === C.b64(own.pk)) return own.sk;
+  const w = (s.keywraps?.[id] || []).find(x => x.key === C.b64(own.pk) && x.enc);
+  if (w) { try { return await openKeywrap({ entity: state.entity.id, member: id, wrap: w, sk: own.sk }); } catch { /* fall through */ } }
+  return own.sk;
+}
 export async function openWrap(entity, n, wrap, sk) {
   return C.hpkeOpen(sk, C.unb64(wrap.enc), C.unb64(wrap.ct), { info: wrapInfo(entity, n) });
 }
@@ -302,7 +311,7 @@ export function installSealing(registry) {
     },
     reduce(state, rec) {
       const a = rec.payload.act, s = sv(state); s.keywraps ||= {};
-      s.keywraps[a.by] = [...(s.keywraps[a.by] || []).filter(w => w.key !== a.key), { key: a.key, at: rec.at }];
+      s.keywraps[a.by] = [...(s.keywraps[a.by] || []).filter(w => w.key !== a.key), { key: a.key, enc: a.enc, ct: a.ct, at: rec.at }];
     },
   });
 

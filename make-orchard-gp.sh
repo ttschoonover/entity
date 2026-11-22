@@ -28,7 +28,8 @@
 #     never delegated; the Treasurer alone keeps the books (fund.bookkeeper),
 #     recording only what was authorized, and every partner reads them
 #   - an elected Treasurer and an elected Secretary (never the same person);
-#     you serve as Founding Secretary until the first election
+#     you serve as Treasurer and Secretary until the partners elect officers
+#     (directly: every partner a candidate, from the Partners page)
 #   - participation required: standing tracked from votes and meetings, notices,
 #     and removal by joint resolution after 30 days (the participation module)
 #   - no associations, notifications, shared files, chat or polls
@@ -66,8 +67,8 @@ id=$(E propose --as "$ME" --title "The partnership's EIN and principal office" -
 E settle --as "$ME" >/dev/null; E act ballot.cast --proposal "$id" --choice for --as "$ME" --settle >/dev/null
 printf '  %-44s %s\n' "The EIN and principal office (sealed)" "$(E count "$id" | tail -1)"
 
-echo "== Units, officers and elections"
-decide "Units, the officers, and the first elections" "$(node -e '
+echo "== Units and officers"
+decide "Units and the officers" "$(node -e '
 const [me] = process.argv.slice(1);
 console.log(JSON.stringify([
   { kind: "share.class", class: "units", title: "Partnership units", voting: true, transferable: false,
@@ -76,6 +77,7 @@ console.log(JSON.stringify([
   { kind: "office.create", office: "treasurer", title: "Treasurer", seats: 1, term_days: 365 },
   { kind: "office.create", office: "secretary", title: "Secretary", seats: 1, term_days: 365 },
   { kind: "office.fill", office: "secretary", holder: me },
+  { kind: "office.fill", office: "treasurer", holder: me },
   { kind: "authority.grant", grant: "books", title: "Keeping the books", to: { office: "treasurer" },
     may: ["fund.contribute", "fund.fill", "fund.valuation", "fund.income", "fund.expense", "fund.withdraw", "fund.opening"],
     note: "The Treasurer alone keeps the books (fund.bookkeeper): contributions, the trades the partners authorized (and only those), prices, income, expenses, payouts and the opening balances. Every partner reads them; every trade is a joint resolution of the partners." },
@@ -84,8 +86,6 @@ console.log(JSON.stringify([
   { kind: "authority.grant", grant: "meetings", title: "Calling meetings", to: { office: "secretary" }, may: ["meeting.call"] },
   { kind: "authority.grant", grant: "invitations", title: "Personal invitations", to: { office: "secretary" }, may: ["invite.create", "invite.revoke"],
     note: "The Secretary invites a person the partners agreed to admit: the link admits them once they have signed the agreement and given their particulars (agreement section 4.1)." },
-  { kind: "election.call", election: "treasurer-1", office: "treasurer", method: "approval", stand_days: 14, vote_days: 7 },
-  { kind: "election.call", election: "secretary-1", office: "secretary", method: "approval", stand_days: 14, vote_days: 7 },
 ]))' "$ME")"
 
 echo "== The partnership agreement"
@@ -104,7 +104,7 @@ decide "The first meeting of the partners" "[{\"kind\":\"meeting.call\",\"meetin
 echo "== Privacy"
 node -e "
 const fs=require('fs');const n=JSON.parse(fs.readFileSync('node.json'));
-Object.assign(n,{settleAfter:0,port:Number(process.argv[1]),look:'athens',colour:'system',private:true,modulesOnline:false,brand:'The Orchard'});
+Object.assign(n,{settleAfter:0,port:Number(process.argv[1]),look:'athens',colour:'system',private:true,modulesOnline:true,brand:'The Orchard'});
 fs.writeFileSync('node.json',JSON.stringify(n,null,2)+'\n')" "$PORT"
 echo "  sealed record, private node: visitors see only the sign-in page"
 # Your password opens the sealed records as your key file does (member.keywrap).
@@ -127,7 +127,7 @@ finish_up "  Next:
   2. Sign in on the website with your key file (the founding key in ~/.entity/keys/<entity id>/): sign the agreement with your drawn signature (Agreement) and give your particulars (My details).
   3. Invite each partner with a personal link (Invite): they apply, draw their signature, give their particulars and are admitted.
      Certificates and the signed agreement are on the website and as PDFs (needs: sudo apt install texlive-latex-recommended texlive-pictures texlive-fonts-recommended).
-  4. Stand in the elections for Treasurer and Secretary (candidacy open 14 days).
-  5. Once a Treasurer is elected, they bring in the existing holdings: bash import-holdings.sh <treasurer-id> . holdings.csv
-     (the Treasurer alone keeps the books; the units that follow capital are put to the partners).
+  4. You keep the books as Treasurer until the partners elect one: bring in the existing holdings with
+     bash import-holdings.sh tim . holdings.csv (the units that follow capital are put to the partners).
+  5. Once everyone has joined, hold the elections from the Partners page: every partner is a candidate, voting opens at once.
   6. File the fictitious business name statement within 40 days; ask Berkeley about a business license."

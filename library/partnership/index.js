@@ -148,4 +148,4 @@ export function certificates(records, unitClass = 'units') {
 }
 
 export default { name: 'partnership', core: '0.7.7', install, association, liveClaims, profitShare, certificates,
-  parameterKeys: ['partnership.associations', 'partnership.join_rule', 'partnership.profits_rule', 'partnership.assets_rule', 'partnership.unit_class', 'partnership.ein', 'partnership.office'] };
+  parameterKeys: ['partnership.associations', 'partnership.certificates', 'partnership.join_rule', 'partnership.profits_rule', 'partnership.assets_rule', 'partnership.unit_class', 'partnership.ein', 'partnership.office'] };

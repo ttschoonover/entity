@@ -31,6 +31,7 @@ set:
   # Personal invitations, and the particulars the law needs (sealed to the officers).
   invites.max_days: 30
   details.required: true
+  details.tin: false
   details.readers: [treasurer, secretary]
   # Every trade is a joint resolution of all partners; never delegated.
   # The Treasurer alone records anything on the books; every partner reads them.
@@ -40,11 +41,13 @@ set:
   deliberation.period: 7
   # No associations: the partnership joins none and grants no claims.
   partnership.associations: false
+  partnership.certificates: own
   partnership.join_rule: joint-super
   partnership.profits_rule: joint
   partnership.assets_rule: joint-super
   # Officers: Treasurer and Secretary, elected separately, never the same person.
-  elections.incompatible: [[treasurer, secretary]]
+  # One partner may be both Treasurer and Secretary; officers are elected directly.
+  elections.incompatible: []
   finality.signers: "office:secretary"
   # Participation: vote on 3 of every 4 resolutions; attend half the meetings.
   participation.min_votes: 0.75

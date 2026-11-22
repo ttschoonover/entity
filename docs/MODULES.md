@@ -679,6 +679,19 @@ on a node with pdflatex, as a PDF set in LaTeX with every signer's drawing,
 name, date and key fingerprint (`/documents/agreement/PAGE.pdf`, partners
 only; `entity documents agreement PAGE`).
 
+## Direct elections
+
+`election.call { election, office, direct: true, vote_days }` skips candidacy:
+every active member is a candidate the moment it is called, and voting opens at
+once. A member may decline (`election.withdraw`) until the count. Otherwise an
+election runs as before (candidacy for `stand_days`, then voting).
+
+## Particulars without taxpayer numbers, private certificates
+
+`details.tin: false` leaves the taxpayer number and its certification out of the
+particulars; none is asked for or accepted. `partnership.certificates: own`
+shows each partner only their own certificate, on the page and as a PDF.
+
 ## Who keeps the books (fund.bookkeeper)
 
 `fund.bookkeeper` names an office, such as `treasurer`. Its holders alone then

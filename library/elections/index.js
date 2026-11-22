@@ -21,6 +21,10 @@
 // public from the moment the election is called, so nobody can steer it after.
 // A candidate needs at least one vote to win.
 //
+// A direct election (direct: true) has no candidacy: every active member is a
+// candidate the moment it is called, and voting opens at once for vote_days. A
+// member may decline (election.withdraw) until the count.
+//
 // elections.incompatible lists offices one person may not hold together, as
 // pairs ([["treasurer", "audit-committee"]]): a member who holds one, or is
 // standing for it, may not stand for the other.
@@ -84,7 +88,8 @@ function install(r) {
   r.registerEffect({
     name: 'election.call', module: 'elections',
     rule: (p) => p.value('elections.call_rule'),
-    describe: (e) => `Call an election for ${e.office} (${e.seats ?? 'every'} seat${e.seats === 1 ? '' : 's'}, ${e.method ?? 'approval'} voting; candidacy ${e.stand_days} days, voting ${e.vote_days} days)`,
+    describe: (e) => e.direct ? `Elect the ${e.office} directly: every member a candidate, ${e.method ?? 'approval'} voting for ${e.vote_days} days`
+      : `Call an election for ${e.office} (${e.seats ?? 'every'} seat${e.seats === 1 ? '' : 's'}, ${e.method ?? 'approval'} voting; candidacy ${e.stand_days} days, voting ${e.vote_days} days)`,
     check(state, e, params, at, ctx = {}) {
       if (!ID.test(e.election || '')) return 'an election id is 1–40 lowercase letters, digits and -';
       if (el(state, e.election)) return `the election ${e.election} already exists`;
@@ -92,7 +97,10 @@ function install(r) {
       if (!o || o.abolished) return `there is no office ${e.office}`;
       if (e.seats !== undefined && (!Number.isInteger(e.seats) || e.seats < 1 || e.seats > o.seats)) return `seats is a whole number from 1 to ${o.seats}`;
       if (!['approval', 'ranked'].includes(e.method ?? 'approval')) return 'method is approval or ranked';
-      for (const f of ['stand_days', 'vote_days']) if (!Number.isInteger(e[f]) || e[f] < 1 || e[f] > 90) return `${f} is a whole number of days from 1 to 90`;
+      if (e.direct !== undefined && typeof e.direct !== 'boolean') return 'direct is true or false';
+      if (e.direct && e.stand_days !== undefined && e.stand_days !== 0) return 'a direct election has no candidacy: leave out stand_days';
+      for (const f of e.direct ? ['vote_days'] : ['stand_days', 'vote_days']) if (!Number.isInteger(e[f]) || e[f] < 1 || e[f] > 90) return `${f} is a whole number of days from 1 to 90`;
+      if (e.direct && !Object.values(state.participants).some(p => p.status === 'active')) return 'nobody could be elected';
       const who = resolveElectorate(ctx.registry, state, params, at, e.voters ?? 'members');
       if (who.frozen || who.why || !who.total) return `voters: ${who.why || 'nobody would be on the roll'}`;
       return null;
@@ -104,11 +112,13 @@ function install(r) {
     const roll = state.order.filter(id => id in who.roll);
     const weighted = roll.some(id => who.roll[id] !== 1);
     state.m.elections = state.m.elections || {};
-    const standUntil = addDays(rec.at, e.stand_days);
+    // Direct: candidacy is over before it begins, and every active member stands.
+    const standUntil = e.direct ? new Date(Date.parse(rec.at) - 1).toISOString() : addDays(rec.at, e.stand_days);
+    const candidates = e.direct ? Object.fromEntries(state.order.filter(id => state.participants[id]?.status === 'active').map(id => [id, { at: rec.at, statement: '', direct: true }])) : {};
     state.m.elections[e.election] = {
       id: e.election, office: e.office, seats: e.seats ?? state.m.offices[e.office].seats, method: e.method ?? 'approval',
-      voters: e.voters ?? 'members', called: rec.at, standUntil, voteUntil: addDays(standUntil, e.vote_days),
-      roll, ...(weighted ? { weights: who.roll } : {}), candidates: {}, ballots: {}, counted: null,
+      voters: e.voters ?? 'members', called: rec.at, standUntil, voteUntil: addDays(rec.at, e.direct ? e.vote_days : e.stand_days + e.vote_days),
+      roll, ...(weighted ? { weights: who.roll } : {}), ...(e.direct ? { direct: true } : {}), candidates, ballots: {}, counted: null,
     };
   });
 
@@ -139,6 +149,7 @@ function install(r) {
     check(state, act) {
       const e = el(state, act.election);
       if (!e?.candidates[act.by]) return 'you are not standing in that election';
+      if (e.direct) return phase(e, act.at) === 'voting' ? null : 'the election is over';
       return phase(e, act.at) === 'candidacy' ? null : 'candidates may withdraw only before voting opens';
     },
     reduce(state, rec) { const a = rec.payload.act; delete el(state, a.election).candidates[a.by]; },

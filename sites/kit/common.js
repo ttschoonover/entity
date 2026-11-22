@@ -169,7 +169,9 @@ function drawNav() {
   const here = location.pathname.split('/').pop() || 'index.html';
   const withHash = PAGES.find(([href]) => href.startsWith(here + '#/') && location.hash.startsWith(href.slice(here.length)));
   const current = withHash ? withHash[0] : here;
-  $('#nav')?.replaceChildren(...PAGES.slice(1).filter(([, , needs]) => !needs || !ctx.r?.ok || enabled(needs))
+  // A fourth element names an office: the page is in the menu only for its holders.
+  const holds = (office) => !!ctx.ident && ctx.r?.ok && (ctx.r.state.m.offices?.[office]?.holders || []).some(x => x.id === ctx.ident.id && (!x.until || x.until > new Date().toISOString()));
+  $('#nav')?.replaceChildren(...PAGES.slice(1).filter(([, , needs, office]) => (!needs || !ctx.r?.ok || enabled(needs)) && (!office || holds(office)))
     .map(([href, label]) => h('a', { href: pageFor(href), 'aria-current': href === current ? 'page' : null }, label)));
 }
 // With several entities: which one the page is about, and the others.

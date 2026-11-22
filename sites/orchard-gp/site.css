@@ -112,3 +112,27 @@ details.desk[open] { padding-bottom: 1rem; }
 .badge-treasurer { font-size: .75rem; font-weight: 600; color: var(--gold); text-transform: uppercase; letter-spacing: .05em; }
 
 .footer { background: var(--surface); border-top: 1px solid var(--rule); }
+
+/* the constitution: the settings in force, set like a printed charter */
+.constitution { max-width: 48rem; margin: 0 auto; }
+.c-head { text-align: center; padding: 1rem 0 1.5rem; border-bottom: 2px solid var(--ink); margin-bottom: 2rem; }
+.c-kicker { font-size: .75rem; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); margin: 0 0 .6rem; }
+.c-head h1 { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; font-weight: 600; font-size: clamp(1.8rem, 4vw, 2.6rem); letter-spacing: -0.01em; margin: 0 auto .8rem; max-width: 34rem; line-height: 1.15; }
+.c-meta { color: var(--muted); font-size: .9rem; max-width: 36rem; margin: 0 auto 1rem; }
+.c-toc { display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem 1.1rem; font-size: .88rem; }
+.c-toc a { color: var(--green); text-decoration: none; }
+.c-toc a:hover { text-decoration: underline; }
+.c-art { margin-bottom: 2.6rem; }
+.c-art > h2 { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; text-align: center; font-weight: 600; font-size: 1.35rem; margin: 0 0 1.2rem; display: grid; gap: .2rem; }
+.c-art > h2 span { font-family: var(--sans); font-size: .72rem; text-transform: uppercase; letter-spacing: .16em; color: var(--muted); font-weight: 600; }
+.c-sec { padding: .85rem 0 .95rem; border-top: 1px solid var(--rule); }
+.c-sec h3 { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; font-size: 1.05rem; font-weight: 600; margin: 0 0 .3rem; }
+.c-num { font-family: var(--sans); font-size: .8rem; color: var(--gold); font-weight: 700; letter-spacing: .02em; margin-right: .2rem; }
+.c-val { margin: 0 0 .35rem; font-size: 1rem; }
+.c-why { margin: 0 0 .35rem; color: var(--muted); font-size: .9rem; line-height: 1.5; }
+.c-by { margin: 0; font-size: .8rem; color: var(--muted); }
+.c-by code { font-size: .74rem; margin-left: .35rem; opacity: .75; }
+table.c-rules { width: 100%; border-collapse: collapse; font-size: .9rem; margin: .6rem 0 .2rem; }
+table.c-rules th { text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: .4rem .5rem; border-bottom: 1px solid var(--ink); }
+table.c-rules td { padding: .45rem .5rem; border-bottom: 1px solid var(--rule); text-transform: none; }
+@media print { .masthead, .footer, .c-toc { display: none; } .c-sec { break-inside: avoid; } }
