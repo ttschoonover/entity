@@ -428,3 +428,8 @@ tr.provisional td { color: var(--ink-soft); }
 .look-card[data-preview="wiki"] { font-family: 'Latin Modern Roman', Georgia, serif; background: #fff; color: #202122; border: 1px solid #a2a9b1; border-radius: 2px; }
 .look-card[data-preview="wiki"] strong { font-family: 'Latin Modern Roman', Georgia, serif; font-weight: 400; font-size: 1.1em; border-bottom: 1px solid #a2a9b1; color: #202122; }
 .look-card[data-preview="wiki"] span { color: #3366cc; }
+
+/* Text size (the A− A A+ control in the masthead): everything is sized in rem, so the root size scales it all. */
+html[data-size="s"] { font-size: 87.5%; }
+html[data-size="m"] { font-size: 100%; }
+html[data-size="l"] { font-size: 118.75%; }

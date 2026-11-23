@@ -205,10 +205,25 @@ export function applyChanges(house, b, state) {
   if (b.admins !== undefined) {
     const list = [...new Set((Array.isArray(b.admins) ? b.admins : String(b.admins).split(/[\s,]+/)).map(s => String(s).trim()).filter(Boolean))];
     if (!list.length) return { why: 'the hub needs at least one admin' };
-    const notMember = list.find(id => state.participants[id]?.status !== 'active');
+    const notMember = list.find(id => !/^(office:[a-z0-9][a-z0-9-]{0,39}|founder|members)$/.test(id) && state.participants[id]?.status !== 'active');
     if (notMember) return { why: `${notMember} is not an active member` };
     h.admins = list;
   }
   return { house: h };
 }
-export const isAdmin = (house, state, id) => !!(id && house?.admins?.includes(id) && state?.participants?.[id]?.status === 'active');
+// Is this member in a list of ids and specs? A spec names people the record
+// decides: "office:ID" (its current holders), "founder", "members". So admins
+// and readers can follow an office in the record instead of a list kept here.
+export function inSpec(list, state, id, at = new Date().toISOString()) {
+  if (!id || state?.participants?.[id]?.status !== 'active') return false;
+  for (const x of [].concat(list || [])) {
+    if (x === id || x === 'members') return true;
+    if (x === 'founder' && state.entity?.founder === id) return true;
+    if (typeof x === 'string' && x.startsWith('office:')) {
+      const o = state.m?.offices?.[x.slice(7)];
+      if (o && !o.abolished && (o.holders || []).some(h => h.id === id && (!h.until || h.until > at))) return true;
+    }
+  }
+  return false;
+}
+export const isAdmin = (house, state, id) => inSpec(house?.admins, state, id);

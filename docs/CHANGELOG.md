@@ -1,5 +1,20 @@
 # Changes
 
+## 0.9.45 · Plug-in points: modules bring their own routes and notices; a republic keeps its own site
+
+The last core change made for one republic. From here, a republic's own features live in its modules and its site folder, and change without a new core.
+
+- **Module routes.** A module may ship `server.js`, answered at `/m/<module>/…` behind the node's gate (cli/modroutes.js). Its digest is the module's, so the record approves it like the rest of the module's code.
+- **Module notices.** `registry.registerNotices` lets a module say what its records tell members. A notice marked `plain` is written out in full in emails; everything else still says only that there is something new. The kernel is 0.9.12 for it.
+- **Who reads the record.** node.json `"readers": ["office:admin"]` limits the record, the bundle and what is derived from it wholesale to those people. Everyone else the gate lets in sees only what modules' routes show them.
+- **Admins from the record.** A house hub's `admins` may name an office (`"office:admin"`), so the record decides who the admins are.
+- **A site's own sign-in page.** A republic with a site folder serves its `signin.html` instead of the standard one, and node.json `"site_open"` lists the site's files needed before sign-in.
+- **Text size.** The standard page's A− A A+ control now changes the text size.
+- **Wiki PDFs** turn Markdown footnotes (`[^1]`, `[^1]: source`) into LaTeX footnotes. The notification banner can open notices with a read-only record key kept for it.
+- **New module: minihub** (library/minihub): alerts sent by members the admins choose, with emails that carry the alert, and routes for a house hub's wiki, alerts and admin view.
+- **New: republics/.** A republic's own website, founding script and pages, kept apart from the core: republics/loth is the Lothlórien Unofficial Minihub.
+- Tests: test/modroutes.test.js, test/notify.test.js, library/minihub/tests.js.
+
 ## 0.9.44 · The command line no longer swaps out the page's record key
 
 - `entity notify subscribe | list | unsubscribe | inbox` and `entity records key` used to publish the key file's record key whenever it differed from the published one. A member who signs in with a password in the page has a different record key there, so one such command silently ended every notification the page had set up. They now publish a record key only when the member has none, and otherwise refuse and say why; `--replace-key` replaces it on purpose.

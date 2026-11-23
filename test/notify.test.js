@@ -12,14 +12,14 @@ import * as N from '../kernel/notice.js';
 import * as WP from '../cli/webpush.js';
 import { recordKeyFromSeed } from '../kernel/sealing.js';
 
-const preset = (extra = '') => `_: Notices, for testing.\n\nmodules: [page, deliberation, titles, vocabulary, notify]\n\nset:\n  entity.name: The Noticing Assembly\n${extra}`;
+const preset = (extra = '', more = '') => `_: Notices, for testing.\n\nmodules: [page, deliberation, titles, vocabulary, notify${more}]\n\nset:\n  entity.name: The Noticing Assembly\n${extra}`;
 
-async function republic(extra = '') {
+async function republic(extra = '', more = '') {
   const dir = tmp('notify-');
   const { copyCode } = await import('../cli/commands/dist.js');
   copyCode(ROOT, dir);
   fs.cpSync(path.join(ROOT, 'library'), path.join(dir, 'library'), { recursive: true });
-  fs.writeFileSync(path.join(dir, 'presets', 'n.yml'), preset(extra));
+  fs.writeFileSync(path.join(dir, 'presets', 'n.yml'), preset(extra, more));
   const outbox = tmp('mail-');
   const env = { ...process.env, ENTITY_KEYS: tmp('notify-keys-') };
   const cli = (args, extraEnv = {}) => execFileSync(process.execPath, [path.join(dir, 'cli', 'index.js'), ...args], { cwd: dir, env: { ...env, ...extraEnv }, stdio: ['ignore', 'pipe', 'pipe'] }).toString();
@@ -156,4 +156,15 @@ test('notify: the member commands will not replace a record key published elsewh
   }
   assert.match(cli(['notify', 'list', '--replace-key', '--as', 'p-0001']), /published p-0001's record key/);
   assert.notEqual(keyNow(), other);
+});
+
+test('notify: a module\'s notice marked plain (a minihub alert) is written out in the email; the rest still say only "something new"', async () => {
+  const { cli, outbox } = await republic('', ', minihub');
+  const s = cli(['propose', '--as', 'p-0001', '--title', 'Senders', '--effects', JSON.stringify([{ kind: 'minihub.senders', members: ['p-0002'] }])]).match(/d-[0-9a-f]{12}/)[0];
+  cli(['settle']); cli(['act', 'ballot.cast', '--proposal', s, '--choice', 'for', '--as', 'p-0001', '--settle']); cli(['act', 'ballot.cast', '--proposal', s, '--choice', 'for', '--as', 'p-0002', '--settle']);
+  cli(['notify', 'subscribe', '--email', 'one@example.org', '--events', 'notices', '--as', 'p-0001']);
+  cli(['act', 'alert.send', '--as', 'p-0002', '--title', 'Water off Thursday', '--text', 'Fill a jug Wednesday night.', '--settle']);
+  assert.match(cli(['notify', 'send']), /sent 1/);
+  assert.equal(fs.readFileSync(path.join(outbox, 'one@example.org.subject'), 'utf8').trim(), 'Water off Thursday');
+  assert.match(fs.readFileSync(path.join(outbox, 'one@example.org'), 'utf8'), /^Water off Thursday\n\nFill a jug Wednesday night\.\n\nhttps:\/\/republic\.example\/#\/alerts/);
 });

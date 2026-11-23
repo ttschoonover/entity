@@ -116,7 +116,7 @@ export async function handle(e, req, { now = Date.now() } = {}) {
 
 // ── what happened, in words ─────────────────────────────────────────────────
 function noticesOf(e, views) {
-  const st = e.state, out = [];
+  const st = e.state, out = [], enabledModules = e.params ? e.params.value('entity.modules') : [];
   const name = (id) => st.m?.titles?.[id] || st.participants[id]?.name || id;
   for (const r of views) {
     const a = r.payload?.act || {};
@@ -140,6 +140,12 @@ function noticesOf(e, views) {
     } else if (r.kind === 'participation.notice') {
       // An officer's notice to one partner: sent to that partner only.
       out.push({ ...base, event: 'notices', only: r.payload.member, title: 'A participation notice to you', text: r.payload.reason || 'You are below the participation the agreement requires.', url: '#/participation' });
+    }
+    // What modules say about their own records (registry.registerNotices).
+    for (const m of e.registry?.noticeMakers || []) {
+      if (!enabledModules.includes(m.module)) continue;
+      let got = []; try { got = m.notices(st, r, e.params) || []; } catch { got = []; }
+      for (const n of got) if (n && typeof n.title === 'string' && n.event) out.push({ ...base, ...n, plain: n.plain === true });
     }
   }
   return out;
@@ -183,6 +189,16 @@ export async function afterSettle(e) {
         for (const x of send) { queue(e.dir, { member, sub: s.id, channel: 'push', payload: JSON.stringify({ v: 1, n: x.sealed }) }); queued++; }
       } else {
         const label = S.sealingOn(e.state) ? 'your group' : from;
+        // A module's notice marked plain (an alert, say) is written out in full;
+        // the rest only say there is something new, unless the member chose titles.
+        const plain = S.sealingOn(e.state) ? [] : mine.filter(x => x.n.plain);
+        if (plain.length) {
+          const rest = mine.length - plain.length;
+          queue(e.dir, { member, sub: s.id, channel: s.channel, subject: plain.length === 1 ? plain[0].n.title : `${plain.length} alerts from ${from}`,
+            text: `${plain.map(x => `${x.n.title}${x.n.text ? `\n\n${x.n.text}` : ''}`).join('\n\n---\n\n')}\n\n${rest ? `And ${rest} other new thing${rest === 1 ? '' : 's'}. ` : ''}${linkFor(e.dir, plain.length === 1 ? plain[0].n.url || '#/' : '#/')}` });
+          queued++;
+          continue;
+        }
         const one = mine.length === 1 && s.plaintext ? mine[0].n : null;
         queue(e.dir, { member, sub: s.id, channel: s.channel, subject: one ? one.title : `Something new in ${label}`,
           text: `${one ? `${one.title}\n${one.text ? `${one.text}\n` : ''}\n` : `There ${mine.length === 1 ? 'is something new' : `are ${mine.length} new things`} for you in ${label}. `}Open it here: ${linkFor(e.dir, one?.url || '#/')}` });

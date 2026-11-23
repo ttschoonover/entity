@@ -21,6 +21,17 @@ export class Registry {
     this.forkChoice = null;        // set by a finality module: see kernel/transport.js
     this.admissionChecks = [];     // conditions an applicant must meet to be admitted
     this.proposalChecks = [];      // conditions a proposal must meet to be laid
+    this.noticeMakers = [];        // what a module's records tell members (the notify module)
+  }
+
+  // registerNotices({ module, notices(state, record, params) → [notice] })
+  // What a module's records tell members, for the notify module: each notice is
+  // { event, title, text?, url?, only?, plain? }. `plain: true` lets an email
+  // carry its title and text. Not part of any rule: it never changes state.
+  registerNotices(def) {
+    if (!def.module || typeof def.notices !== 'function') throw new Error('registerNotices: module and notices required');
+    this.noticeMakers.push(def);
+    return this;
   }
 
   // registerProposalCheck({ module, check(state, act, params) → null | reason })

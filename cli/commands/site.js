@@ -20,6 +20,7 @@ import * as notify from '../notify.js';
 import * as details from '../details.js';
 import * as documents from '../documents.js';
 import * as house from '../house.js';
+import * as modroutes from '../modroutes.js';
 
 export async function build({ opt }) {
   const e = await openEntity(opt);
@@ -197,7 +198,17 @@ export async function serve({ opt }) {
     if (OPEN_PREFIXES.some(x => p.startsWith(x)) && req.method === 'GET' && p !== '/modules/available') return false;
     if ((p === '/sw.js' || p === '/sw-basic.js' || p === '/manifest.webmanifest') && req.method === 'GET') return false;   // the service workers and the manifest: needed before sign-in, nothing private
     if (p === '/signin/brand') { const n = store.readNode(e.dir), b = house.houseOf(e.dir)?.name || n.brand; return sendPlain(res, 200, JSON.stringify({ ...(typeof b === 'string' ? { name: b } : {}), ...(typeof n.look === 'string' ? { look: n.look } : {}) }), TYPES['.json']), true; }
-    if (p === '/signin' || p === '/signin.html') return sendPlain(res, 200, fs.readFileSync(path.join(e.dir, 'interface/signin.html')), TYPES['.html']), true;
+    if (p === '/signin' || p === '/signin.html') {
+      // A republic with its own website may bring its own sign-in page.
+      const own = siteFolder() && path.join(siteFolder(), 'signin.html');
+      return sendPlain(res, 200, fs.readFileSync(own && fs.existsSync(own) ? own : path.join(e.dir, 'interface/signin.html')), TYPES['.html']), true;
+    }
+    // A site's own styles, scripts and fonts, needed before sign-in: node.json "site_open": ["site.css", "fonts/"].
+    { const so = store.readNode(e.dir).site_open, sd = siteFolder();
+      if (sd && Array.isArray(so) && req.method === 'GET' && so.some(x => typeof x === 'string' && (x.endsWith('/') ? p.startsWith('/' + x) : p === '/' + x))) {
+        const f = path.resolve(sd, '.' + p);
+        if (f.startsWith(sd + path.sep) && fs.existsSync(f) && fs.statSync(f).isFile()) return sendPlain(res, 200, fs.readFileSync(f), TYPES[path.extname(f)] || SITE_TYPES[path.extname(f)] || 'application/octet-stream'), true;
+      } }
     if (p === '/interface/style.css' || p === '/interface/athens.css') return false;
     const fresh = async () => (await openEntity(opt)).state;
     if (p === '/auth/info' && req.method === 'GET') {
@@ -305,6 +316,56 @@ export async function serve({ opt }) {
     return sendPlain(res, 401, '{"why":"sign in first"}', TYPES['.json']), true;
   }
 
+  // node.json "readers": a list of ids and specs ("office:admin") who alone
+  // may read the record and what is derived from it wholesale.
+  const READER_PATHS = [/^\/record\//, /^\/bundle$/, /^\/window\/(info\.json|events)$/, /^\/law\//, /^\/letters\//, /^\/presence$/, /^\/upgrade/, /^\/modules\/(available|prepare)$/];
+  const readersOnly = (p) => !!store.readNode(e.dir).readers && READER_PATHS.some(r => r.test(p));
+  async function isReader(req) {
+    const id = sessionOf(req)?.id; if (!id) return false;
+    return house.inSpec(store.readNode(e.dir).readers, (await openEntity(opt)).state, id);
+  }
+
+  // Signed acts, from the page, a window or a module's route: checked, kept,
+  // and settled at once on an auto-settling node. Call inside serial().
+  async function acceptActs(got, req) {
+    const acts = Array.isArray(got) ? got : [got];
+    e = await openEntity(opt);
+    const accepted = [], refused = [];
+    for (let a of acts) {
+      // An act sealed in transit (kernel/sealing.js): checked here if this
+      // node holds a reader's key, and kept sealed on disk either way.
+      let box = null;
+      if (a && a.sealedAct) {
+        box = a;
+        let opened = null; if (e.ring) { try { opened = await sealing.openAct(a.sealedAct, e.ring); } catch { /* not ours */ } }
+        if (!opened) { store.writePending(e.dir, box); accepted.push(`sealed:${a.sealedAct.ct.slice(0, 16)}`); continue; }
+        a = opened;
+        if (req._applyOnly && !APPLY_KINDS.includes(a.kind)) { refused.push({ hash: actHash(a), why: 'only an application to join, and signing what it requires, are accepted here' }); continue; }
+      }
+      const def = e.registry.get(a && a.kind);
+      const keys = def?.selfSigned ? [a.key] : e.state.participants[a?.by]?.keys;
+      if (!def) { refused.push({ hash: null, why: `unknown kind ${a && a.kind}` }); continue; }
+      if (!keys) { refused.push({ hash: actHash(a), why: `${a.by} is not on the register` }); continue; }
+      const v = await verifyAct(e.registry, a, keys);
+      if (!v.ok) { refused.push({ hash: actHash(a), why: `signature invalid: ${v.error}` }); continue; }
+      if (needsSecond(e, a)) {
+        const s = sessionOf(req);
+        if (!s || s.id !== a.by || !s.twofactor) { refused.push({ hash: actHash(a), twofactor: true, why: `${a.by} uses email two-factor: confirm this browser with the code emailed to you, then send it again` }); continue; }
+      }
+      store.writePending(e.dir, box || a); accepted.push(actHash(a));
+      emit(e.dir, 'act', box ? { kind: 'sealed', by: null } : { kind: a.kind, by: a.by });
+    }
+    let settled = false;
+    // A zero-knowledge node cannot say what arrived: a sealed "something new" to subscribers.
+    if (e.unreadable && accepted.length) { try { await notify.nudge(e); } catch { /* notices are a convenience */ } }
+    if (auto && accepted.length) {
+      const r = await settlePending(e, { publish: 'background' });
+      for (const x of r.refused) if (accepted.includes(x.hash)) refused.push({ hash: x.hash, why: x.reason });
+      settled = !e.unreadable;   // a zero-knowledge node stores; a member's copy settles
+    }
+    return { accepted, refused, settled };
+  }
+
   const server = http.createServer(async (req, res) => {
     // Every response carries the security headers (cli/security.js), whatever handler writes it.
     guard(req, res, () => { const n = store.readNode(e.dir); return { privateMode: n.private === true, csp: n.csp || {} }; });
@@ -321,6 +382,20 @@ export async function serve({ opt }) {
         if (await gate(req, res, p) === true) return;
       }
       if (req.method === 'OPTIONS') return send(res, 204, '');
+      // node.json "readers": who may read the record itself ("office:admin", say).
+      // Everyone else the gate lets in sees only what modules' routes show them.
+      if (readersOnly(p) && !(await isReader(req))) return send(res, 403, { why: 'only this hub\'s admins read its record' });
+      // A module's own routes (cli/modroutes.js): /m/<module>/…
+      if (p.startsWith('/m/')) {
+        const who = { member: sessionOf(req)?.id || null, house: !!(house.houseOf(e.dir) && hs.access(req)) };
+        const base = { dir: e.dir, req, res, method: req.method, query: url.searchParams, who,
+          send: (code, b, type) => send(res, code, b, type),
+          json: async () => { const t = await body(req); return t ? JSON.parse(t) : {}; },
+          entity: () => openEntity(opt),
+          inSpec: async (list, id) => house.inSpec(list, (await openEntity(opt)).state, id),
+          submit: (acts) => serial(() => acceptActs(acts, req)) };
+        try { if (await modroutes.route(p, base)) return; } catch (x) { return send(res, 500, { why: x.message }); }
+      }
       // Chat (the chat module): channels kept by this node, off the record. See cli/chat.js.
       if (p.startsWith('/chat/')) { try { if (await chat.handle(req, res, p, { body, send, cors })) return; } catch (x) { return send(res, 500, { why: x.message }); } }
       // Mahjong (the mahjong module): live tables, kept by this node until a match ends. See cli/mahjong.js.
@@ -444,43 +519,9 @@ export async function serve({ opt }) {
       }
       if (req.method === 'POST' && p === '/acts') {
         const got = JSON.parse(await body(req));
-        const acts = Array.isArray(got) ? got : [got];
         return serial(async () => {
-          e = await openEntity(opt);
-          const accepted = [], refused = [];
-          for (let a of acts) {
-            // An act sealed in transit (kernel/sealing.js): checked here if this
-            // node holds a reader's key, and kept sealed on disk either way.
-            let box = null;
-            if (a && a.sealedAct) {
-              box = a;
-              let opened = null; if (e.ring) { try { opened = await sealing.openAct(a.sealedAct, e.ring); } catch { /* not ours */ } }
-              if (!opened) { store.writePending(e.dir, box); accepted.push(`sealed:${a.sealedAct.ct.slice(0, 16)}`); continue; }
-              a = opened;
-              if (req._applyOnly && !APPLY_KINDS.includes(a.kind)) { refused.push({ hash: actHash(a), why: 'only an application to join, and signing what it requires, are accepted here' }); continue; }
-            }
-            const def = e.registry.get(a && a.kind);
-            const keys = def?.selfSigned ? [a.key] : e.state.participants[a?.by]?.keys;
-            if (!def) { refused.push({ hash: null, why: `unknown kind ${a && a.kind}` }); continue; }
-            if (!keys) { refused.push({ hash: actHash(a), why: `${a.by} is not on the register` }); continue; }
-            const v = await verifyAct(e.registry, a, keys);
-            if (!v.ok) { refused.push({ hash: actHash(a), why: `signature invalid: ${v.error}` }); continue; }
-            if (needsSecond(e, a)) {
-              const s = sessionOf(req);
-              if (!s || s.id !== a.by || !s.twofactor) { refused.push({ hash: actHash(a), twofactor: true, why: `${a.by} uses email two-factor: confirm this browser with the code emailed to you, then send it again` }); continue; }
-            }
-            store.writePending(e.dir, box || a); accepted.push(actHash(a));
-            emit(e.dir, 'act', box ? { kind: 'sealed', by: null } : { kind: a.kind, by: a.by });
-          }
-          let settled = false;
-          // A zero-knowledge node cannot say what arrived: a sealed "something new" to subscribers.
-          if (e.unreadable && accepted.length) { try { await notify.nudge(e); } catch { /* notices are a convenience */ } }
-          if (auto && accepted.length) {
-            const r = await settlePending(e, { publish: 'background' });
-            for (const x of r.refused) if (accepted.includes(x.hash)) refused.push({ hash: x.hash, why: x.reason });
-            settled = !e.unreadable;   // a zero-knowledge node stores; a member's copy settles
-          }
-          send(res, refused.length && !accepted.length ? (refused.every(x => x.twofactor) ? 403 : 422) : 200, { accepted, refused, settled, ...(refused.some(x => x.twofactor) ? { twofactor: true } : {}) });
+          const r = await acceptActs(got, req);
+          send(res, r.refused.length && !r.accepted.length ? (r.refused.every(x => x.twofactor) ? 403 : 422) : 200, { ...r, ...(r.refused.some(x => x.twofactor) ? { twofactor: true } : {}) });
         });
       }
       // A checkpoint made or co-signed in a page. Kept only if it matches this

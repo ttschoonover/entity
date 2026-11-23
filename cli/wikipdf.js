@@ -34,6 +34,8 @@ function inline(s, ctx) {
   const stash = (t) => `\u0000${keep.push(t) - 1}\u0000`;
   let t = String(s)
     .replace(/`([^`]+)`/g, (_, c) => stash(`\\texttt{${tx(c)}}`))
+    // Markdown footnotes: [^1] where it is cited, [^1]: the source, on its own line.
+    .replace(/\[\^([A-Za-z0-9-]{1,20})\]/g, (all, id) => (ctx.notes?.has(id) ? stash(`\\footnote{${inline(ctx.notes.get(id), { ...ctx, notes: null })}}`) : all))
     .replace(/!\[([^\]]*)\]\(([^)\s]+)[^)]*\)/g, (_, alt) => stash(`[${tx(alt || 'picture')}]`))
     .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, text, url) => {
       if (/^https?:\/\//i.test(url)) return stash(`\\href{${url.replace(/[\\{}%#]/g, (c) => `\\${c}`)}}{${tx(text)}}\\footnote{\\url{${url.replace(/[\\{}%#]/g, (c) => `\\${c}`)}}}`);
@@ -50,6 +52,11 @@ const cells = (row) => row.trim().replace(/^\||\|$/g, '').split('|').map(c => c.
 
 // Block Markdown → LaTeX. depth 0: ## is a \section; inside the booklet, a \subsection.
 export function markdownTex(md, ctx = {}) {
+  if (!ctx.notes) {
+    const notes = new Map();
+    md = String(md).split('\n').filter(l => { const m = l.match(/^\[\^([A-Za-z0-9-]{1,20})\]:\s*(.+)$/); if (m) { notes.set(m[1], m[2]); return false; } return true; }).join('\n');
+    ctx = { ...ctx, notes };
+  }
   const lvl = ['section', 'subsection', 'subsubsection', 'paragraph', 'paragraph'].slice(ctx.depth || 0);
   const out = []; let para = [], list = null, quote = null, table = null, code = null;
   const flushP = () => { if (para.length) out.push(inline(para.join(' '), ctx), ''); para = []; };

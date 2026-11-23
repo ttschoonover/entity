@@ -1,0 +1,6 @@
+welcome|Welcome|House|welcome.md
+history-1903-the-house-that-moved|1903: The house that moved|History|1903-the-house-that-moved.md
+history-1973-novida-and-altamira|1973–1975: Novida and Altamira|History|1973-novida-and-altamira.md
+history-1975-lothlorien-opens|1975: Lothlórien opens|History|1975-lothlorien-opens.md
+history-2006-the-oak-grove|2006–2008: The oak grove|History|2006-the-oak-grove.md
+history-2009-living-on-the-fault|2009–2013: Living on the fault|History|2009-living-on-the-fault.md

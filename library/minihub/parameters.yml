@@ -1,0 +1,14 @@
+parameters:
+  minihub.senders_rule:
+    value: ordinary
+    type: string
+    one_of: [ordinary, organic, constitutional]
+    changed_by: organic
+    group: Minihub
+    describe: The rule under which the list of alert senders is changed (an admin grant can carry it).
+  minihub.email_text:
+    value: true
+    type: boolean
+    changed_by: ordinary
+    group: Minihub
+    describe: Whether alert emails carry the alert's subject and text. Off, they only say there is a new alert.

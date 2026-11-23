@@ -20,7 +20,9 @@ async function render(data) {
   let n = null;
   try {
     const ident = data?.n ? await loadIdentity(data.n.entity) : null;
-    if (ident?.seed && ident.id === data.n.to) n = await openNotice(data.n, (await recordKeyFromSeed(ident.seed)).sk);
+    // A record secret key (rsk) kept for this alone opens notices and cannot sign; a seed also works.
+    const sk = ident && ident.id === data.n.to ? (ident.rsk || (ident.seed ? (await recordKeyFromSeed(ident.seed)).sk : null)) : null;
+    if (sk) n = await openNotice(data.n, sk);
   } catch { n = null; }
   const title = n ? (n.from && !n.generic ? `${n.from}: ${n.title}` : n.title) : 'Something new';
   const body = n ? (n.text || '') : 'Open the page to see it.';

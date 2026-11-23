@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en" data-size="m">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#000000">
+<title>Lothlórien Unofficial Minihub</title>
+<link rel="stylesheet" href="/site.css">
+<script>try { document.documentElement.dataset.size = localStorage.getItem('loth:size') || 'm'; } catch (e) {}</script>
+</head>
+<body>
+<div class="gate"><div class="box">
+  <div class="name" id="name">Lothlórien Unofficial Minihub</div>
+
+  <form id="house" class="stack">
+    <label class="k" for="hp">house password</label>
+    <div class="row" style="flex-wrap:nowrap">
+      <input id="hp" type="password" autocomplete="off">
+      <button class="btn">Enter</button>
+    </div>
+    <p class="msg" id="hp-msg"></p>
+  </form>
+
+  <hr id="split">
+
+  <form id="member" class="stack">
+    <label class="k" for="id">member</label>
+    <input id="id" type="text" placeholder="id" autocomplete="username" autocapitalize="none" spellcheck="false">
+    <label class="vh" for="pw">Password</label>
+    <input id="pw" type="password" placeholder="password" autocomplete="current-password">
+    <button class="btn ghost">Sign in</button>
+    <p class="msg" id="pw-msg"></p>
+    <button class="linkish soft small" type="button" id="to-join" style="align-self:flex-start">Ask to join</button>
+  </form>
+
+  <form id="join" class="stack" hidden>
+    <label class="k" for="j-id">ask to join</label>
+    <input id="j-id" type="text" placeholder="id: lowercase letters, digits, -" autocomplete="username" autocapitalize="none" spellcheck="false">
+    <label class="vh" for="j-name">Your name</label>
+    <input id="j-name" type="text" placeholder="your name" autocomplete="name">
+    <label class="vh" for="j-pw">Password</label>
+    <input id="j-pw" type="password" placeholder="password, 12 or more characters" autocomplete="new-password">
+    <label class="vh" for="j-pw2">The same password again</label>
+    <input id="j-pw2" type="password" placeholder="the same again" autocomplete="new-password">
+    <button class="btn ghost">Send</button>
+    <p class="msg" id="j-msg"></p>
+    <button class="linkish soft small" type="button" id="to-member" style="align-self:flex-start">Sign in instead</button>
+  </form>
+</div></div>
+<script type="module" src="/signin.js"></script>
+</body>
+</html>

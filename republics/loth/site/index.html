@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en" data-size="m">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#000000">
+<title>Lothlórien Unofficial Minihub</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/site.css">
+<script>try { document.documentElement.dataset.size = localStorage.getItem('loth:size') || 'm'; } catch (e) {}</script>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <a class="name" href="#/" id="name">Lothlórien Unofficial Minihub</a>
+    <nav class="tabs" id="tabs" aria-label="Sections"></nav>
+  </div>
+  <div class="tools"><span id="sizes"></span><span class="who" id="who"></span></div>
+</header>
+<div id="view"></div>
+<dialog id="unlock">
+  <form method="dialog" class="stack">
+    <label class="k" for="unlock-pw">your password</label>
+    <input id="unlock-pw" type="password" autocomplete="current-password">
+    <p class="msg" id="unlock-msg"></p>
+    <div class="row"><button class="btn" value="ok">Continue</button><button class="btn quiet" value="cancel" formnovalidate>Cancel</button></div>
+  </form>
+</dialog>
+<script type="module" src="/site.js"></script>
+</body>
+</html>
