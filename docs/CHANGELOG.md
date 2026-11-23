@@ -1,5 +1,14 @@
 # Changes
 
+## 0.9.46 · Notify.S, and three small plug-in points
+
+- **Applications can declare facts** for those admitting to check: `participant.apply` may carry `about: { house: "loth" }` (up to 8 short facts), kept on the register as `declared`. The kernel is 0.9.13.
+- **Lists in a module's state as people specs**: `"m:notifys.admins"` in node.json `readers` or house admins.
+- **Open routes**: node.json `"open_routes"` lists module routes a stranger may read before signing in (the houses on an application form).
+- **New module: notifys** (library/notifys): houses, admins, emergency managers, central and house alert teams, admission by a house's manager, and alerts with updates and all-clears, severity as in the Common Alerting Protocol, and emails that carry the whole alert. Every act takes effect when its author may do it; nothing is voted on.
+- **New republic: republics/notifys**, the Berkeley Co-operative Notification System: its website (Pico CSS, Helvetica, one palette), founding script and README.
+- Tests: library/notifys/tests.js, test/modroutes.test.js.
+
 ## 0.9.45 · Plug-in points: modules bring their own routes and notices; a republic keeps its own site
 
 The last core change made for one republic. From here, a republic's own features live in its modules and its site folder, and change without a new core.

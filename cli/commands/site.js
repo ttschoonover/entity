@@ -210,6 +210,8 @@ export async function serve({ opt }) {
         if (f.startsWith(sd + path.sep) && fs.existsSync(f) && fs.statSync(f).isFile()) return sendPlain(res, 200, fs.readFileSync(f), TYPES[path.extname(f)] || SITE_TYPES[path.extname(f)] || 'application/octet-stream'), true;
       } }
     if (p === '/interface/style.css' || p === '/interface/athens.css') return false;
+    // node.json "open_routes": module routes a stranger may GET before signing in (a list of houses to apply to, say).
+    { const or = store.readNode(e.dir).open_routes; if (req.method === 'GET' && Array.isArray(or) && or.includes(p)) return false; }
     const fresh = async () => (await openEntity(opt)).state;
     if (p === '/auth/info' && req.method === 'GET') {
       const st = await fresh();

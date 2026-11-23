@@ -62,4 +62,8 @@ test('house: admins and readers may follow an office in the record', () => {
   assert.equal(H.inSpec(['office:admin'], state, 'c', at), false, 'only active members');
   assert.equal(H.inSpec(['founder'], state, 'a', at), true);
   assert.equal(H.isAdmin({ admins: ['office:admin'] }, state, 'b'), true);
+  state.m.notifys = { admins: ['a'] };
+  assert.equal(H.inSpec(['m:notifys.admins'], state, 'a', at), true, 'a list a module keeps');
+  assert.equal(H.inSpec(['m:notifys.admins'], state, 'b', at), false);
+  assert.equal(H.inSpec(['m:nothing.here'], state, 'a', at), false);
 });

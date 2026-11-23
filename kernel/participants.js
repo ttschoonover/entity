@@ -68,6 +68,20 @@ function foundingElectorateProblem(registry, act, founder) {
 
 const ID = /^[a-z0-9][a-z0-9-]{0,39}$/;
 
+// What an applicant declares about themselves for those admitting them to
+// check (the house they live in, say): a few short facts, kept on the register
+// as `declared`. Optional; nothing checks them but the people who admit.
+function aboutProblem(about) {
+  if (about === undefined) return null;
+  if (!about || typeof about !== 'object' || Array.isArray(about)) return 'about is a set of short facts, { key: "value" }';
+  const keys = Object.keys(about);
+  if (keys.length > 8) return 'at most 8 declared facts';
+  for (const k of keys) {
+    if (!/^[a-z][a-z0-9_]{0,30}$/.test(k)) return `"${k}" is not a fact name (lowercase letters, digits and _)`;
+    if (typeof about[k] !== 'string' || about[k].length > 200) return `${k} is a text of at most 200 characters`;
+  }
+  return null;
+}
 export const participants = (state) => state.order.map(id => state.participants[id]);
 export const active = (state) => participants(state).filter(p => p.status === 'active');
 export const participant = (state, id) => state.participants[id] || null;
@@ -148,12 +162,12 @@ export function install(registry) {
       const held = state.entity.parent?.members?.[act.by];
       if (held && !held.includes(keyId(act.key))) return `${act.by} was a member of ${state.entity.parent.name || state.entity.parent.entity}, which this entity forked from; the id is theirs, claimed by applying with a key it held there`;
       if (keyOwner(state, act.key)) return 'this key already belongs to a participant; a key is one participant';
-      return null;
+      return aboutProblem(act.about);
     },
     reduce(state, rec) {
       const act = rec.payload.act;
       const open = new Parameters(state.doc, state.catalog).value('membership.admission') === 'open';
-      state.participants[act.by] = { id: act.by, keys: [keyId(act.key)], status: open ? 'active' : 'applicant', joined: act.at, ...(act.name ? { name: act.name } : {}) };
+      state.participants[act.by] = { id: act.by, keys: [keyId(act.key)], status: open ? 'active' : 'applicant', joined: act.at, ...(act.name ? { name: act.name } : {}), ...(act.about ? { declared: { ...act.about } } : {}) };
       state.order.push(act.by);
     },
     records: {

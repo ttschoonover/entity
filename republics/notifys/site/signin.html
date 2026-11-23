@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-size="m">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0F1412">
+<title>Notify.S</title>
+<link rel="icon" href="/icon.svg">
+<link rel="stylesheet" href="/pico.min.css">
+<link rel="stylesheet" href="/site.css">
+<script>try { document.documentElement.dataset.size = localStorage.getItem('notifys:size') || 'm'; } catch (e) {}</script>
+</head>
+<body>
+<div class="gate"><div class="box">
+  <div class="lockup">
+    <img src="/logo-dark.svg" alt="">
+    <div><b>Notify<i>.</i>S</b><span>Berkeley Co-operative<br>Notification System</span></div>
+  </div>
+  <article>
+    <div role="group" style="margin-bottom:1.2rem">
+      <button type="button" id="tab-in" aria-pressed="true">Sign in</button>
+      <button type="button" id="tab-join" class="secondary outline" aria-pressed="false">Ask to join</button>
+    </div>
+
+    <form id="member">
+      <label for="id">Username<input id="id" type="text" autocomplete="username" autocapitalize="none" spellcheck="false"></label>
+      <label for="pw">Password<input id="pw" type="password" autocomplete="current-password"></label>
+      <button type="submit">Sign in</button>
+      <p class="msg" id="pw-msg"></p>
+    </form>
+
+    <form id="join" hidden>
+      <label for="j-house">House you live in<select id="j-house" required></select></label>
+      <div class="grid">
+        <label for="j-name">Name<input id="j-name" type="text" autocomplete="name"></label>
+        <label for="j-id">Username<input id="j-id" type="text" autocomplete="username" autocapitalize="none" spellcheck="false"></label>
+      </div>
+      <label for="j-pw">Password<input id="j-pw" type="password" autocomplete="new-password" placeholder="12 or more characters"></label>
+      <label for="j-pw2">Again<input id="j-pw2" type="password" autocomplete="new-password"></label>
+      <p class="note">Your name and house will be verified by your house's emergency manager before you're let in.</p>
+      <button type="submit">Ask to join</button>
+      <p class="msg" id="j-msg"></p>
+    </form>
+  </article>
+</div></div>
+<script type="module" src="/signin.js"></script>
+</body>
+</html>

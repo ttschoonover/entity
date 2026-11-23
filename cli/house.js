@@ -212,13 +212,19 @@ export function applyChanges(house, b, state) {
   return { house: h };
 }
 // Is this member in a list of ids and specs? A spec names people the record
-// decides: "office:ID" (its current holders), "founder", "members". So admins
+// decides: "office:ID" (its current holders), "m:module.key" (a list in a
+// module's state), "founder", "members". So admins
 // and readers can follow an office in the record instead of a list kept here.
 export function inSpec(list, state, id, at = new Date().toISOString()) {
   if (!id || state?.participants?.[id]?.status !== 'active') return false;
   for (const x of [].concat(list || [])) {
     if (x === id || x === 'members') return true;
     if (x === 'founder' && state.entity?.founder === id) return true;
+    // "m:notifys.admins": a list a module keeps in its own state.
+    if (typeof x === 'string' && x.startsWith('m:')) {
+      const list = x.slice(2).split('.').reduce((o, k) => (o == null ? o : o[k]), state.m);
+      if (Array.isArray(list) && list.includes(id)) return true;
+    }
     if (typeof x === 'string' && x.startsWith('office:')) {
       const o = state.m?.offices?.[x.slice(7)];
       if (o && !o.abolished && (o.holders || []).some(h => h.id === id && (!h.until || h.until > at))) return true;

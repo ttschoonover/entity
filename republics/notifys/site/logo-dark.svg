@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Notify.S">
+  <!-- Twin pines (the co-operative movement) sending one signal. -->
+  <circle cx="50" cy="50" r="45" fill="none" stroke="#E6E9E6" stroke-width="5"/>
+  <circle cx="50" cy="28" r="5.6" fill="#E5484D"/>
+  <path d="M37 23 Q50 9 63 23" fill="none" stroke="#E5484D" stroke-width="5.4"/>
+  <path d="M36 41 L25 59 L47 59 Z M36 51 L22 73 L50 73 Z" fill="#E6E9E6"/>
+  <path d="M64 41 L53 59 L75 59 Z M64 51 L50 73 L78 73 Z" fill="#E6E9E6"/>
+  <rect x="33.5" y="73" width="5" height="7" fill="#E6E9E6"/>
+  <rect x="61.5" y="73" width="5" height="7" fill="#E6E9E6"/>
+  <rect x="22" y="80" width="56" height="4.5" fill="#E6E9E6"/>
+</svg>
