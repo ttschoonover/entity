@@ -123,3 +123,17 @@ test('notify: a zero-knowledge node takes subscriptions by record key and sends 
   assert.equal(q.subject, 'Something new in your group');
   assert.ok(!JSON.stringify(q).includes('Noticing'), 'not even the republic\'s name');
 });
+
+test('notify: a notice to everyone reaches its author too, unless the node says not to', async () => {
+  const { dir, cli, outbox } = await republic('  notify.plaintext_email: true\n');
+  cli(['notify', 'subscribe', '--email', 'one@example.org', '--plaintext', '--events', 'notices,proposals', '--as', 'p-0001']);
+  cli(['act', 'notice.post', '--title', 'Package at the door', '--as', 'p-0001']);
+  cli(['settle', '--as', 'p-0001']); cli(['notify', 'send']);
+  assert.equal(fs.readFileSync(path.join(outbox, 'one@example.org.subject'), 'utf8').trim(), 'Package at the door');
+  fs.rmSync(path.join(outbox, 'one@example.org.subject'));
+  const f = path.join(dir, 'node.json'), n = JSON.parse(fs.readFileSync(f, 'utf8'));
+  fs.writeFileSync(f, JSON.stringify({ ...n, notify: { ...(n.notify || {}), self: false } }));
+  cli(['act', 'notice.post', '--title', 'Water off at 2', '--as', 'p-0001']);
+  cli(['settle', '--as', 'p-0001']); cli(['notify', 'send']);
+  assert.ok(!fs.existsSync(path.join(outbox, 'one@example.org.subject')), 'with "self": false, not to its author');
+});

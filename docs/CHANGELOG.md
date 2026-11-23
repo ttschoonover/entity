@@ -1,5 +1,10 @@
 # Changes
 
+## 0.9.43 · A notice reaches its author too
+
+- A notice posted to every member (`notice.post`) now reaches its author's own devices and inbox as well, so they see it went out and what everyone received. What a member did themselves otherwise (a proposal, joining) still isn't sent to them. A node can turn it off with node.json `"notify": { "self": false }`.
+- Tests: test/notify.test.js.
+
 ## 0.9.42 · The Wiki look in LaTeX's own type; wiki pages as LaTeX PDFs
 
 - **The Wiki look is set in Latin Modern**, the face LaTeX sets (shipped in `interface/fonts/`), for text and headings alike, at a size that reads as well as the old sans-serif. The sign-in page and House settings use it too.

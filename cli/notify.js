@@ -162,7 +162,10 @@ export async function afterSettle(e) {
     if (e.state.participants[member]?.status !== 'active' || !keys[member]) continue;
     const live = list.filter(s => s.recordKey === keys[member]);          // a changed record key ends old subscriptions
     if (live.length !== list.length) { subs[member] = live; writeSubs(e.dir, subs); }
-    const forMe = notices.filter(n => n.author !== member && (!n.only || n.only === member));
+    // A notice to everyone reaches its author too, so they see it went out (node.json "notify": { "self": false } to skip it).
+    // What a member did themselves (a proposal, joining) is not news to them.
+    const self = store.readNode(e.dir).notify?.self !== false;
+    const forMe = notices.filter(n => (n.author !== member || (self && n.event === 'notices' && !n.only)) && (!n.only || n.only === member));
     if (!forMe.length) continue;
     const sealedAll = [];
     for (const n of forMe) {
