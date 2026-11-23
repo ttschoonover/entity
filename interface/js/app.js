@@ -505,7 +505,15 @@ function notifyCard() {
   const box = h('div', { class: 'notify-events' }, allowed.map(ev => h('label', { class: 'check' }, h('input', { type: 'checkbox', value: ev, checked: true }), ` ${WORDS[ev] || ev}`)));
   const chosen = () => [...box.querySelectorAll('input:checked')].map(i => i.value);
   const result = h('p', { class: 'fine', 'aria-live': 'polite' });
-  const say = (t, bad) => { result.textContent = t; result.className = bad ? 'flag' : 'fine'; };
+  const say = (t, bad) => {
+    result.textContent = t; result.className = bad ? 'flag' : 'fine';
+    // The published record key is another one (the command line's key file, or another device):
+    // offer to publish this device's, which ends the subscriptions made with the other.
+    if (bad && /not signed with that member's record key/.test(t)) result.append(' ',
+      h('span', {}, 'Your record key here is not the one published for you (another device or the command line published a different one). '),
+      h('button', { class: 'quiet', onclick: publishRecordKey }, 'Use this device’s record key'),
+      h('span', {}, ' Notifications set up with the other key stop; set them up again here afterwards.'));
+  };
   const where = h('div');
   const canPush = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
   async function onDevice() {

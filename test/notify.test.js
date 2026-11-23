@@ -137,3 +137,23 @@ test('notify: a notice to everyone reaches its author too, unless the node says 
   cli(['settle', '--as', 'p-0001']); cli(['notify', 'send']);
   assert.ok(!fs.existsSync(path.join(outbox, 'one@example.org.subject')), 'with "self": false, not to its author');
 });
+
+test('notify: the member commands will not replace a record key published elsewhere (the page\'s) without --replace-key', async () => {
+  const { dir, env, cli } = await republic();
+  // The page publishes its own record key for p-0001 (a password-derived seed, not the key file's).
+  const other = crypto.randomBytes(32).toString('base64');
+  execFileSync(process.execPath, ['--input-type=module', '-e', `
+    import { openEntity, signed, settlePending } from './cli/context.js';
+    import * as store from './kernel/store.js';
+    const e = await openEntity({ as: 'p-0001' });
+    store.writePending(e.dir, await signed(e, 'member.recordkey', { by: 'p-0001', key: ${JSON.stringify(other)} }, { as: 'p-0001' }));
+    const r = await settlePending(e); if (!r.applied.length) throw new Error(JSON.stringify(r.refused));`], { cwd: dir, env, stdio: ['ignore', 'pipe', 'pipe'] });
+  const keyNow = () => fs.readFileSync(path.join(dir, 'record', 'events.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l)).filter(r => r.kind === 'member.recordkey').pop().payload.act.key;
+  assert.equal(keyNow(), other);
+  for (const args of [['notify', 'inbox'], ['notify', 'list'], ['records', 'key']]) {
+    assert.throws(() => cli([...args, '--as', 'p-0001']), (x) => /replace-key/.test(String(x.stderr) + String(x.stdout)), args.join(' '));
+    assert.equal(keyNow(), other, `${args.join(' ')} left the page's key alone`);
+  }
+  assert.match(cli(['notify', 'list', '--replace-key', '--as', 'p-0001']), /published p-0001's record key/);
+  assert.notEqual(keyNow(), other);
+});

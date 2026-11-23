@@ -7,6 +7,10 @@
 //   entity notify list | unsubscribe <id>                                                 --as you
 //   entity notify inbox                          your notices, opened here with your key  --as you
 //
+// The member commands publish your key file's record key if you have none.
+// If a different one is published (the page's), they refuse rather than
+// replace it, since that would end the page's subscriptions: --replace-key.
+//
 // Email and text messages are sent by the commands in node.json "notify"
 // ("mail", "sms"); push by the page (You → Notifications). See cli/notify.js.
 import * as store from '../../kernel/store.js';
@@ -37,8 +41,12 @@ export async function notifyCommand({ pos, opt }) {
   // The rest act as a member, proved with their record key.
   const id = whoAmI(e.state.entity.id, opt), key = loadKey(e.state.entity.id, id, opt.key);
   const rk = await S.recordKeyFromSeed(key.seed);
-  if (S.sealingState(e.state).keys[id] !== S.cryptoB64(rk.pk)) {
-    // No record key published yet (or an old one): publish it first.
+  const published = S.sealingState(e.state).keys[id];
+  if (published !== S.cryptoB64(rk.pk)) {
+    // A different key is published (usually the page's, from signing in with a
+    // password): replacing it would silently end every subscription made with it.
+    if (published && !opt['replace-key']) refuse(`${id}'s published record key is not the one in this key file: it most likely comes from signing in with a password in the page. Replacing it would end every notification set up there, so nothing was changed. Manage ${id}'s notifications in the page, or pass --replace-key to replace it anyway.`);
+    // No record key published yet (or --replace-key): publish it first.
     store.writePending(e.dir, await signed(e, 'member.recordkey', { by: id, key: S.cryptoB64(rk.pk) }, opt));
     const r = await settlePending(e);
     if (!r.applied.some(a => a.act.kind === 'member.recordkey')) refuse(`could not publish ${id}'s record key: ${r.refused[0]?.reason || 'it waits to be settled'}`);

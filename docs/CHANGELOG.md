@@ -1,5 +1,11 @@
 # Changes
 
+## 0.9.44 · The command line no longer swaps out the page's record key
+
+- `entity notify subscribe | list | unsubscribe | inbox` and `entity records key` used to publish the key file's record key whenever it differed from the published one. A member who signs in with a password in the page has a different record key there, so one such command silently ended every notification the page had set up. They now publish a record key only when the member has none, and otherwise refuse and say why; `--replace-key` replaces it on purpose.
+- In the page, when a notifications request is refused because the published record key is another one, **Use this device's record key** publishes this device's, after saying that notifications set up with the other key stop.
+- Tests: test/notify.test.js.
+
 ## 0.9.43 · A notice reaches its author too
 
 - A notice posted to every member (`notice.post`) now reaches its author's own devices and inbox as well, so they see it went out and what everyone received. What a member did themselves otherwise (a proposal, joining) still isn't sent to them. A node can turn it off with node.json `"notify": { "self": false }`.

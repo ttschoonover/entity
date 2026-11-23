@@ -38,6 +38,7 @@ export async function records({ pos, opt }) {
       if (!e.params.value('entity.modules').includes('notify')) refuse('records are not sealed here (records.sealing is off), and the notify module is not enabled');
       const id = whoAmI(e.state.entity.id, opt), rk = await S.recordKeyFromSeed(loadKey(e.state.entity.id, id, opt.key).seed);
       if (S.sealingState(st).keys[id] === S.cryptoB64(rk.pk)) refuse(`${id} already has this record key`);
+      if (S.sealingState(st).keys[id] && !opt['replace-key']) refuse(`${id} already has a different record key (most likely the page's, from signing in with a password). Replacing it ends every notification set up with it: pass --replace-key to do it anyway.`);
       const file = store.writePending(e.dir, await signed(e, 'member.recordkey', { by: id, key: S.cryptoB64(rk.pk) }, opt));
       out(`signed member.recordkey by ${id} → ${file}`);
       if (opt.settle) report(await settlePending(e));
