@@ -266,3 +266,165 @@ tr.provisional td { color: var(--ink-soft); }
 /* Flat: no motion anywhere — nothing slides, fades, bounces or grows. */
 *, *::before, *::after { animation: none !important; transition: none !important; }
 :root[data-look="minimal"] * { border-radius: 0 !important; box-shadow: none !important; }
+
+/* A house hub's strip under its name (node.json "house") */
+.house-bar { margin: .5em 0 0; }
+.house-bar button.linklike { background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; }
+
+/* wiki.css · the Wiki look: a page that reads like an encyclopedia.
+
+   Written for Athènes in the familiar style of Wikipedia's Vector skin, not
+   copied from it (Vector is GPL; this file is the project's own): a white
+   sheet on a pale grey page, set in LaTeX's Latin Modern, article titles and
+   section headings over a hairline rule, blue links, grey-bordered tables with
+   a pale header row, "infobox" cards, and a tab strip like Article / Talk.
+
+   A node shows it with "look": "wiki" in node.json (make-loth-hub.sh sets it);
+   a viewer can still choose another look in Settings. Every rule is scoped to
+   :root[data-look="wiki"], so no other look changes. */
+
+:root[data-look="wiki"] {
+  --paper: #f6f6f6;          /* the page around the sheet */
+  --sheet: #ffffff;          /* the sheet, cards, inputs */
+  --ink: #202122;
+  --ink-soft: #54595d;
+  --rule: #a2a9b1;           /* table and box borders */
+  --hair: #c8ccd1;           /* lighter dividers */
+  --seal: #3366cc;           /* links and primary buttons */
+  --visited: #795cb2;
+  --ok: #14866d; --alarm: #d73333; --ok-wash: #d5fdf4; --alarm-wash: #fee7e6;
+  --head: #eaecf0;           /* table headers, infobox titles */
+  --wash: #f8f9fa;           /* boxes and notes */
+  /* LaTeX's own faces (Latin Modern, shipped in interface/fonts/), for text and headings alike. */
+  --serif: 'Latin Modern Roman', 'Computer Modern Serif', 'CMU Serif', Georgia, serif;
+  --frame: var(--serif);
+  --read: var(--serif);
+  --mono: 'Latin Modern Mono', 'CMU Typewriter Text', 'Menlo', 'Consolas', monospace;
+  --measure: 75ch; --radius: 2px; --fs: 17px;
+  color-scheme: light;
+}
+:root[data-look="wiki"][data-theme="dark"] {
+  --paper: #000000; --sheet: #101418; --ink: #eaecf0; --ink-soft: #a2a9b1; --rule: #54595d; --hair: #3a3f44;
+  --seal: #88a3e8; --visited: #a799cd; --ok: #2cb491; --alarm: #fd7865; --ok-wash: #0f3b30; --alarm-wash: #3b1717;
+  --head: #27292d; --wash: #1a1d21; color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-look="wiki"]:not([data-theme="light"]) {
+    --paper: #000000; --sheet: #101418; --ink: #eaecf0; --ink-soft: #a2a9b1; --rule: #54595d; --hair: #3a3f44;
+    --seal: #88a3e8; --visited: #a799cd; --ok: #2cb491; --alarm: #fd7865; --ok-wash: #0f3b30; --alarm-wash: #3b1717;
+    --head: #27292d; --wash: #1a1d21; color-scheme: dark;
+  }
+}
+
+/* ── the page: a sheet with a header band ────────────────────────────────── */
+:root[data-look="wiki"] body { background: var(--paper); font: 400 var(--fs)/1.6 var(--frame); font-variant-numeric: normal; -webkit-font-smoothing: auto; }
+:root[data-look="wiki"] .masthead, :root[data-look="wiki"] main { max-width: 64rem; background: var(--sheet); border-left: 1px solid var(--hair); border-right: 1px solid var(--hair); }
+:root[data-look="wiki"] .masthead { padding: 1.2rem 2rem .4rem; border-top: 0; margin-bottom: 0; }
+:root[data-look="wiki"] main { margin-top: 0; display: flow-root; }
+:root[data-look="wiki"] main { padding: 0 2rem 3rem; min-height: 60vh; border-bottom: 1px solid var(--hair); }
+:root[data-look="wiki"] .entity-id { font-size: .78rem; color: var(--ink-soft); }
+:root[data-look="wiki"] .mast-row { align-items: center; }
+
+/* The site's title: an article title, serif, over a rule. */
+:root[data-look="wiki"] h1 { font: 400 2.1rem/1.25 var(--serif); letter-spacing: 0; margin: .5rem 0 0; padding-bottom: .15rem; border-bottom: 1px solid var(--rule); }
+:root[data-look="wiki"] h1::before { content: none; }
+:root[data-look="wiki"] .house-bar { font-size: .84rem; color: var(--ink-soft); margin: .45rem 0 0; }
+
+/* Section headings: serif with a rule beneath; smaller ones in bold sans. */
+:root[data-look="wiki"] h2 { font: 400 1.5rem/1.3 var(--serif); color: var(--ink); text-transform: none; margin: 1.2rem 0 .6rem; padding-bottom: .1rem; border-bottom: 1px solid var(--rule); display: block; }
+:root[data-look="wiki"] h2::after, :root[data-look="wiki"] h2[data-n]::before { content: none; display: none; }
+:root[data-look="wiki"] h3 { font: 700 1.08rem/1.4 var(--frame); margin: 1rem 0 .3rem; }
+:root[data-look="wiki"] .pdf-line { margin: -.3rem 0 .8rem; }
+:root[data-look="wiki"] section { border-top: 0; padding: .6rem 0 1rem; }
+:root[data-look="wiki"] p { max-width: none; margin: .4rem 0 .6rem; }
+
+/* Links: blue, underlined only on hover, purple once visited. */
+:root[data-look="wiki"] a { color: var(--seal); text-decoration: none; }
+:root[data-look="wiki"] a:visited { color: var(--visited); }
+:root[data-look="wiki"] a:hover { text-decoration: underline; }
+:root[data-look="wiki"] #tabs a:visited, :root[data-look="wiki"] .card h3 a:visited { color: var(--seal); }
+
+/* ── the tab strip: like Article · Talk · Read · Edit ─────────────────────── */
+:root[data-look="wiki"] nav#tabs { position: static; gap: 0; margin: .6rem -2rem 1rem; padding: 0 2rem; border-top: 0; border-bottom: 1px solid var(--rule); background: var(--sheet); font-size: .88rem; }
+:root[data-look="wiki"] nav#tabs a { color: var(--seal); padding: .45rem .8rem .4rem; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+:root[data-look="wiki"] nav#tabs a:hover { text-decoration: none; border-bottom-color: var(--hair); }
+:root[data-look="wiki"] nav#tabs a[aria-current] { color: var(--ink); font-weight: 600; border-bottom-color: var(--seal); }
+:root[data-look="wiki"] nav#tabs .count { background: var(--alarm); color: #fff; }
+
+/* ── the seal: a quiet note, like a page-status box ──────────────────────── */
+:root[data-look="wiki"] .seal { background: var(--wash); border: 1px solid var(--hair); padding: .55rem .9rem; margin: .8rem 0 0; }
+:root[data-look="wiki"] .seal .statement { font: 400 .95rem/1.5 var(--frame); max-width: none; margin: 0 0 .3rem; }
+:root[data-look="wiki"] .seal .statement::before { width: .6em; height: .6em; }
+:root[data-look="wiki"] .seal dl { font-size: .82rem; }
+:root[data-look="wiki"] .seal.slim { padding: .35rem .8rem; }
+
+/* ── the wiki's own pages: an article ────────────────────────────────────── */
+:root[data-look="wiki"] .wiki-body, :root[data-look="wiki"] .read, :root[data-look="wiki"] .post-body { font: 400 1rem/1.65 var(--frame); max-width: none; }
+:root[data-look="wiki"] .rendered { white-space: normal; }
+:root[data-look="wiki"] .wiki-body h2, :root[data-look="wiki"] .wiki-body h3 { font: 400 1.45rem/1.3 var(--serif); margin: 1.3rem 0 .5rem; padding-bottom: .1rem; border-bottom: 1px solid var(--rule); }
+:root[data-look="wiki"] .wiki-body h4 { font: 700 1.08rem/1.4 var(--frame); margin: 1rem 0 .3rem; }
+:root[data-look="wiki"] .wiki-body h5 { font: 700 1rem/1.4 var(--frame); margin: .8rem 0 .2rem; }
+:root[data-look="wiki"] .wiki-body ul, :root[data-look="wiki"] .wiki-body ol { margin: .3rem 0 .6rem 1.6em; padding: 0; }
+:root[data-look="wiki"] .wiki-body li { margin: .15rem 0; }
+:root[data-look="wiki"] .table-wrap { overflow-x: auto; }
+:root[data-look="wiki"] .wiki-body img, :root[data-look="wiki"] .read img { max-width: 100%; height: auto; border: 1px solid var(--hair); background: var(--wash); padding: 3px; }
+:root[data-look="wiki"] .wiki-body figure, :root[data-look="wiki"] .read figure { float: right; clear: right; margin: .3rem 0 .8rem 1.2rem; max-width: 22rem; border: 1px solid var(--hair); background: var(--wash); padding: 4px; font-size: .84rem; }
+:root[data-look="wiki"] .wiki-body figure img, :root[data-look="wiki"] .read figure img { border: 0; padding: 0; }
+:root[data-look="wiki"] blockquote { margin: .8rem 0; padding: 0 1.2rem; border-left: 4px solid var(--hair); color: var(--ink); }
+:root[data-look="wiki"] hr { border: 0; border-top: 1px solid var(--rule); }
+:root[data-look="wiki"] sup a, :root[data-look="wiki"] .reference a { font-size: .75em; }
+:root[data-look="wiki"] ol.references, :root[data-look="wiki"] .wiki-body ol:last-child { font-size: .88rem; }
+
+/* ── tables: "wikitable" ─────────────────────────────────────────────────── */
+:root[data-look="wiki"] table { border-collapse: collapse; background: var(--wash); border: 1px solid var(--rule); width: auto; max-width: 100%; font-size: .92rem; margin: .6rem 0 1rem; }
+:root[data-look="wiki"] th, :root[data-look="wiki"] td { border: 1px solid var(--rule); padding: .3rem .55rem; }
+:root[data-look="wiki"] th { background: var(--head); color: var(--ink); font-weight: 700; text-align: center; }
+:root[data-look="wiki"] caption { font-weight: 700; padding: .3rem 0; }
+:root[data-look="wiki"] tr.you td { background: color-mix(in srgb, var(--seal) 8%, transparent); }
+
+/* ── cards: infoboxes and notes ──────────────────────────────────────────── */
+:root[data-look="wiki"] .card { background: var(--wash); border: 1px solid var(--rule); border-radius: 0; padding: 0 .9rem .7rem; gap: 4px; }
+:root[data-look="wiki"] .card h3 { margin: 0 -.9rem .3rem; padding: .35rem .9rem; background: var(--head); font: 700 .92rem/1.4 var(--frame); text-align: left; }
+:root[data-look="wiki"] .card.urgent { border-color: var(--seal); }
+:root[data-look="wiki"] .card.urgent h3 { background: color-mix(in srgb, var(--seal) 14%, var(--head)); }
+:root[data-look="wiki"] .card.good { border-left: 3px solid var(--ok); }
+:root[data-look="wiki"] .card.bad, :root[data-look="wiki"] .alarm { border-left: 3px solid var(--alarm); }
+:root[data-look="wiki"] .notice-box, :root[data-look="wiki"] .notice { background: var(--wash); border: 1px solid var(--hair); border-left: 4px solid var(--seal); padding: .6rem .9rem; }
+:root[data-look="wiki"] .stat b { font-family: var(--serif); font-size: 1.6rem; }
+:root[data-look="wiki"] .items > li, :root[data-look="wiki"] .feed li, :root[data-look="wiki"] .setting { border-bottom: 1px solid var(--hair); }
+:root[data-look="wiki"] .badge, :root[data-look="wiki"] .category, :root[data-look="wiki"] .boards a, :root[data-look="wiki"] .chips code { border-radius: 2px; border-color: var(--hair); }
+
+/* ── forms and buttons: plain boxes; the main action in blue ──────────────── */
+:root[data-look="wiki"] label, :root[data-look="wiki"] .label { font-weight: 700; font-size: .9rem; }
+:root[data-look="wiki"] input, :root[data-look="wiki"] select, :root[data-look="wiki"] textarea { background: var(--sheet); border: 1px solid var(--rule); border-radius: 2px; color: var(--ink); font-family: var(--frame); }
+:root[data-look="wiki"] textarea { font-family: var(--mono); }
+:root[data-look="wiki"] input:focus, :root[data-look="wiki"] select:focus, :root[data-look="wiki"] textarea:focus { outline: 0; border-color: var(--seal); box-shadow: inset 0 0 0 1px var(--seal); }
+:root[data-look="wiki"] button { background: var(--seal); color: #fff; border: 1px solid var(--seal); border-radius: 2px; font: 700 .95rem/1.4 var(--frame); padding: .4rem .85rem; }
+:root[data-look="wiki"] button:hover { background: color-mix(in srgb, var(--seal) 85%, #000); }
+:root[data-look="wiki"] button.quiet, :root[data-look="wiki"] button.secondary { background: var(--wash); color: var(--ink); border-color: var(--rule); font-weight: 700; }
+:root[data-look="wiki"] button.quiet:hover { background: var(--sheet); }
+:root[data-look="wiki"] button.danger { background: var(--sheet); color: var(--alarm); border-color: var(--alarm); }
+:root[data-look="wiki"] button.linklike, :root[data-look="wiki"] .house-bar button.linklike { background: none; border: 0; color: var(--seal); font-weight: 400; padding: 0; text-decoration: none; }
+:root[data-look="wiki"] .pill { border-radius: 2px; border-color: var(--hair); }
+:root[data-look="wiki"] .pill button { background: none; color: var(--ink-soft); border: 0; font-weight: 400; padding: 3px 9px; }
+:root[data-look="wiki"] .pill button[aria-pressed="true"] { background: var(--head); color: var(--ink); }
+:root[data-look="wiki"] summary { color: var(--seal); }
+:root[data-look="wiki"] dialog { border: 1px solid var(--rule); border-radius: 2px; background: var(--sheet); box-shadow: 0 4px 16px rgba(0,0,0,.2); }
+:root[data-look="wiki"] code, :root[data-look="wiki"] .hash { font-family: var(--mono); }
+:root[data-look="wiki"] pre.json, :root[data-look="wiki"] pre.law-text, :root[data-look="wiki"] pre.redline { background: var(--wash); border: 1px solid var(--hair); border-radius: 0; }
+:root[data-look="wiki"] :focus-visible { outline: 2px solid var(--seal); outline-offset: 1px; }
+
+/* ── phones: the sheet fills the screen; the tabs stay at the bottom ─────── */
+@media (max-width: 640px) {
+  :root[data-look="wiki"] .masthead, :root[data-look="wiki"] main { border-left: 0; border-right: 0; padding-left: 1rem; padding-right: 1rem; }
+  :root[data-look="wiki"] h1 { font-size: 1.6rem; }
+  :root[data-look="wiki"] nav#tabs { position: fixed; margin: 0; padding: 6px 10px calc(6px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--rule); border-bottom: 0; }
+  :root[data-look="wiki"] nav#tabs a { margin: 0; border-bottom-width: 0; border-top: 2px solid transparent; }
+  :root[data-look="wiki"] nav#tabs a[aria-current] { border-top-color: var(--seal); }
+  :root[data-look="wiki"] .wiki-body figure, :root[data-look="wiki"] .read figure { float: none; margin: .6rem 0; max-width: 100%; }
+}
+
+/* The look's own card in Settings. */
+.look-card[data-preview="wiki"] { font-family: 'Latin Modern Roman', Georgia, serif; background: #fff; color: #202122; border: 1px solid #a2a9b1; border-radius: 2px; }
+.look-card[data-preview="wiki"] strong { font-family: 'Latin Modern Roman', Georgia, serif; font-weight: 400; font-size: 1.1em; border-bottom: 1px solid #a2a9b1; color: #202122; }
+.look-card[data-preview="wiki"] span { color: #3366cc; }

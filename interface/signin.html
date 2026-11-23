@@ -7,6 +7,9 @@
 <meta name="robots" content="noindex">
 <title>Sign in</title>
 <style>
+@font-face { font-family:'Latin Modern Roman'; src:url(interface/fonts/lmroman10-regular.woff2) format('woff2'); font-weight:400; font-display:swap; }
+@font-face { font-family:'Latin Modern Roman'; src:url(interface/fonts/lmroman10-bold.woff2) format('woff2'); font-weight:700; font-display:swap; }
+@font-face { font-family:'Latin Modern Roman'; src:url(interface/fonts/lmroman10-italic.woff2) format('woff2'); font-weight:400; font-style:italic; font-display:swap; }
 :root { --ink:#E8E5DC; --paper:#131310; --dim:#8a877f; --rule:rgba(232,229,220,.14); --accent:#d07a6e; }
 @media (prefers-color-scheme: light) { :root { --ink:#1d1c1a; --paper:#f7f5f0; --dim:#6b6860; --rule:rgba(29,28,26,.14); } }
 * { box-sizing:border-box; } body { margin:0; background:var(--paper); color:var(--ink); font:15px/1.55 'Helvetica Neue',Helvetica,Arial,sans-serif; }
@@ -26,13 +29,37 @@ canvas.pad { width:100%; height:120px; border:.5px dashed var(--dim); touch-acti
 details { margin-top:22px; border-top:.5px solid var(--rule); padding-top:12px; } summary { cursor:pointer; color:var(--dim); font-size:.9em; }
 h2.sub { font:400 1.15em 'Century Schoolbook',Georgia,serif; margin:22px 0 4px; } select { width:100%; font:inherit; color:var(--ink); background:var(--paper); border:.5px solid var(--rule); padding:9px 10px; }
 .check { display:flex; gap:8px; align-items:center; color:var(--dim); font-size:.85em; margin-top:12px; } .check input { width:auto; }
+:root[data-look="wiki"] { --ink:#202122; --paper:#ffffff; --dim:#54595d; --rule:#a2a9b1; --accent:#d73333; }
+@media (prefers-color-scheme: dark) { :root[data-look="wiki"] { --ink:#eaecf0; --paper:#101418; --dim:#a2a9b1; --rule:#54595d; --accent:#fd7865; } }
+:root[data-look="wiki"] body { background:#f6f6f6; font:17px/1.55 'Latin Modern Roman',Georgia,serif; }
+@media (prefers-color-scheme: dark) { :root[data-look="wiki"] body { background:#000; } }
+:root[data-look="wiki"] main { background:var(--paper); border:1px solid #c8ccd1; padding:22px 26px 26px; margin-top:8vh; max-width:28rem; }
+:root[data-look="wiki"] p.brand { font:400 1.15em 'Latin Modern Roman',Georgia,serif; color:var(--ink); border-bottom:1px solid var(--rule); padding-bottom:4px; }
+:root[data-look="wiki"] h1, :root[data-look="wiki"] h2.sub, :root[data-look="wiki"] .doc h2 { font-family:'Latin Modern Roman',Georgia,serif; }
+:root[data-look="wiki"] h2.sub { border-bottom:1px solid var(--rule); padding-bottom:2px; }
+:root[data-look="wiki"] label { color:var(--ink); font-weight:700; font-size:.86em; }
+:root[data-look="wiki"] input, :root[data-look="wiki"] textarea, :root[data-look="wiki"] select { border:1px solid var(--rule); border-radius:2px; }
+:root[data-look="wiki"] input:focus { outline:0; border-color:#3366cc; box-shadow:inset 0 0 0 1px #3366cc; }
+:root[data-look="wiki"] button { background:#3366cc; color:#fff; border-radius:2px; font-weight:700; }
+:root[data-look="wiki"] button.quiet { background:#f8f9fa; color:#202122; border:1px solid var(--rule); }
+:root[data-look="wiki"] summary { color:#3366cc; }
 </style>
 <script type="module" src="interface/js/signin.js"></script>
 </head>
 <body><main>
 <p id="brand" class="brand" hidden></p>
-<h1>Members only</h1>
-<p class="dim">Sign in with your account to continue. Your password never leaves this device: it signs a one-time challenge here.</p>
+<h1 id="title">Members only</h1>
+<p class="dim" id="intro">Sign in with your account to continue. Your password never leaves this device: it signs a one-time challenge here.</p>
+<section id="house" hidden>
+  <p class="dim">On the house Wi-Fi this hub opens by itself. Away from the house, type the house password: it lets this browser in for 30 days.</p>
+  <form id="house-form">
+    <label for="hpw">House password</label><input id="hpw" type="password" autocomplete="current-password" required>
+    <button type="submit">Open the hub</button>
+    <p id="house-out" class="bad" role="status"></p>
+  </form>
+  <h2 class="sub">Members</h2>
+  <p class="dim">Sign in with your own account: to edit, or as an admin.</p>
+</section>
 <div id="kept"></div>
 <form id="pw-form">
   <label for="id">Member id</label><input id="id" autocomplete="username" required>
@@ -47,7 +74,7 @@ h2.sub { font:400 1.15em 'Century Schoolbook',Georgia,serif; margin:22px 0 4px; 
   <button class="quiet" id="key-go" type="button">Sign in with this key</button>
   <p id="key-out" class="bad" role="status"></p>
 </details>
-<details><summary id="apply-sum">Apply to join</summary>
+<details id="apply-box"><summary id="apply-sum">Apply to join</summary>
   <p class="dim" id="apply-intro">The members decide each application. You will be able to sign in once they admit you.</p>
   <label for="aid">Choose a member id (lowercase letters, digits and -)</label><input id="aid">
   <label for="aname">Your name (optional)</label><input id="aname">

@@ -26,6 +26,7 @@ import * as md from './commands/media.js';
 import * as rec from './commands/records.js';
 import { notifyCommand } from './commands/notify.js';
 import { documentsCommand } from './commands/documents.js';
+import * as hs from './commands/house.js';
 
 const COMMANDS = {
   found: [f.found, 'bring it into being            [--preset name] [--id p-0001] [--name "…"]'],
@@ -66,6 +67,7 @@ const COMMANDS = {
   radicle: [r.radicle, 'publish and replicate on Radicle  init | status'],
   adopt: [r.adopt, 'bring in approved code or law     <git ref> [--decision <id>] [--dry]'],
   gate: [g.gate, 'may these files change?         <paths…> --decision <id> | --against <dir> | digest <paths…>'],
+  house: [hs.house, 'a house hub: its network, password and admins  status | on | name | password | admin | address | detect | off'],
   serve: [s.serve, 'run a node and its page         [--port 7780] [--settle]'],
   app: [app.app, 'the local control panel: create and run republics in a browser [--port 7700] [--home ~/entities]'],
   build: [s.build, 'the static page                 [--out site]'],

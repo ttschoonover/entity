@@ -1,5 +1,27 @@
 # Changes
 
+## 0.9.42 · The Wiki look in LaTeX's own type; wiki pages as LaTeX PDFs
+
+- **The Wiki look is set in Latin Modern**, the face LaTeX sets (shipped in `interface/fonts/`), for text and headings alike, at a size that reads as well as the old sans-serif. The sign-in page and House settings use it too.
+- **Open as PDF**: every wiki page, at the version on screen, is set in LaTeX and compiled to PDF (`/documents/wiki/<page>.pdf`, `?v=` for an earlier version), with the hub's name, the page's version, author and date. **The whole wiki as a PDF** (`/documents/wiki/all.pdf`): a title page, a contents page, the categories as parts and each page as a section, with links between pages. Whoever may read the wiki on a node may open them; a private node's gate (or a house hub's) decides that. Compiled with pdflatex and cached (`cli/wikipdf.js`, through `cli/documents.js`, which now runs a second pass when there is a contents page or cross-references).
+- The Markdown becomes LaTeX safely: headings, emphasis, code, links (with their address as a footnote), lists, quotations, tables, code blocks, rules, and pictures from the entity's media folder as figures with captions; every special character is escaped, a page cannot close its own code block, and a picture from elsewhere is named, not fetched. Characters LaTeX cannot set become "?".
+- Tests: test/wikipdf.test.js.
+
+## 0.9.41 · The Wiki look; Markdown on the standard page
+
+- **The Wiki look** (`"look": "wiki"` in node.json, or chosen in Settings): the page as an encyclopedia, in the familiar style of Wikipedia's Vector skin but written for Athènes, not copied from it (Vector is GPL): a white sheet on a pale grey page, sans-serif text, serif titles and section headings over a hairline rule, blue links (purple once visited), tables as "wikitables", cards as infoboxes, the sections as a tab strip, light and dark. It is in `interface/style.css`, where presentation is not governed, and every rule is scoped to the look. The sign-in page and House settings follow it (`/signin/brand` and `/house/status` give the node's look). `make-loth-hub.sh` sets it.
+- **Markdown on the standard page**: the wiki's pages (and any module that asks for `api.markdown`) are drawn from their Markdown, as on the site kit: headings, emphasis, lists, links, pictures with captions, quotations, tables (`interface/js/markdown.js`, the same safe renderer).
+- Fixed: a house hub's sign-in page stopped part-way ("Cannot set properties of null") because it removed the application form that other code still used; it now hides it.
+
+## 0.9.40 · House hubs: the house Wi-Fi and a house password open a private hub
+
+- **House access** (node.json `"house"`, `cli/house.js`): a private node can also let in, to read and to make an account, anyone on the house's network and anyone who types the house password. On the network means a direct connection from the house Wi-Fi's private ranges (`house.networks`), or a visit through the Cloudflare tunnel from the house's own public address: found every half hour from Cloudflare's trace page (`house.detect`, IPv4 and the IPv6 /64), plus any listed in `house.publicIps`. The tunnel's visitor address (`CF-Connecting-IP`) is believed only on connections from the node's own machine. The password is kept as a scrypt hash; it gives a browser a signed cookie for 30 days, which ends when the password changes; ten wrong guesses from one address pause it for 15 minutes. Applications to join are taken only from the house.
+- **House settings** (`/house/settings`): the hub's admins (`house.admins`), signed in as themselves, change its name (shown on every page, the sign-in page and the Home Screen app), the house password, the house network and the admins. None of it is in the record.
+- **`entity house`**: the same from the Pi: `status | on | name | password | admin add|remove | address add|remove | detect on|off | off`.
+- The sign-in page of a house hub asks for the house password, and sends anyone on the house network straight in; `?next=` returns a member to the page they wanted. The page shows how a visitor got in, "Sign in or make your own account", and House settings; joining a house hub sends the application straight to its node.
+- **`make-loth-hub.sh`**: the Lothlórien Unofficial Minihub, a private hub with a wiki and notifications (admission open: being let in is the check). `REPLACE=1` archives an existing folder to `~/entities/archive/` and replaces it, keeping its port.
+- Tests: test/house.test.js (addresses, the cookie, and a running hub: the house address, the password, a forged cookie, joining, admins only, a new password, the pause).
+
 ## 0.9.39 · The Orchard GP: no taxpayer numbers, private certificates, direct elections, amendments by vote, a constitution page
 
 - **`details.tin`**: off, the particulars form (on the website and in the invitation sign-up) asks for no taxpayer number and none is accepted. The Orchard GP turns it off; agreement 4.2 says the Treasurer collects Forms W-9 separately.

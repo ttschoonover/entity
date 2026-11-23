@@ -16,6 +16,29 @@ import * as D from '../../kernel/details.js';
 import { b64 } from '../../kernel/crypto.js';
 
 const $ = (s) => document.querySelector(s);
+// Where to go after signing in: ?next=/a/path on this site, or the page.
+const nextPage = () => { const n = new URLSearchParams(location.search).get('next') || ''; return /^\/(?![\/\\])[\w\-./%?=&#]*$/.test(n) ? n : './'; };
+// A house hub (node.json "house"): the house password opens it; on the house
+// network it opens by itself, so this page sends the visitor straight in.
+(async () => {
+  let h; try { const r = await fetch('house/status', { cache: 'no-store', credentials: 'same-origin' }); if (!r.ok) return; h = await r.json(); } catch { return; }
+  if (!h?.house) return;
+  const wantsMember = new URLSearchParams(location.search).has('next');
+  if (h.access && h.access !== 'member' && !wantsMember) return location.replace('./');
+  if (h.access === 'member' && wantsMember) return location.replace(nextPage());
+  $('#title').textContent = 'Welcome';
+  if ($('#apply-box')) $('#apply-box').hidden = true;   // accounts are made from inside the hub
+  if (h.password && !wantsMember) {
+    $('#house').hidden = false; $('#intro').hidden = true;
+    $('#house-form').addEventListener('submit', async (ev) => {
+      ev.preventDefault(); const out = $('#house-out'); out.textContent = 'Checking…';
+      const r = await post('auth/house', { password: $('#hpw').value });
+      if (r.ok) { out.textContent = ''; location.replace('./'); } else out.textContent = r.why || 'That did not work.';
+    });
+  } else if (!h.password) {
+    $('#intro').hidden = false; $('#intro').textContent = 'On the house Wi-Fi this hub opens by itself. Members can sign in from anywhere with their own account.';
+  }
+})();
 // In a sealed republic an application travels sealed to the latest key period
 // (kernel/sealing.js), so nothing between this page and a member's node reads it.
 async function sealIfNeeded(act) {
@@ -76,7 +99,7 @@ async function signDocuments(todo, id, key) {
 
 // A personal invitation (the invites module): ?invite=ID.SECRET in the link.
 // The name the node shows on its sign-in page (node.json "brand"), if any: nothing about members.
-fetch('signin/brand').then(r => (r.ok ? r.json() : null)).then(b => { if (b?.name) { const el = document.getElementById('brand'); el.textContent = b.name; el.hidden = false; document.title = `Sign in · ${b.name}`; } }).catch(() => {});
+fetch('signin/brand').then(r => (r.ok ? r.json() : null)).then(b => { if (b?.look) document.documentElement.dataset.look = b.look; if (b?.name) { const el = document.getElementById('brand'); el.textContent = b.name; el.hidden = false; document.title = `Sign in · ${b.name}`; } }).catch(() => {});
 const INVITE = (() => { const v = new URLSearchParams(location.search).get('invite') || ''; const i = v.indexOf('.'); return i > 0 ? { id: v.slice(0, i), secret: v.slice(i + 1) } : null; })();
 
 // Particulars (the details module): sealed here to the applicant and the officers.
@@ -133,7 +156,7 @@ async function signIn(id, signFn, key) {
     }
   }
   if (!r.ok) throw new Error(r.why || 'not signed in');
-  location.replace('./');
+  location.replace(nextPage());
 }
 const viaKey = (key) => (m, ns) => keys.sign(m, key, ns);
 async function viaPasskey(line, message, namespace) {

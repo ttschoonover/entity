@@ -18,6 +18,7 @@ import { lockSeed, unlockSeed } from './lock.js';
 import { makeKit } from './kit.js';
 import { makeScreens } from './screens.js';
 import { t, language, setLanguage } from './i18n.js';
+import { renderText } from './markdown.js';
 const tr = t;   // where a local `t` (a tally) shadows it
 
 const $ = (s) => document.querySelector(s);
@@ -142,6 +143,8 @@ async function boot() {
   if (problem) return fatal('This page cannot check anything here', problem);
 
   $('#entity-name').textContent = island.name || 'The record';
+  // A house hub (node.json "house"): its own name, and how this visitor got in.
+  const houseP = fetch('house/status', { cache: 'no-store', credentials: 'same-origin' }).then(r => (r.ok ? r.json() : null)).catch(() => null);
   $('#entity-id').textContent = island.id || '';
   showSeal(h('p', { class: 'statement' }, 'Fetching the record and checking it on this device…'));
 
@@ -182,6 +185,9 @@ async function boot() {
   ctx.words = words();
   document.title = ctx.params.value('entity.name');
   $('#entity-name').textContent = ctx.params.value('entity.name');
+  const HOUSE = await houseP;
+  if (HOUSE?.name) { document.title = HOUSE.name; $('#entity-name').textContent = HOUSE.name; }
+  HOUSE_HUB = !!HOUSE?.house;
   $('#entity-id').textContent = `${ctx.state.entity.id} · founded ${day(ctx.state.entity.founded)}`;
 
   const finalCount = enabled('finality') ? (ctx.state.m.finality?.finals?.slice(-1)[0]?.count || 0) : null;
@@ -199,9 +205,24 @@ async function boot() {
 
   if (island.node && 'EventSource' in window) { try { new EventSource('presence'); } catch { /* optional */ } }
   ctx.ident ||= await K.loadIdentity(ctx.state.entity.id).catch(() => null);
+  if (HOUSE?.house) houseBar(HOUSE);
   ctx.tabs = await collectTabs();
   addEventListener('hashchange', route);
   route();
+}
+
+let HOUSE_HUB = false;
+// A house hub's strip under its name: how this visitor got in, making an
+// account, and (for its admins) the House settings page.
+function houseBar(H) {
+  const member = !!(ctx.ident && ctx.state.participants[ctx.ident.id]?.status === 'active');
+  const how = H.access === 'network' ? 'You’re in through the house Wi-Fi.' : H.access === 'password' ? 'You’re in with the house password.' : null;
+  const bar = h('p', { class: 'house-bar fine' },
+    how ? `${how} ` : null,
+    !member ? [h('a', { href: '#/', class: 'make-account', onclick: (ev) => { ev.preventDefault(); location.hash = '#/'; setTimeout(() => { const f = $('#join-id'); if (f) { f.scrollIntoView({ block: 'center' }); f.focus(); } }, 60); } }, 'Sign in or make your own account'), ' to edit the wiki and get notifications. '] : null,
+    H.access === 'password' ? h('button', { class: 'linklike', type: 'button', onclick: async () => { await fetch('auth/house/leave', { method: 'POST', credentials: 'same-origin' }); location.reload(); } }, 'Forget the house password here') : null,
+    (H.admin || member) ? [' ', h('a', { href: 'house/settings' }, 'House settings')] : null);
+  $('.masthead').append(bar);
 }
 
 // A sealed record this browser cannot open: what anyone can still check, and
@@ -310,15 +331,26 @@ function route() {
   try { el = tab.module ? tab.render(api(), path.slice(1)) : tab.render(path.slice(1)); }
   catch (e) { el = h('section', {}, h('p', { class: 'hint' }, `This view could not be drawn: ${e.message}`)); console.error(e); }
   view.replaceChildren(...[].concat(el).filter(Boolean));
+  if (tab.id === 'wiki' && island.node) wikiPdfLinks(view, path.slice(1));
   window.scrollTo(0, 0);
 }
 const refresh = () => route();
+// The wiki, set in LaTeX: "Open as PDF" on a page (that version), and the whole wiki as a booklet on its list.
+function wikiPdfLinks(view, path) {
+  const head = view.querySelector('h2'); if (!head) return;
+  const v = path[1] ? `?v=${encodeURIComponent(path[1])}` : '';
+  const link = path[0]
+    ? h('a', { href: `documents/wiki/${encodeURIComponent(path[0])}.pdf${v}`, target: '_blank', rel: 'noopener', class: 'pdf-link' }, 'Open as PDF')
+    : h('a', { href: 'documents/wiki/all.pdf', target: '_blank', rel: 'noopener', class: 'pdf-link' }, 'The whole wiki as a PDF');
+  head.after(h('p', { class: 'fine pdf-line' }, link, ' · set in LaTeX'));
+}
 
 // What a module's tab is given. The same as 0.3's, plus navigation.
 function api() {
   return { h, $, state: ctx.state, params: ctx.params, registry: ctx.registry, records: ctx.records, me: me(), ident: ctx.ident,
     words: ctx.words, day, when, sign, propose, E, link, go, who, refresh, section, kit, t,
     list: listView, sorts: { byText, newest, oldest }, grantsFor, nameOf, editForm,
+    markdown: (text) => { const d = h('div', {}); d.innerHTML = renderText(text).html; return d; },
     // The signed-in member's private key, for modules that decrypt (sealed):
     // asks for its password if it is locked; null for passkeys, which cannot.
     key: async (label) => (!ctx.ident || ctx.ident.passkey ? null : unlock(label)) };
@@ -821,6 +853,8 @@ function offer(act, label, then = null) {
   const res = $('#send-result'); res.textContent = ''; res.className = '';
   d.querySelectorAll('[data-send]').forEach(b => { b.onclick = () => deliver(b.dataset.send, act); });
   d.showModal();
+  // A house hub sends straight to the node serving it: the house's own, the only one most housemates know.
+  if (HOUSE_HUB && island.node) deliver('own', act);
 }
 
 async function deliver(way, act) {
@@ -1545,7 +1579,7 @@ function renderSettings(path) {
 // ------------------------------------------------------------------ looks
 // How this page looks in this browser. A viewer's own choice: stored here, not
 // in the record, and it changes nothing for anyone else.
-const LOOKS = [['athens', 'Athens', 'The house style of tschoonover.com: paper and ink, Helvetica for the frame, Latin Modern for reading: the default.'], ['classic', 'Classic', 'Paper and ink.'], ['schoolbook', 'Schoolbook', 'An earlier take on tschoonover.com: Helvetica, hairlines, Century Schoolbook headings.'], ['terminal', 'Terminal', 'Dark, monospaced, phosphor green.'], ['minimal', 'Minimal', 'Plain type, lots of space, nothing extra.']];
+const LOOKS = [['athens', 'Athens', 'The house style of tschoonover.com: paper and ink, Helvetica for the frame, Latin Modern for reading: the default.'], ['classic', 'Classic', 'Paper and ink.'], ['schoolbook', 'Schoolbook', 'An earlier take on tschoonover.com: Helvetica, hairlines, Century Schoolbook headings.'], ['terminal', 'Terminal', 'Dark, monospaced, phosphor green.'], ['minimal', 'Minimal', 'Plain type, lots of space, nothing extra.'], ['wiki', 'Wiki', 'Like an encyclopedia: a white sheet, serif headings over a rule, blue links.']];
 const COLOURS = [['system', 'As the system'], ['light', 'Light'], ['dark', 'Dark']];
 function applyLook() {
   let look = (typeof island !== 'undefined' && island.look) || 'athens', colour = (typeof island !== 'undefined' && island.colour) || 'system';

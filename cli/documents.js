@@ -155,7 +155,7 @@ export function pdf(e, { tex, files, name }) {
     fs.writeFileSync(path.join(tmp, 'doc.tex'), tex);
     for (const [f, b] of Object.entries(files)) fs.writeFileSync(path.join(tmp, f), b);
     // Twice when a picture is placed on the page (the certificate's border needs the first pass's positions).
-    try { for (let i = 0; i < (tex.includes('remember picture') ? 2 : 1); i++) execFileSync('pdflatex', ['-interaction=nonstopmode', '-halt-on-error', '-no-shell-escape', 'doc.tex'], { cwd: tmp, stdio: 'pipe', timeout: 60000 }); }
+    try { for (let i = 0; i < (/remember picture|\\tableofcontents|\\label\{/.test(tex) ? 2 : 1); i++) execFileSync('pdflatex', ['-interaction=nonstopmode', '-halt-on-error', '-no-shell-escape', 'doc.tex'], { cwd: tmp, stdio: 'pipe', timeout: 60000 }); }
     catch (err) {
       if (err.code === 'ENOENT') throw new Error('pdflatex is not installed on this machine (sudo apt install texlive-latex-recommended texlive-pictures texlive-fonts-recommended)');
       const log = fs.existsSync(path.join(tmp, 'doc.log')) ? fs.readFileSync(path.join(tmp, 'doc.log'), 'utf8').split('\n').filter(l => l.startsWith('!')).slice(0, 3).join(' ') : err.message;

@@ -19,6 +19,7 @@ import { guard } from '../security.js';
 import * as notify from '../notify.js';
 import * as details from '../details.js';
 import * as documents from '../documents.js';
+import * as house from '../house.js';
 
 export async function build({ opt }) {
   const e = await openEntity(opt);
@@ -76,6 +77,10 @@ export async function serve({ opt }) {
   const sendPlain = (res, code, body, type, extra = {}) => { res.writeHead(code, { 'content-type': type, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer', ...extra }); res.end(body); };
   // Email two-factor (the twofactor module): see cli/twofactor.js.
   const tf = twoFactor(e.dir);
+  // House access (node.json "house", cli/house.js): the house network and the
+  // house password let a visitor in to read and to make an account.
+  const hs = house.houseNode(e.dir);
+  if (house.houseOf(e.dir)) hs.start();
   const chat = chatNode(opt);
   const mahjong = mahjongNode(opt);
   const docs = docsNode(opt);
@@ -140,12 +145,58 @@ export async function serve({ opt }) {
     } catch (x) { return json(res, 503, { why: x.message }); }
     return json(res, 404, { why: 'no such address' });
   }
+  // The house's routes (cli/house.js): what the sign-in page needs to know, the
+  // house password, and the admins' settings.
+  async function houseRoutes(req, res, p) {
+    const hh = house.houseOf(e.dir);
+    if (!hh || !(p === '/auth/house' || p === '/auth/house/leave' || p.startsWith('/house/'))) return false;
+    const s = sessionOf(req), how = s ? 'member' : hs.access(req), { ip, via } = house.clientIp(req);
+    const st = async () => (await openEntity(opt)).state;
+    const secure = String(req.headers['x-forwarded-proto'] || '').includes('https') || req.headers['cf-visitor'] ? '; Secure' : '';
+    if (p === '/house/status' && req.method === 'GET') {
+      return json(res, 200, { house: true, look: store.readNode(e.dir).look || null, name: hh.name || null, access: how || null, password: !!hh.password, member: s?.id || null, admin: house.isAdmin(hh, await st(), s?.id) });
+    }
+    if (p === '/auth/house' && req.method === 'POST') {
+      if (!hh.password) return json(res, 409, { why: 'this hub has no house password yet: ask one of its admins' });
+      if (hs.limited(ip)) return json(res, 429, { why: 'too many wrong passwords from here: try again in 15 minutes' });
+      let b = {}; try { b = JSON.parse(await body(req) || '{}'); } catch { b = {}; }
+      if (!house.checkPassword(hh, b.password)) { hs.failed(ip); return json(res, 401, { why: 'that is not the house password' }); }
+      const c = house.makeCookie(e.dir, hh);
+      return json(res, 200, { ok: true }, { 'set-cookie': `${house.COOKIE}=${c.value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${c.maxAge}${secure}` });
+    }
+    if (p === '/auth/house/leave' && req.method === 'POST') {
+      return json(res, 200, { ok: true }, { 'set-cookie': `${house.COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}` });
+    }
+    if (p === '/house/settings' && req.method === 'GET') {
+      if (!s) return sendPlain(res, 302, '', 'text/plain', { location: '/signin?next=%2Fhouse%2Fsettings' }), true;
+      if (!house.isAdmin(hh, await st(), s.id)) return sendPlain(res, 403, `<!doctype html><meta charset="utf-8"><title>House settings</title><p style="font:16px system-ui;margin:3em auto;max-width:30em">Only the hub's admins change its settings. You are signed in as ${String(s.id).replace(/[^a-z0-9-]/gi, '')}. <a href="/">Back to the hub</a></p>`, TYPES['.html']), true;
+      return sendPlain(res, 200, fs.readFileSync(path.join(e.dir, 'interface', 'house.html')), TYPES['.html']), true;
+    }
+    if (p === '/house/config') {
+      if (!s) return json(res, 401, { why: 'sign in as an admin first' });
+      const state = await st();
+      if (!house.isAdmin(hh, state, s.id)) return json(res, 403, { why: 'only the hub\'s admins change its settings' });
+      const view = (x) => ({ name: x.name || '', admins: x.admins || [], networks: x.networks || house.DEFAULT_NETWORKS, publicIps: x.publicIps || [], detect: x.detect !== false,
+        detected: hs.detected(), password: x.password ? { set: x.password.set } : null, you: { id: s.id, ip, via },
+        members: state.order.filter(id => state.participants[id]?.status === 'active') });
+      if (req.method === 'GET') return json(res, 200, view(hh));
+      if (req.method !== 'POST') return json(res, 405, { why: 'method not allowed' });
+      let b = {}; try { b = JSON.parse(await body(req) || '{}'); } catch { return json(res, 400, { why: 'send the changes as JSON' }); }
+      const r = house.applyChanges(hh, b, state);
+      if (r.why) return json(res, 400, { why: r.why });
+      house.writeHouse(e.dir, r.house);
+      if (b.detect !== undefined || b.publicIps !== undefined) hs.refresh().catch(() => {});
+      out(`house settings changed by ${s.id}: ${Object.keys(b).filter(k => b[k] !== undefined && b[k] !== '').map(k => (k === 'password' ? 'password' : k)).join(', ')}`);
+      return json(res, 200, { ok: true, ...view(r.house) });
+    }
+    return json(res, 404, { why: 'no such address' });
+  }
   async function gate(req, res, p) {
     // Code is open, since the sign-in page needs it. Asking the node to list or
     // fetch from its module source is not (docs/PRIVACY-AUDIT.md, F9).
     if (OPEN_PREFIXES.some(x => p.startsWith(x)) && req.method === 'GET' && p !== '/modules/available') return false;
     if ((p === '/sw.js' || p === '/sw-basic.js' || p === '/manifest.webmanifest') && req.method === 'GET') return false;   // the service workers and the manifest: needed before sign-in, nothing private
-    if (p === '/signin/brand') { const b = store.readNode(e.dir).brand; return sendPlain(res, 200, JSON.stringify(typeof b === 'string' ? { name: b } : {}), TYPES['.json']), true; }
+    if (p === '/signin/brand') { const n = store.readNode(e.dir), b = house.houseOf(e.dir)?.name || n.brand; return sendPlain(res, 200, JSON.stringify({ ...(typeof b === 'string' ? { name: b } : {}), ...(typeof n.look === 'string' ? { look: n.look } : {}) }), TYPES['.json']), true; }
     if (p === '/signin' || p === '/signin.html') return sendPlain(res, 200, fs.readFileSync(path.join(e.dir, 'interface/signin.html')), TYPES['.html']), true;
     if (p === '/interface/style.css' || p === '/interface/athens.css') return false;
     const fresh = async () => (await openEntity(opt)).state;
@@ -233,6 +284,8 @@ export async function serve({ opt }) {
       return sendPlain(res, 200, JSON.stringify({ period: sealing.latestPeriod(rec) }), TYPES['.json']), true;
     }
     if (p === '/auth/apply' && req.method === 'POST') {
+      // A house hub takes applications only from the house: its network or its password.
+      if (house.houseOf(e.dir) && !hs.access(req)) return sendPlain(res, 403, '{"why":"joining is only from the house Wi-Fi, or with the house password"}', TYPES['.json']), true;
       // An application, and nothing else, from someone not yet a member.
       let a; try { a = JSON.parse(await body(req)); } catch { a = null; }
       // Sealed in transit: its kind is checked once a member's node opens it.
@@ -245,7 +298,9 @@ export async function serve({ opt }) {
       return 'apply';
     }
     if (await twoFactorRoutes(req, res, p)) return true;
+    if (await houseRoutes(req, res, p)) return true;
     if (sessionOf(req)) return false;
+    if (hs.access(req)) return false;   // in through the house network or the house password: read, and join
     if (req.method === 'GET' && (p === '/' || p === '/index.html' || String(req.headers.accept || '').includes('text/html'))) return sendPlain(res, 302, '', 'text/plain', { location: '/signin' }), true;
     return sendPlain(res, 401, '{"why":"sign in first"}', TYPES['.json']), true;
   }
@@ -280,8 +335,8 @@ export async function serve({ opt }) {
       // A Home Screen label: whole words up to 12 characters ("The Orchard General Partnership" → "Orchard").
       const shortName = (n) => { if (n.length <= 12) return n; let out = ''; for (const w of n.replace(/^The /, '').split(/\s+/)) { if ((out ? `${out} ${w}` : w).length > 12) break; out = out ? `${out} ${w}` : w; } return out || n.slice(0, 12); };
       if (p === '/manifest.webmanifest' && req.method === 'GET') {
-        let name = 'Athènes';
-        try { const x = await openEntity({ ...opt, relay: true }, { readable: false }); name = x.params?.value('entity.name') || x.records?.[0]?.payload?.act?.document?.parameters?.['entity.name']?.value || name; } catch { /* the default */ }
+        let name = house.houseOf(e.dir)?.name || 'Athènes';
+        if (!house.houseOf(e.dir)?.name) try { const x = await openEntity({ ...opt, relay: true }, { readable: false }); name = x.params?.value('entity.name') || x.records?.[0]?.payload?.act?.document?.parameters?.['entity.name']?.value || name; } catch { /* the default */ }
         return sendPlain(res, 200, JSON.stringify({ name, short_name: shortName(name), start_url: '/', scope: '/', display: 'standalone',
           background_color: '#F7F5F0', theme_color: '#111110' }), 'application/manifest+json');
       }
@@ -297,6 +352,23 @@ export async function serve({ opt }) {
           if (!notify.enabled(e) && !e.unreadable) return send(res, 404, { why: 'the notify module is not enabled here' });
           const r = await notify.handle(e, b);
           send(res, r.ok ? 200 : 403, r.ok ? r : { why: r.error });
+        });
+      }
+      // Wiki pages as LaTeX PDFs (cli/wikipdf.js): for whoever may read the wiki
+      // here (a private node's gate has already let them in), one page or all of it.
+      let wm;
+      if (req.method === 'GET' && (wm = p.match(/^\/documents\/wiki\/([a-z0-9][a-z0-9-]{0,59})\.pdf$/))) {
+        return serial(async () => {
+          try {
+            e = await openEntity(opt);
+            if (!e.params.value('entity.modules').includes('wiki')) return send(res, 404, { why: 'no wiki here' });
+            const W = await import('../wikipdf.js'), hub = house.houseOf(e.dir)?.name || null;
+            const v = Number(url.searchParams.get('v')) || null;
+            const doc = wm[1] === 'all' && !e.state.m?.wiki?.pages?.all ? W.wikiTex(e, { hub }) : W.pageTex(e, wm[1], { version: v, hub });
+            const out = documents.pdf(e, doc);
+            res.writeHead(200, { 'content-type': 'application/pdf', 'content-disposition': `inline; filename="${doc.name}.pdf"`, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
+            res.end(out);
+          } catch (x) { send(res, /no page|no version|no pages/.test(x.message) ? 404 : 500, { why: x.message }); }
         });
       }
       // Certificates and signed agreements as PDFs (cli/documents.js), for signed-in members:
