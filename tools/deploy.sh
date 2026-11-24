@@ -36,10 +36,17 @@ VERSION="$(node -p "require('$ROOT/package.json').version")"
 run() { if [ $DRY = 1 ]; then echo "would run: $*"; else "$@"; fi; }
 
 echo "== Sending entity $VERSION to $HOST:$REMOTE_HOME/entity.incoming"
+# Only top-level names are left out, by listing what to send: macOS's tar matches
+# --exclude at any depth, and would drop every module's parameters.yml.
 PACK="$(mktemp -d)/entity-$VERSION.tgz"
-tar czf "$PACK" -C "$ROOT" --exclude=./.git --exclude=./.staged --exclude=./.entity --exclude=./record --exclude=./pending \
-  --exclude=./settled --exclude=./refused --exclude=./participants --exclude=./parameters.yml --exclude=./node.json \
-  --exclude=./node_modules --exclude=./site --exclude=./parent .
+SEND=()
+for f in "$ROOT"/* "$ROOT"/.[!.]*; do
+  [ -e "$f" ] || continue; n="$(basename "$f")"
+  [[ "$n" =~ ^(\.git|\.staged|\.entity|record|pending|settled|refused|participants|parameters\.yml|node\.json|node_modules|site|parent)$ ]] && continue
+  SEND+=("$n")
+done
+# COPYFILE_DISABLE: no "._name" files of Mac metadata (quarantine marks and the like) in the pack.
+COPYFILE_DISABLE=1 tar czf "$PACK" -C "$ROOT" --exclude="._*" --exclude=".DS_Store" "${SEND[@]}"
 echo "   $(du -h "$PACK" | cut -f1) packed"
 if [ "$HOST" = local ]; then run cp "$PACK" /tmp/entity-incoming.tgz; else run scp -q "$PACK" "$HOST:/tmp/entity-incoming.tgz"; fi
 
@@ -57,7 +64,8 @@ fi
 if [ $REHEARSE = 1 ]; then
   echo "== Rehearsal: upgrading copies of the republics in /tmp/entities-rehearse (the live ones are not touched)"
   rm -rf /tmp/entities-rehearse && mkdir -p /tmp/entities-rehearse
-  for d in */; do d="\${d%/}"; case "\$d" in entity|entity.prev|entity.incoming|entity.bad|entity-modules) continue ;; esac
+  # (No "case" here: macOS's bash 3.2 cannot parse one inside this here-document.)
+  for d in */; do d="\${d%/}"; [[ "\$d" =~ ^(entity|entity\.prev|entity\.incoming|entity\.bad|entity-modules)$ ]] && continue
     [ -f "\$d/record/events.jsonl" ] && cp -a "\$d" /tmp/entities-rehearse/ ; done
   cp -a entity.incoming /tmp/entities-rehearse/entity
   ENTITY_NO_STOP=1 ENTITIES=/tmp/entities-rehearse SRC=/tmp/entities-rehearse/entity bash /tmp/entities-rehearse/entity/update-republics.sh $* | tail -40

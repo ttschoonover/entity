@@ -57,7 +57,8 @@ test('house: a private hub opens to the house network and the house password, an
   const entity = fs.readdirSync(process.env.ENTITY_KEYS).find(n => n.startsWith('e-'));
   const { loadKey } = await import('../cli/context.js');
   const port = await freePort();
-  const proc = spawn(process.execPath, [path.join(dir, 'cli', 'index.js'), 'serve', '--port', String(port)], { cwd: dir, env: process.env });
+  // Listening on every address, so the check from this machine's own LAN address below can connect.
+  const proc = spawn(process.execPath, [path.join(dir, 'cli', 'index.js'), 'serve', '--port', String(port), '--host', '0.0.0.0'], { cwd: dir, env: process.env });
   let log = ''; proc.stdout.on('data', d => { log += d; }); proc.stderr.on('data', d => { log += d; });
   try {
     await new Promise((ok) => { const t = setInterval(() => { if (log.includes('served')) { clearInterval(t); ok(); } }, 50); setTimeout(() => { clearInterval(t); ok(); }, 5000); });
