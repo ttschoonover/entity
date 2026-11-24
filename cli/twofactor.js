@@ -24,7 +24,7 @@ export const validEmail = (s) => typeof s === 'string' && s.length <= 254 && /^[
 
 export function twoFactor(dir) {
   const file = path.join(dir, '.entity', 'twofactor.json');
-  const load = () => { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return { members: {} }; } };
+  const load = () => { try { return { pending: {}, ...JSON.parse(fs.readFileSync(file, 'utf8')) }; } catch { return { members: {}, pending: {} }; } };
   const save = (s) => {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(`${file}.tmp`, JSON.stringify(s, null, 2) + '\n', { mode: 0o600 });
@@ -45,10 +45,34 @@ export function twoFactor(dir) {
     policy: (params) => (params.has('twofactor.require') ? params.value('twofactor.require') : 'optional'),
     minutes: (params) => (params.has('twofactor.code_minutes') ? params.value('twofactor.code_minutes') : 10),
     email: (id) => load().members[id]?.email || null,
+    // Whether a member turned it off (the "default" rule: on unless they do). Their address stays, for recovery and alerts.
+    isOff: (id) => !!load().members[id]?.off,
     // Does the republic require it of this member, whatever they chose?
-    policyCovers(state, params, id) { const p = api.policy(params); return p === 'everyone' || (p === 'officers' && officer(state, id)); },
-    required(state, params, id) { return api.on(params) && (!!api.email(id) || api.policyCovers(state, params, id)); },
+    // registry: the republic's, so a module's own officers count (registerOfficers).
+    // "default" covers officers too: on for everyone, and only those who hold no position may turn it off.
+    policyCovers(state, params, id, registry) {
+      const p = api.policy(params);
+      return p === 'everyone' || ((p === 'officers' || p === 'default') && (officer(state, id) || (registry?.officerChecks || []).some(c => c.isOfficer(state, id))));
+    },
+    required(state, params, id, registry) {
+      if (!api.on(params)) return false;
+      if (api.policyCovers(state, params, id, registry)) return true;
+      if (api.isOff(id)) return false;
+      return !!api.email(id) || api.policy(params) === 'default';
+    },
     enroll(id, email) { const s = load(); s.members[id] = { email, since: new Date().toISOString() }; save(s); },
+    // Turn it off but keep the address (under "default"), or back on.
+    setOff(id, off) { const s = load(); if (!s.members[id]) return false; if (off) s.members[id].off = true; else delete s.members[id].off; save(s); return true; },
+    // An address checked before its owner was admitted: kept with the key they applied with,
+    // and enrolled at their first sign-in with that key (claim).
+    hold(id, email, key) { const s = load(); s.pending[id] = { email, key, until: new Date(Date.now() + 60 * 86400000).toISOString() }; save(s); },
+    claim(id, keyIds, keyIdOf) {
+      const s = load(), p = s.pending[id]; if (!p) return false;
+      const now = new Date().toISOString();
+      for (const [k, v] of Object.entries(s.pending)) if (v.until < now) delete s.pending[k];
+      if (s.pending[id] && keyIds.includes(keyIdOf(p.key))) { s.members[id] = { email: p.email, since: now }; delete s.pending[id]; save(s); return true; }
+      save(s); return false;
+    },
     remove(id) { const s = load(); const had = !!s.members[id]; delete s.members[id]; save(s); return had; },
     list() { return Object.entries(load().members).map(([id, m]) => ({ id, email: m.email, since: m.since })); },
     // A ticket without a code: proof that this browser signed for `id` just now.
@@ -61,10 +85,10 @@ export function twoFactor(dir) {
       if (recent.length >= 5) throw new Error('five codes have been sent in the last hour: wait a while, then try again');
       sent.set(id, [...recent, now]);
       const code = String(crypto.randomInt(0, 1e6)).padStart(6, '0'), salt = crypto.randomBytes(8).toString('hex'), mins = api.minutes(params);
-      const what = purpose === 'confirm' ? `to confirm this address for two-factor sign-in as ${id}` : `to sign in as ${id}`;
+      const what = purpose === 'confirm' ? `to confirm this address for two-factor sign-in as ${id}` : purpose === 'prejoin' ? `to confirm this address as you ask to join as ${id}` : `to sign in as ${id}`;
       await sendMail(mail, email, `${code} is your code for ${name}`,
         `Your code ${what} at ${name}:\n\n    ${code}\n\nIt works once, for ${mins} minutes.\n\n` +
-        (purpose === 'confirm' ? 'If you did not ask for this, ignore it: nothing changes.\n' : 'If you are not signing in right now, someone has your password. Change it, and tell the republic.\n'));
+        (purpose === 'confirm' || purpose === 'prejoin' ? 'If you did not ask for this, ignore it: nothing changes.\n' : 'If you are not signing in right now, someone has your password. Change it, and tell the republic.\n'));
       sweep();
       const t = crypto.randomBytes(24).toString('hex');
       tickets.set(t, { id, purpose, email, code: hash(salt + code), salt, until: now + mins * 60000, tries: 0, ...extra });
@@ -79,7 +103,7 @@ export function twoFactor(dir) {
       const want = Buffer.from(x.code, 'hex'), got = Buffer.from(hash(x.salt + String(code || '').replace(/\D/g, '')), 'hex');
       if (!crypto.timingSafeEqual(want, got)) return { why: `that is not the code${x.tries < 5 ? `: ${5 - x.tries} tries left` : ''}` };
       tickets.delete(t);
-      return { id: x.id, purpose: x.purpose, email: x.email };
+      return { id: x.id, purpose: x.purpose, email: x.email, key: x.key };
     },
   };
   return api;

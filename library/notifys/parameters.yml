@@ -1,7 +1,0 @@
-parameters:
-  notifys.email_text:
-    value: true
-    type: boolean
-    changed_by: ordinary
-    group: Notify.S
-    describe: Whether alert emails carry the whole alert. Off, they only say there is a new alert and link to it.

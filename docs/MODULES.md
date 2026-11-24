@@ -111,7 +111,14 @@ brings it up to date.
 A module can bring two things besides its rules and its tab:
 
 - **`server.js`**, its own routes on the node, at `/m/<module>/…` (cli/modroutes.js). It exports `handle(ctx)` and answers what it knows; `ctx` gives the address, the caller (`who.member`, `who.house`), the republic freshly read, `inSpec(list, id)` for "office:admin"-style lists, and `submit(acts)`. It is part of the module's code, so the record's digest covers it, and it runs only while the module is enabled. The node's gate runs first.
-- **Notices**, for the notify module: `registry.registerNotices({ module, notices(state, record, params) })` returns what a record tells members. A notice with `plain: true` is written out in full in emails.
+- **Notices**, for the notify module: `registry.registerNotices({ module, notices(state, record, params) })` returns what a record tells members. A notice with `plain: true` is written out in full in emails. A notice with a `level` (say `"advisory"`) is skipped by any subscription that lists that level in its `quiet`; it still reaches the member's inbox.
+- **Officers**, for two-factor: `registry.registerOfficers({ module, isOfficer(state, id) })` names whom the module counts as holding a position of trust. With `twofactor.require: officers`, they must use two-factor too (library/notifys: alert senders, when Central asks).
+
+And in a republic's node.json:
+
+- `"open_routes"`: module routes a stranger may read before signing in (`["/m/notifys/houses"]`).
+- `"apply_kinds"`: a module's own acts an applicant may send through `/auth/apply` before admission (`["notifys.join"]`, joining with an invitation).
+- With no SMTP server in `"mail"`, email (two-factor codes included) goes through `"notify": { "mail": … }`, the command that sends notices.
 
 With these, a republic's own features live in its modules and its site folder, and a new feature for one republic no longer needs a new core. See library/minihub for one that uses both.
 

@@ -99,3 +99,52 @@ test('mail: a plain SMTP conversation delivers the message', async () => {
   assert.match(got[1], /Subject: 123456 is your code/);
   assert.match(got[1], /^ {4}123456$/m);
 });
+
+test('two-factor "default": an address checked when asking to join, codes from the first sign-in, and a member may turn it off', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-'));
+  const dir = path.join(tmp, 'rep'), outbox = path.join(tmp, 'outbox'), keyHome = path.join(tmp, 'keys');
+  fs.mkdirSync(dir);
+  execFileSync('tar', ['cf', path.join(tmp, 'code.tar'), '--exclude=.git', '--exclude=record', '--exclude=node_modules', '--exclude=./node.json', '--exclude=./parameters.yml', '-C', ROOT, '.']);
+  execFileSync('tar', ['xf', path.join(tmp, 'code.tar'), '-C', dir]);
+  const env = { ...process.env, ENTITY_KEYS: keyHome, ENTITY_MAIL_OUTBOX: outbox, ENTITY_NEW_PASSWORD: 'a long test password' };
+  const E = (...a) => execFileSync(process.execPath, [path.join(dir, 'cli', 'index.js'), ...a], { cwd: dir, env, encoding: 'utf8' });
+  fs.writeFileSync(path.join(dir, 'presets', '_tf.yml'), 'modules: [deliberation, passwords, twofactor]\nset:\n  entity.name: "Default Test"\n  membership.admission: "open"\n  twofactor.require: "default"\n');
+  E('preset', 'apply', '_tf'); E('found', '--id', 'tim', '--name', 'Default Test');
+  const entity = fs.readFileSync(path.join(dir, 'record', 'events.jsonl'), 'utf8').match(/"entity":"(e-[0-9a-f]+)"/)[1];
+  const port = await freePort();
+  const proc = spawn(process.execPath, [path.join(dir, 'cli', 'index.js'), 'serve', '--settle', '--port', String(port)], { cwd: dir, env });
+  try {
+    await new Promise((ok) => { proc.stdout.on('data', (d) => { if (String(d).includes('served')) ok(); }); setTimeout(ok, 4000); });
+    const base = `http://localhost:${port}/`;
+    const call = async (p, body, cookie) => { const r = await fetch(base + p, { method: body === undefined ? 'GET' : 'POST', headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}) }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) }); return { status: r.status, body: await r.json().catch(() => ({})), cookie: (r.headers.get('set-cookie') || '').split(';')[0] }; };
+    const lastCode = () => { const f = fs.readdirSync(outbox).sort().at(-1); return fs.readFileSync(path.join(outbox, f), 'utf8').match(/^ {4}(\d{6})$/m)[1]; };
+    const act = async (by, key, kind, fields) => { const a = draft(kind, { entity, by, at: new Date().toISOString(), ...fields }); const { message, namespace } = signedMaterial(await (await import('../kernel/index.js')).createRegistry(await (await import('./helpers.js')).loadModules(['deliberation', 'passwords', 'twofactor'])), a); return { ...a, signature: await keys.sign(message, key, namespace) }; };
+    const signIn = async (id, key) => { const { body: c } = await call('auth/challenge', {}); return call('auth/verify', { id, challenge: c.challenge, signature: await keys.sign(`entity.signin\n${entity}\n${c.challenge}`, key, 'entity.signin') }); };
+
+    // Bea checks her address before applying, with the key she will apply with.
+    const bea = await passwordKey(entity, 'bea', 'another long password'), line = keys.publicKeyLine(bea.publicKey);
+    const pre = await call('auth/2fa/prejoin', { id: 'bea', email: 'bea@example.org', key: line });
+    assert.equal(pre.status, 200, pre.body.why);
+    assert.match(fs.readFileSync(path.join(outbox, fs.readdirSync(outbox).sort().at(-1)), 'utf8'), /ask to join as bea/);
+    assert.equal((await call('auth/2fa/prejoin-confirm', { ticket: pre.body.ticket, code: lastCode() })).status, 200);
+    assert.equal((await call('acts', await act('bea', bea, 'participant.apply', { key: line }))).status, 200);
+    // Her first sign-in claims the address: a code goes to it.
+    const s1 = await signIn('bea', bea);
+    assert.equal(s1.body.need, 'code', s1.body.why); assert.match(s1.body.to, /^b•+@example\.org$/);
+    const ok = await call('auth/2fa/code', { ticket: s1.body.ticket, code: lastCode() });
+    assert.equal(ok.body.twofactor, true);
+    // She turns it off; the address stays, and sign-in needs no code. Then back on.
+    assert.equal((await call('auth/2fa/off', {}, ok.cookie)).status, 200);
+    const st = await call('auth/2fa/status', undefined, ok.cookie);
+    assert.deepEqual([st.body.enrolled, st.body.off, st.body.policy], [true, true, 'default']);
+    const s2 = await signIn('bea', bea); assert.equal(s2.body.ok, true); assert.equal(s2.body.need, undefined);
+    assert.equal((await call('auth/2fa/on', {}, s2.cookie)).status, 200);
+    assert.equal((await signIn('bea', bea)).body.need, 'code');
+    // Someone else's key cannot claim an address held for bea.
+    const eve = await passwordKey(entity, 'eve', 'a third long password'), eveLine = keys.publicKeyLine(eve.publicKey);
+    const pre2 = await call('auth/2fa/prejoin', { id: 'eve', email: 'eve@example.org', key: line });
+    await call('auth/2fa/prejoin-confirm', { ticket: pre2.body.ticket, code: lastCode() });
+    await call('acts', await act('eve', eve, 'participant.apply', { key: eveLine }));
+    assert.equal((await signIn('eve', eve)).body.need, 'enroll', 'the held address was for another key');
+  } finally { proc.kill(); fs.rmSync(tmp, { recursive: true, force: true }); }
+});

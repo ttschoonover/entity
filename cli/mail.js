@@ -8,6 +8,7 @@
 // For testing, "outbox": a folder (or ENTITY_MAIL_OUTBOX) where each message is
 // written as a file instead of being sent.
 import fs from 'node:fs';
+import { spawn } from 'node:child_process';
 import path from 'node:path';
 import net from 'node:net';
 import tls from 'node:tls';
@@ -17,7 +18,8 @@ export function mailConfig(dir, node) {
   const m = node.mail || {};
   const outbox = process.env.ENTITY_MAIL_OUTBOX || m.outbox;
   if (outbox) return { outbox: path.resolve(dir, outbox), from: m.from || 'republic@localhost' };
-  if (!m.host) return null;
+  // No SMTP server: send through the command that already sends notices (node.json notify.mail).
+  if (!m.host) return node.notify?.mail ? { command: node.notify.mail, from: m.from || '' } : null;
   const pwFile = path.join(dir, '.entity', 'smtp-password');
   const password = process.env.ENTITY_SMTP_PASSWORD || (fs.existsSync(pwFile) ? fs.readFileSync(pwFile, 'utf8').trim() : '');
   const port = Number(m.port || 465);
@@ -38,12 +40,24 @@ export async function sendMail(cfg, to, subject, text) {
   if (!cfg) throw new Error('no mail is configured for this node (node.json "mail")');
   if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(to)) throw new Error('that is not an email address');
   const msg = message(cfg, to, subject, text);
+  if (cfg.command) return viaCommand(cfg.command, to, subject, text);
   if (cfg.outbox) {
     fs.mkdirSync(cfg.outbox, { recursive: true });
     fs.writeFileSync(path.join(cfg.outbox, `${Date.now()}-${crypto.randomBytes(3).toString('hex')}.eml`), msg);
     return { outbox: true };
   }
   return smtp(cfg, to, msg);
+}
+
+// The command gets the address and subject in NOTIFY_TO and NOTIFY_SUBJECT, the text on stdin.
+function viaCommand(cmd, to, subject, text) {
+  return new Promise((resolve, reject) => {
+    const p = spawn('/bin/sh', ['-c', cmd], { env: { ...process.env, NOTIFY_TO: to, NOTIFY_SUBJECT: subject }, stdio: ['pipe', 'ignore', 'ignore'] });
+    const t = setTimeout(() => { p.kill(); reject(new Error('the mail command took too long')); }, 30000);
+    p.on('error', (e) => { clearTimeout(t); reject(e); });
+    p.on('close', (code) => { clearTimeout(t); code === 0 ? resolve({ sent: true }) : reject(new Error(`the mail command exited ${code}`)); });
+    p.stdin.end(text);
+  });
 }
 
 function smtp(cfg, to, msg) {

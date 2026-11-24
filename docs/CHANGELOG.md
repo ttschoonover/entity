@@ -1,5 +1,31 @@
 # Changes
 
+## 0.9.48 · Two-factor by default, email for applicants; Notify.S leaves the core
+
+- **Notify.S is no longer part of the core.** `library/notifys` and `republics/notifys` moved to their own project (`notifys`), which installs its module with `entity module add|upgrade notifys dir:…` like any outside module. The core keeps only general plug-in points, each usable by any module.
+- **Two-factor "default"** (`twofactor.require: default`): on for everyone, who may turn it off, except anyone holding a position (an office, a committee seat, or one a module names with `registerOfficers`). Turning it off keeps the address, for recovery and alerts by email.
+- **An applicant's address, checked before applying** (`/auth/2fa/prejoin`, `/auth/2fa/prejoin-confirm`): kept with the key they apply with, enrolled at their first sign-in with it.
+- **Alerts by email to the checked address**: a subscription's `"address": "verified"`.
+
+## 0.9.47 · Notify.S grows up; three small plug-in points
+
+- **Notify.S** (library/notifys, republics/notifys):
+  - Two levels: **Emergency**, which nobody can mute, and **Advisory**, which members may mute channel by channel. Updates and all-clears take their alert's level; older alerts count as emergencies.
+  - **Test alerts** reach only the sender, that level's team and managers, admins, and members who ask for tests. They never show in the list.
+  - Alerts **leave the screen** a week after their last update (Central sets how long), or when their sender, a manager or an admin takes them off. Earlier alerts are one click away; the record keeps everything.
+  - **House codes** ("Lothlórien [LOT]") and addresses; admins edit houses.
+  - Members may **belong to several houses**, each house's manager agreeing; managers remove someone from their house, and from Notify.S only when it was their last.
+  - Joining is open to anyone with a real **connection to a house** (living, working or other), stated when applying.
+  - **Invitations**: a manager makes a one-time link (7 days), emailed through the node's mail command or copied; whoever joins with it is let in at once.
+  - **Passkeys** and **two-factor** sign-in (email codes); Central can require two-factor of everyone who sends alerts.
+  - **Accessibility**: light and high-contrast colours, reduced motion, text size, Read aloud on every alert, screen-reader announcements of new alerts, levels in words as well as colour, visible focus, 44px targets, a skip link.
+  - The full name, **Berkeley Co-operative Notification System**, on every page, email and text; terms and privacy rewritten (no operator named; not operated by the BSC, the City of Berkeley or UC; unlawful messages prohibited; liability limited to the fullest extent of the law).
+  - `upgrade.sh` brings a running Notify.S up to all this.
+- **Plug-in points** (the kernel is 0.9.14): `registry.registerOfficers` (who two-factor's "officers" rule covers); node.json `apply_kinds` (a module's acts an applicant may send); a subscription's `quiet` levels.
+- **Email without SMTP**: two-factor codes go through node.json `notify.mail` when no `mail` server is set.
+- **Fix: a notice addressed to someone reaches them even if they wrote it.** A house alert skipped its own sender.
+- **When a member leaves or is removed**, the notify side deletes their email, phone and push addresses, their sealed inbox and any unsent deliveries at the next settlement.
+
 ## 0.9.46 · Notify.S, and three small plug-in points
 
 - **Applications can declare facts** for those admitting to check: `participant.apply` may carry `about: { house: "loth" }` (up to 8 short facts), kept on the register as `declared`. The kernel is 0.9.13.

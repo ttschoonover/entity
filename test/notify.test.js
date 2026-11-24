@@ -168,3 +168,30 @@ test('notify: a module\'s notice marked plain (a minihub alert) is written out i
   assert.equal(fs.readFileSync(path.join(outbox, 'one@example.org.subject'), 'utf8').trim(), 'Water off Thursday');
   assert.match(fs.readFileSync(path.join(outbox, 'one@example.org'), 'utf8'), /^Water off Thursday\n\nFill a jug Wednesday night\.\n\nhttps:\/\/republic\.example\/#\/alerts/);
 });
+
+test('notify: when a member leaves, their addresses and stored notices are deleted', async () => {
+  const { dir, cli } = await republic();
+  cli(['notify', 'subscribe', '--email', 'one@example.org', '--events', 'proposals', '--as', 'p-0001']);
+  cli(['notify', 'subscribe', '--email', 'two@example.org', '--events', 'proposals', '--as', 'p-0002']);
+  cli(['propose', '--title', 'Paint the porch', '--changes', '{"entity.name":"The Painted Assembly"}', '--as', 'p-0001']);
+  cli(['settle', '--as', 'p-0001']);
+  const box = path.join(dir, '.entity', 'notify');
+  assert.ok(fs.existsSync(path.join(box, 'inbox', 'p-0002.jsonl')));
+  cli(['act', 'participant.leave', '--as', 'p-0002']);
+  cli(['propose', '--title', 'Fix the gate', '--changes', '{"entity.name":"The Gated Assembly"}', '--as', 'p-0001']);
+  cli(['settle', '--as', 'p-0001']);
+  const subs = JSON.parse(fs.readFileSync(path.join(box, 'subs.json'), 'utf8'));
+  assert.ok(!subs['p-0002'] && subs['p-0001'], 'only the one who left is forgotten');
+  assert.ok(!fs.existsSync(path.join(box, 'inbox', 'p-0002.jsonl')));
+  assert.ok(!fs.readFileSync(path.join(box, 'outbox.jsonl'), 'utf8').includes('"p-0002"'));
+});
+
+test('mail: with no SMTP server, email goes through the notify mail command', async () => {
+  const { mailConfig, sendMail } = await import('../cli/mail.js');
+  const out = tmp('mailcmd-');
+  const cfg = mailConfig(out, { notify: { mail: `cat > "${out}/body"; echo "$NOTIFY_TO|$NOTIFY_SUBJECT" > "${out}/head"` } });
+  assert.ok(cfg.command);
+  await sendMail(cfg, 'a@example.org', '123456 is your code', 'Your code is 123456.');
+  assert.equal(fs.readFileSync(path.join(out, 'head'), 'utf8').trim(), 'a@example.org|123456 is your code');
+  assert.equal(fs.readFileSync(path.join(out, 'body'), 'utf8'), 'Your code is 123456.');
+});

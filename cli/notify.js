@@ -26,6 +26,7 @@ import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import * as N from '../kernel/notice.js';
 import * as WP from './webpush.js';
+import { twoFactor } from './twofactor.js';
 import { sealing as S } from '../kernel/index.js';
 import * as store from '../kernel/store.js';
 import { proposalId } from '../modules/deliberation/index.js';
@@ -95,14 +96,17 @@ export async function handle(e, req, { now = Date.now() } = {}) {
   if (req.op !== 'subscribe') return fail('op is subscribe, unsubscribe, list or inbox');
   const allowed = e.params && !e.unreadable ? e.params.value('notify.events') : EVENTS;
   const events = (Array.isArray(req.events) ? req.events : allowed).filter(x => EVENTS.includes(x) && allowed.includes(x));
-  const s = { channel: req.channel, events, recordKey, at: req.at, ...(req.label ? { label: String(req.label).slice(0, 60) } : {}) };
+  // quiet: levels of notice this channel skips (a module marks notices with a level, "advisory" say); they stay in the inbox.
+  const quiet = Array.isArray(req.quiet) ? [...new Set(req.quiet.filter(x => typeof x === 'string' && /^[a-z]{1,20}$/.test(x)))].slice(0, 5) : [];
+  const s = { channel: req.channel, events, recordKey, at: req.at, ...(quiet.length ? { quiet } : {}), ...(req.label ? { label: String(req.label).slice(0, 60) } : {}) };
   if (req.channel === 'push') {
     const p = req.push;
     if (!p || typeof p.endpoint !== 'string' || !/^https:\/\//.test(p.endpoint) || !p.keys?.p256dh || !p.keys?.auth) return fail('a push subscription needs an https endpoint and its keys');
     try { WP.encrypt(p, 'x'); } catch (err) { return fail(err.message); }
     s.push = { endpoint: p.endpoint, keys: { p256dh: p.keys.p256dh, auth: p.keys.auth } };
   } else if (req.channel === 'email' || req.channel === 'sms') {
-    const a = String(req.address || '').trim();
+    // "verified": the address the member confirmed with a code (two-factor's), not typed again.
+    const a = req.channel === 'email' && req.address === 'verified' ? (twoFactor(e.dir).email(req.member) || '') : String(req.address || '').trim();
     if (!(req.channel === 'email' ? EMAIL : PHONE).test(a)) return fail(req.channel === 'email' ? 'that is not an email address' : 'give the number in international form, +15105551234');
     s.address = a;
     s.plaintext = req.channel === 'email' && !!req.plaintext && !!e.params && !e.unreadable && e.params.value('notify.plaintext_email') === true;
@@ -165,13 +169,16 @@ export async function afterSettle(e) {
   const notices = noticesOf(e, fresh).filter(n => allowed.includes(n.event));
   let queued = 0;
   for (const [member, list] of Object.entries(subs)) {
+    // Someone who left or was removed: forget where to reach them, and their stored notices.
+    if (['left', 'removed'].includes(e.state.participants[member]?.status)) { forget(e.dir, subs, member); continue; }
     if (e.state.participants[member]?.status !== 'active' || !keys[member]) continue;
     const live = list.filter(s => s.recordKey === keys[member]);          // a changed record key ends old subscriptions
     if (live.length !== list.length) { subs[member] = live; writeSubs(e.dir, subs); }
     // A notice to everyone reaches its author too, so they see it went out (node.json "notify": { "self": false } to skip it).
     // What a member did themselves (a proposal, joining) is not news to them.
     const self = store.readNode(e.dir).notify?.self !== false;
-    const forMe = notices.filter(n => (n.author !== member || (self && n.event === 'notices' && !n.only)) && (!n.only || n.only === member));
+    // A notice addressed to a member (a house alert, say) reaches them even if they wrote it.
+    const forMe = notices.filter(n => (n.author !== member || (self && n.event === 'notices')) && (!n.only || n.only === member));
     if (!forMe.length) continue;
     const sealedAll = [];
     for (const n of forMe) {
@@ -181,7 +188,7 @@ export async function afterSettle(e) {
     }
     trimInbox(e.dir, member);
     for (const s of live) {
-      const mine = sealedAll.filter(x => s.events.includes(x.n.event));
+      const mine = sealedAll.filter(x => s.events.includes(x.n.event) && !(x.n.level && s.quiet?.includes(x.n.level)));
       if (!mine.length) continue;
       if (s.channel === 'push') {
         // A burst becomes one summary push; every notice is still in the inbox.
@@ -267,6 +274,14 @@ export async function nudge(e, { now = Date.now() } = {}) {
   }
   writeState(e.dir, st);
   return { queued };
+}
+
+// A member gone from the group: their addresses, stored notices and unsent deliveries are deleted.
+function forget(dir, subs, member) {
+  delete subs[member]; writeSubs(dir, subs);
+  fs.rmSync(path.join(dirOf(dir), 'inbox', `${member}.jsonl`), { force: true });
+  const out = path.join(dirOf(dir), 'outbox.jsonl');
+  if (fs.existsSync(out)) writeLinesAtomically(out, readLines(out).filter(d => d.member !== member));
 }
 
 function trimInbox(dir, member) {

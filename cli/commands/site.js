@@ -95,7 +95,7 @@ export async function serve({ opt }) {
   };
   // Must this act, posted over the web, come from a browser that passed two-factor?
   const needsSecond = (ee, a) => a && a.kind !== 'participant.apply' && !(a.kind === 'agreement.sign' && ee.state.participants[a.by]?.status === 'applicant')
-    && ee.state.participants[a.by] && tf.required(ee.state, ee.params, a.by);
+    && ee.state.participants[a.by] && tf.required(ee.state, ee.params, a.by, ee.registry);
   async function twoFactorRoutes(req, res, p) {
     if (!p.startsWith('/auth/2fa/')) return false;
     const ee = await openEntity(opt), name = ee.params.value('entity.name');
@@ -104,8 +104,8 @@ export async function serve({ opt }) {
     if (p === '/auth/2fa/status' && req.method === 'GET') {
       const id = s?.id, email = id && tf.email(id);
       return json(res, 200, { module: tf.on(ee.params), policy: tf.policy(ee.params), mail: !!mail(), signedIn: id || null,
-        enrolled: !!email, to: email ? mask(email) : null, required: id ? tf.required(ee.state, ee.params, id) : null,
-        covered: id ? tf.policyCovers(ee.state, ee.params, id) : null, confirmed: !!s?.twofactor });
+        enrolled: !!email, to: email ? mask(email) : null, off: id ? tf.isOff(id) : null, required: id ? tf.required(ee.state, ee.params, id, ee.registry) : null,
+        covered: id ? tf.policyCovers(ee.state, ee.params, id, ee.registry) : null, confirmed: !!s?.twofactor });
     }
     if (req.method !== 'POST') return json(res, 405, { why: 'method not allowed' });
     if (!tf.on(ee.params)) return json(res, 409, { why: 'two-factor is not installed in this republic' });
@@ -139,8 +139,29 @@ export async function serve({ opt }) {
       }
       if (p === '/auth/2fa/off') {
         if (!s?.twofactor) return json(res, 403, { why: 'confirm this browser with a code first' });
-        if (tf.policyCovers(ee.state, ee.params, s.id)) return json(res, 403, { why: `the republic requires two-factor of you (twofactor.require: ${tf.policy(ee.params)})` });
-        tf.remove(s.id);
+        if (tf.policyCovers(ee.state, ee.params, s.id, ee.registry)) return json(res, 403, { why: `the republic requires two-factor of you (twofactor.require: ${tf.policy(ee.params)})` });
+        // Under "default" the address stays (recovery, alerts by email); otherwise it goes.
+        if (tf.policy(ee.params) === 'default') tf.setOff(s.id, true); else tf.remove(s.id);
+        return json(res, 200, { ok: true });
+      }
+      if (p === '/auth/2fa/on') {
+        if (!s?.id) return json(res, 401, { why: 'sign in first' });
+        if (!tf.setOff(s.id, false)) return json(res, 409, { why: 'give an address for codes first' });
+        return json(res, 200, { ok: true });
+      }
+      // Asking to join: check the applicant's address before the application goes in, and keep it
+      // with the key they apply with. It is enrolled at their first sign-in with that key.
+      if (p === '/auth/2fa/prejoin') {
+        if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(String(b.id || ''))) return json(res, 400, { why: 'a username is lowercase letters, digits and -' });
+        if (!validEmail(b.email)) return json(res, 400, { why: 'that is not an email address' });
+        try { K.parsePublicKeyLine(String(b.key || '')); } catch { return json(res, 400, { why: 'key is the public key your password makes' }); }
+        const ticket = await tf.send({ id: b.id, purpose: 'prejoin', email: b.email.trim(), params: ee.params, mail: mail(), name, extra: { key: b.key } });
+        return json(res, 200, { ticket, to: mask(b.email) });
+      }
+      if (p === '/auth/2fa/prejoin-confirm') {
+        const r = tf.redeem(b.ticket, b.code, 'prejoin');
+        if (r.why) return json(res, 401, { why: r.why });
+        tf.hold(r.id, r.email, r.key);
         return json(res, 200, { ok: true });
       }
     } catch (x) { return json(res, 503, { why: x.message }); }
@@ -278,7 +299,8 @@ export async function serve({ opt }) {
       if (!v.ok) return no('no member by that id, or not that password');
       if (m.status === 'applicant') return no('your application has not been admitted yet');
       const ee = await openEntity(opt);
-      if (tf.required(ee.state, ee.params, b.id)) {
+      tf.claim(b.id, m.keys, K.keyId);   // an address checked when they asked to join
+      if (tf.required(ee.state, ee.params, b.id, ee.registry)) {
         const email = tf.email(b.id);
         if (!email) return json(res, 200, { need: 'enroll', ticket: tf.ticket(b.id, 'enroll'), policy: tf.policy(ee.params) });
         try { return json(res, 200, { need: 'code', ticket: await tf.send({ id: b.id, purpose: 'signin', email, params: ee.params, mail: mail(), name: ee.params.value('entity.name') }), to: mask(email) }); }
@@ -303,7 +325,9 @@ export async function serve({ opt }) {
       let a; try { a = JSON.parse(await body(req)); } catch { a = null; }
       // Sealed in transit: its kind is checked once a member's node opens it.
       if (a && a.sealedAct && !Array.isArray(a)) { req._applyOnly = true; return 'apply'; }
-      if (!a || !APPLY_KINDS.includes(a.kind)) return sendPlain(res, 400, '{"why":"only an application to join, and signing what it requires, are accepted here"}', TYPES['.json']), true;
+      // node.json "apply_kinds": a module's own acts an applicant may send (accepting an invitation, say).
+      const applyKinds = [...APPLY_KINDS, ...(store.readNode(e.dir).apply_kinds || [])];
+      if (!a || !applyKinds.includes(a.kind)) return sendPlain(res, 400, '{"why":"only an application to join, and signing what it requires, are accepted here"}', TYPES['.json']), true;
       if (a.kind === 'agreement.sign' && (await openEntity(opt)).state.participants[a.by]?.status !== 'applicant') return sendPlain(res, 400, '{"why":"members sign from the page, once signed in"}', TYPES['.json']), true;
       const pending = fs.existsSync(path.join(e.dir, 'pending')) ? fs.readdirSync(path.join(e.dir, 'pending')).length : 0;
       if (pending > 200) return sendPlain(res, 429, '{"why":"too many acts waiting; try later"}', TYPES['.json']), true;
@@ -342,7 +366,7 @@ export async function serve({ opt }) {
         let opened = null; if (e.ring) { try { opened = await sealing.openAct(a.sealedAct, e.ring); } catch { /* not ours */ } }
         if (!opened) { store.writePending(e.dir, box); accepted.push(`sealed:${a.sealedAct.ct.slice(0, 16)}`); continue; }
         a = opened;
-        if (req._applyOnly && !APPLY_KINDS.includes(a.kind)) { refused.push({ hash: actHash(a), why: 'only an application to join, and signing what it requires, are accepted here' }); continue; }
+        if (req._applyOnly && ![...APPLY_KINDS, ...(store.readNode(e.dir).apply_kinds || [])].includes(a.kind)) { refused.push({ hash: actHash(a), why: 'only an application to join, and signing what it requires, are accepted here' }); continue; }
       }
       const def = e.registry.get(a && a.kind);
       const keys = def?.selfSigned ? [a.key] : e.state.participants[a?.by]?.keys;

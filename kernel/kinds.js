@@ -22,6 +22,7 @@ export class Registry {
     this.admissionChecks = [];     // conditions an applicant must meet to be admitted
     this.proposalChecks = [];      // conditions a proposal must meet to be laid
     this.noticeMakers = [];        // what a module's records tell members (the notify module)
+    this.officerChecks = [];       // who a module counts as an officer (two-factor's "officers" rule)
   }
 
   // registerNotices({ module, notices(state, record, params) → [notice] })
@@ -31,6 +32,15 @@ export class Registry {
   registerNotices(def) {
     if (!def.module || typeof def.notices !== 'function') throw new Error('registerNotices: module and notices required');
     this.noticeMakers.push(def);
+    return this;
+  }
+
+  // registerOfficers({ module, isOfficer(state, id) → boolean })
+  // Who a module counts as holding a position of trust (an alert sender, say),
+  // beyond offices and committees: two-factor's "officers" rule covers them too.
+  registerOfficers(def) {
+    if (!def.module || typeof def.isOfficer !== 'function') throw new Error('registerOfficers: module and isOfficer required');
+    this.officerChecks.push(def);
     return this;
   }
 
